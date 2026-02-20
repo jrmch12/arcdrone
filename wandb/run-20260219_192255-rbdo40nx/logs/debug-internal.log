@@ -1,0 +1,12 @@
+{"time":"2026-02-19T19:22:55.351696744-05:00","level":"INFO","msg":"stream: starting","core version":"0.24.2"}
+{"time":"2026-02-19T19:22:56.013921138-05:00","level":"INFO","msg":"stream: created new stream","id":"rbdo40nx"}
+{"time":"2026-02-19T19:22:56.014088183-05:00","level":"INFO","msg":"handler: started","stream_id":"rbdo40nx"}
+{"time":"2026-02-19T19:22:56.01429094-05:00","level":"INFO","msg":"stream: started","id":"rbdo40nx"}
+{"time":"2026-02-19T19:22:56.014368901-05:00","level":"INFO","msg":"writer: started","stream_id":"rbdo40nx"}
+{"time":"2026-02-19T19:22:56.014442354-05:00","level":"INFO","msg":"sender: started","stream_id":"rbdo40nx"}
+{"time":"2026-02-19T19:27:55.764107661-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-19T19:27:56.331026199-05:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-19T19:27:56.348452559-05:00","level":"INFO","msg":"stream: closing","id":"rbdo40nx"}
+{"time":"2026-02-19T19:27:56.348496828-05:00","level":"INFO","msg":"handler: closed","stream_id":"rbdo40nx"}
+{"time":"2026-02-19T19:27:56.34864867-05:00","level":"INFO","msg":"sender: closed","stream_id":"rbdo40nx"}
+{"time":"2026-02-19T19:27:56.348709426-05:00","level":"INFO","msg":"stream: closed","id":"rbdo40nx"}

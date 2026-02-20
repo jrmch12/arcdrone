@@ -1,0 +1,7 @@
+{"time":"2026-01-29T12:54:12.796753513-05:00","level":"INFO","msg":"stream: starting","core version":"0.22.3"}
+{"time":"2026-01-29T12:54:13.663477381-05:00","level":"INFO","msg":"stream: created new stream","id":"svetclxl"}
+{"time":"2026-01-29T12:54:13.663711729-05:00","level":"INFO","msg":"handler: started","stream_id":"svetclxl"}
+{"time":"2026-01-29T12:54:13.663907551-05:00","level":"INFO","msg":"stream: started","id":"svetclxl"}
+{"time":"2026-01-29T12:54:13.664045927-05:00","level":"INFO","msg":"writer: started","stream_id":"svetclxl"}
+{"time":"2026-01-29T12:54:13.66404635-05:00","level":"INFO","msg":"sender: started","stream_id":"svetclxl"}
+{"time":"2026-01-29T13:04:45.211423169-05:00","level":"INFO","msg":"api: retrying HTTP error","status":502,"url":"https://api.wandb.ai/files/jraimundo-mares-12-private/brax-training/svetclxl/file_stream","body":"\n<html><head>\n<meta http-equiv=\"content-type\" content=\"text/html;charset=utf-8\">\n<title>502 Server Error</title>\n</head>\n<body text=#000000 bgcolor=#ffffff>\n<h1>Error: Server Error</h1>\n<h2>The server encountered a temporary error and could not complete your request.<p>Please try again in 30 seconds.</h2>\n<h2></h2>\n</body></html>\n"}
