@@ -1,0 +1,3011 @@
+[2026-02-20 12:22:43,741][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+[2026-02-20 12:22:43,877][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:22:46,998][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-20 12:22:47,649][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:23:06,663][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:23:19,567][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:23:45,486][absl][INFO] - {'eval/walltime': 25.719438314437866, 'eval/episode_reward': Array(434.7352, dtype=float32), 'eval/episode_reward_action_penalty': Array(0.4791368, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(105.68918, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.03125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(148.3031, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(434.7352, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(52.53178, dtype=float32), 'eval/episode_reward_xy_alignment': Array(69.11781, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(63.18887, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.543395, dtype=float32), 'eval/episode_reward_std': Array(236.00708, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(0.84424514, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(101.535866, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.0414424, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(139.15271, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(236.00708, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(28.316582, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(34.03762, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(23.300821, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.158302, dtype=float32), 'eval/avg_episode_length': Array(232.11719, dtype=float32), 'eval/std_episode_length': Array(53.74762, dtype=float32), 'eval/epoch_eval_time': 25.719438314437866, 'eval/sps': 1244.195133998571}
+[2026-02-20 12:23:45,504][absl][INFO] - starting iteration 0 58.50567007064819
+[2026-02-20 12:24:25,759][root][INFO] - 
+                              Steps Env: 131072 Log: 1
+                  Steps per second: 1589
+                    Episode length: 74.9833
+     Episode reward_action_penalty: 0.0653
+     Episode reward_angvel_penalty: 4.5287
+      Episode reward_crash_penalty: -20.0000
+     Episode reward_linvel_penalty: 4.8475
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 125.5789
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 42.8728
+       Episode reward_xy_alignment: 65.8030
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 30.1424
+         Episode reward_z_progress: -2.6808
+                Episode sum_reward: 125.5789
+                Train entropy_loss: -0.002264
+                     Train kl_mean: 12.695586
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.897198
+                 Train policy_loss: 0.031997
+                  Train total_loss: 0.467000
+                      Train v_loss: 0.437267
+
+[2026-02-20 12:24:27,725][root][INFO] - 
+                              Steps Env: 262144 Log: 2
+                  Steps per second: 66650
+                    Episode length: 34.3700
+     Episode reward_action_penalty: 0.0258
+     Episode reward_angvel_penalty: 17.1891
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 23.4465
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 67.5617
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 9.4689
+       Episode reward_xy_alignment: 8.9777
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 8.8596
+         Episode reward_z_progress: -0.4059
+                Episode sum_reward: 67.5617
+                Train entropy_loss: -0.001956
+                     Train kl_mean: 6.370706
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.936457
+                 Train policy_loss: 0.019539
+                  Train total_loss: 0.423539
+                      Train v_loss: 0.405957
+
+[2026-02-20 12:24:29,313][root][INFO] - 
+                              Steps Env: 393216 Log: 3
+                  Steps per second: 82546
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.002095
+                     Train kl_mean: 4.267220
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.826857
+                 Train policy_loss: -0.006479
+                  Train total_loss: 0.262695
+                      Train v_loss: 0.271268
+
+[2026-02-20 12:24:30,649][root][INFO] - 
+                              Steps Env: 524288 Log: 4
+                  Steps per second: 98128
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.002027
+                     Train kl_mean: 0.391841
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.728705
+                 Train policy_loss: -0.035562
+                  Train total_loss: 0.096039
+                      Train v_loss: 0.133628
+
+[2026-02-20 12:24:31,960][root][INFO] - 
+                              Steps Env: 655360 Log: 5
+                  Steps per second: 99972
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.002073
+                     Train kl_mean: 0.109132
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.575520
+                 Train policy_loss: -0.060220
+                  Train total_loss: -0.052813
+                      Train v_loss: 0.009480
+
+[2026-02-20 12:24:33,246][root][INFO] - 
+                              Steps Env: 786432 Log: 6
+                  Steps per second: 101941
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.001807
+                     Train kl_mean: 0.131411
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.516671
+                 Train policy_loss: -0.062921
+                  Train total_loss: -0.063013
+                      Train v_loss: 0.001715
+
+[2026-02-20 12:24:33,486][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:25:06,774][absl][INFO] - {'eval/walltime': 59.013070821762085, 'training/sps': np.float64(16526.518578240823), 'training/walltime': 47.58606576919556, 'training/entropy_loss': Array(-0.00193931, dtype=float32), 'training/kl_mean': Array(2.200869, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.6699085, dtype=float32), 'training/policy_loss': Array(-0.03425701, dtype=float32), 'training/total_loss': Array(0.10031001, dtype=float32), 'training/v_loss': Array(0.13650632, dtype=float32), 'eval/episode_reward': Array(657.6325, dtype=float32), 'eval/episode_reward_action_penalty': Array(0.33257484, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(187.38808, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.5, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(261.20618, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(657.6325, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(49.45342, dtype=float32), 'eval/episode_reward_xy_alignment': Array(97.14203, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(67.427666, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.8173618, dtype=float32), 'eval/episode_reward_std': Array(242.92917, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(0.74968714, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(98.03506, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.6143785, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(135.85674, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(242.92917, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(24.764847, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(50.314728, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(26.960583, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.5813603, dtype=float32), 'eval/avg_episode_length': Array(225.6875, dtype=float32), 'eval/std_episode_length': Array(64.38504, dtype=float32), 'eval/epoch_eval_time': 33.29363250732422, 'eval/sps': 961.1447472113583}
+[2026-02-20 12:25:06,786][absl][INFO] - starting iteration 1 139.78815126419067
+[2026-02-20 12:25:13,210][root][INFO] - 
+                              Steps Env: 917504 Log: 7
+                  Steps per second: 3280
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.001489
+                     Train kl_mean: 0.123497
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.475671
+                 Train policy_loss: -0.057939
+                  Train total_loss: -0.057993
+                      Train v_loss: 0.001435
+
+[2026-02-20 12:25:20,035][root][INFO] - 
+                              Steps Env: 1048576 Log: 8
+                  Steps per second: 19207
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.001164
+                     Train kl_mean: 0.109147
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.438238
+                 Train policy_loss: -0.053071
+                  Train total_loss: -0.052800
+                      Train v_loss: 0.001436
+
+[2026-02-20 12:25:26,323][root][INFO] - 
+                              Steps Env: 1179648 Log: 9
+                  Steps per second: 20843
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.000848
+                     Train kl_mean: 0.095649
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.405484
+                 Train policy_loss: -0.048523
+                  Train total_loss: -0.047884
+                      Train v_loss: 0.001487
+
+[2026-02-20 12:25:32,044][root][INFO] - 
+                              Steps Env: 1310720 Log: 10
+                  Steps per second: 22912
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.000526
+                     Train kl_mean: 0.084887
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.375642
+                 Train policy_loss: -0.044297
+                  Train total_loss: -0.043261
+                      Train v_loss: 0.001562
+
+[2026-02-20 12:25:34,028][root][INFO] - 
+                              Steps Env: 1441792 Log: 11
+                  Steps per second: 66040
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: -0.000208
+                     Train kl_mean: 0.072673
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.348976
+                 Train policy_loss: -0.039855
+                  Train total_loss: -0.038436
+                      Train v_loss: 0.001626
+
+[2026-02-20 12:25:35,643][root][INFO] - 
+                              Steps Env: 1572864 Log: 12
+                  Steps per second: 81200
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.000108
+                     Train kl_mean: 0.063120
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.324375
+                 Train policy_loss: -0.036038
+                  Train total_loss: -0.034259
+                      Train v_loss: 0.001672
+
+[2026-02-20 12:25:37,825][absl][INFO] - {'eval/walltime': 61.177093744277954, 'training/sps': np.float64(27244.673306229746), 'training/walltime': 76.45159816741943, 'training/entropy_loss': Array(-0.00034406, dtype=float32), 'training/kl_mean': Array(0.07999794, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.3625482, dtype=float32), 'training/policy_loss': Array(-0.04121258, dtype=float32), 'training/total_loss': Array(-0.03997043, dtype=float32), 'training/v_loss': Array(0.00158622, dtype=float32), 'eval/episode_reward': Array(746.3009, dtype=float32), 'eval/episode_reward_action_penalty': Array(1.3286352, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(197.17963, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-0.78125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(295.14548, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(746.3009, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(58.855705, dtype=float32), 'eval/episode_reward_xy_alignment': Array(97.364685, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(100.71472, dtype=float32), 'eval/episode_reward_z_progress': Array(-3.506638, dtype=float32), 'eval/episode_reward_std': Array(215.64302, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(1.7587352, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(96.224625, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(3.8748739, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(139.84555, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(215.64302, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(29.37284, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(40.8408, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(39.199005, dtype=float32), 'eval/episode_reward_z_progress_std': Array(6.8796873, dtype=float32), 'eval/avg_episode_length': Array(244.20312, dtype=float32), 'eval/std_episode_length': Array(31.563519, dtype=float32), 'eval/epoch_eval_time': 2.164022922515869, 'eval/sps': 14787.274047354893}
+[2026-02-20 12:25:37,833][absl][INFO] - starting iteration 2 170.8352472782135
+[2026-02-20 12:25:39,300][root][INFO] - 
+                              Steps Env: 1703936 Log: 13
+                  Steps per second: 35842
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.000423
+                     Train kl_mean: 0.055993
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.301284
+                 Train policy_loss: -0.032695
+                  Train total_loss: -0.030578
+                      Train v_loss: 0.001695
+
+[2026-02-20 12:25:40,571][root][INFO] - 
+                              Steps Env: 1835008 Log: 14
+                  Steps per second: 103049
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.000752
+                     Train kl_mean: 0.050786
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.278985
+                 Train policy_loss: -0.029838
+                  Train total_loss: -0.027393
+                      Train v_loss: 0.001693
+
+[2026-02-20 12:25:41,950][root][INFO] - 
+                              Steps Env: 1966080 Log: 15
+                  Steps per second: 95102
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.001100
+                     Train kl_mean: 0.045861
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.257304
+                 Train policy_loss: -0.027007
+                  Train total_loss: -0.024244
+                      Train v_loss: 0.001663
+
+[2026-02-20 12:25:43,294][root][INFO] - 
+                              Steps Env: 2097152 Log: 16
+                  Steps per second: 97507
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.001451
+                     Train kl_mean: 0.041235
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.237210
+                 Train policy_loss: -0.024523
+                  Train total_loss: -0.021464
+                      Train v_loss: 0.001608
+
+[2026-02-20 12:25:44,643][root][INFO] - 
+                              Steps Env: 2228224 Log: 17
+                  Steps per second: 97155
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.001786
+                     Train kl_mean: 0.037647
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.219281
+                 Train policy_loss: -0.022809
+                  Train total_loss: -0.019493
+                      Train v_loss: 0.001530
+
+[2026-02-20 12:25:46,055][root][INFO] - 
+                              Steps Env: 2359296 Log: 18
+                  Steps per second: 92841
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.002097
+                     Train kl_mean: 0.035856
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.203601
+                 Train policy_loss: -0.022046
+                  Train total_loss: -0.018516
+                      Train v_loss: 0.001433
+
+[2026-02-20 12:25:47,428][absl][INFO] - {'eval/walltime': 62.532655239105225, 'training/sps': np.float64(95555.95446144251), 'training/walltime': 84.68166613578796, 'training/entropy_loss': Array(0.00162434, dtype=float32), 'training/kl_mean': Array(0.04103798, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.2289798, dtype=float32), 'training/policy_loss': Array(-0.02392923, dtype=float32), 'training/total_loss': Array(-0.02075911, dtype=float32), 'training/v_loss': Array(0.00154579, dtype=float32), 'eval/episode_reward': Array(749.22595, dtype=float32), 'eval/episode_reward_action_penalty': Array(1.7626046, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(173.76552, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-1.5625, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(261.99536, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(749.22595, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(83.421165, dtype=float32), 'eval/episode_reward_xy_alignment': Array(103.742065, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(129.24623, dtype=float32), 'eval/episode_reward_z_progress': Array(-3.144414, dtype=float32), 'eval/episode_reward_std': Array(214.37201, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(1.3817213, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(88.46904, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(5.3673635, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(130.00371, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(214.37201, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(33.367184, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(37.686348, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(39.43583, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.3815446, dtype=float32), 'eval/avg_episode_length': Array(239.55469, dtype=float32), 'eval/std_episode_length': Array(38.952858, dtype=float32), 'eval/epoch_eval_time': 1.3555614948272705, 'eval/sps': 23606.45394702476}
+[2026-02-20 12:25:47,436][absl][INFO] - starting iteration 3 180.43818306922913
+[2026-02-20 12:25:48,851][root][INFO] - 
+                              Steps Env: 2490368 Log: 19
+                  Steps per second: 46875
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.002395
+                     Train kl_mean: 0.035178
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.189392
+                 Train policy_loss: -0.021295
+                  Train total_loss: -0.017581
+                      Train v_loss: 0.001319
+
+[2026-02-20 12:25:50,185][root][INFO] - 
+                              Steps Env: 2621440 Log: 20
+                  Steps per second: 98289
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.002702
+                     Train kl_mean: 0.035438
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.175483
+                 Train policy_loss: -0.020912
+                  Train total_loss: -0.017019
+                      Train v_loss: 0.001191
+
+[2026-02-20 12:25:51,548][root][INFO] - 
+                              Steps Env: 2752512 Log: 21
+                  Steps per second: 96145
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.003027
+                     Train kl_mean: 0.035131
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.161561
+                 Train policy_loss: -0.020147
+                  Train total_loss: -0.016070
+                      Train v_loss: 0.001050
+
+[2026-02-20 12:25:52,945][root][INFO] - 
+                              Steps Env: 2883584 Log: 22
+                  Steps per second: 93836
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.003365
+                     Train kl_mean: 0.035119
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.147994
+                 Train policy_loss: -0.020045
+                  Train total_loss: -0.015775
+                      Train v_loss: 0.000905
+
+[2026-02-20 12:25:54,277][root][INFO] - 
+                              Steps Env: 3014656 Log: 23
+                  Steps per second: 98349
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.003706
+                     Train kl_mean: 0.035877
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.135303
+                 Train policy_loss: -0.019960
+                  Train total_loss: -0.015494
+                      Train v_loss: 0.000761
+
+[2026-02-20 12:25:55,560][root][INFO] - 
+                              Steps Env: 3145728 Log: 24
+                  Steps per second: 102219
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.004047
+                     Train kl_mean: 0.036413
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.123698
+                 Train policy_loss: -0.021149
+                  Train total_loss: -0.016473
+                      Train v_loss: 0.000629
+
+[2026-02-20 12:25:56,725][absl][INFO] - {'eval/walltime': 63.67881464958191, 'training/sps': np.float64(96695.8619512535), 'training/walltime': 92.8147132396698, 'training/entropy_loss': Array(0.00356282, dtype=float32), 'training/kl_mean': Array(0.03604108, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.14162308, dtype=float32), 'training/policy_loss': Array(-0.02030133, dtype=float32), 'training/total_loss': Array(-0.0159067, dtype=float32), 'training/v_loss': Array(0.00083182, dtype=float32), 'eval/episode_reward': Array(759.67786, dtype=float32), 'eval/episode_reward_action_penalty': Array(3.324397, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(161.9559, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-1.71875, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(239.72977, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(759.67786, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(106.87836, dtype=float32), 'eval/episode_reward_xy_alignment': Array(112.84506, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(140.25229, dtype=float32), 'eval/episode_reward_z_progress': Array(-3.5891142, dtype=float32), 'eval/episode_reward_std': Array(218.36555, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.0004263, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(83.79778, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(5.605435, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(124.321915, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(218.36555, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(35.772415, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(37.677906, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(54.023712, dtype=float32), 'eval/episode_reward_z_progress_std': Array(6.1971188, dtype=float32), 'eval/avg_episode_length': Array(237.40625, dtype=float32), 'eval/std_episode_length': Array(42.95463, dtype=float32), 'eval/epoch_eval_time': 1.1461594104766846, 'eval/sps': 27919.327545102376}
+[2026-02-20 12:25:56,733][absl][INFO] - starting iteration 4 189.73524713516235
+[2026-02-20 12:25:58,156][root][INFO] - 
+                              Steps Env: 3276800 Log: 25
+                  Steps per second: 50488
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.004386
+                     Train kl_mean: 0.038747
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.113270
+                 Train policy_loss: -0.020964
+                  Train total_loss: -0.016060
+                      Train v_loss: 0.000518
+
+[2026-02-20 12:25:59,489][root][INFO] - 
+                              Steps Env: 3407872 Log: 26
+                  Steps per second: 98319
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.004739
+                     Train kl_mean: 0.041177
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.103537
+                 Train policy_loss: -0.020320
+                  Train total_loss: -0.015148
+                      Train v_loss: 0.000432
+
+[2026-02-20 12:26:00,834][root][INFO] - 
+                              Steps Env: 3538944 Log: 27
+                  Steps per second: 97408
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.005092
+                     Train kl_mean: 0.042155
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.094669
+                 Train policy_loss: -0.019365
+                  Train total_loss: -0.013902
+                      Train v_loss: 0.000371
+
+[2026-02-20 12:26:02,139][root][INFO] - 
+                              Steps Env: 3670016 Log: 28
+                  Steps per second: 100498
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.005439
+                     Train kl_mean: 0.041399
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.086539
+                 Train policy_loss: -0.019541
+                  Train total_loss: -0.013775
+                      Train v_loss: 0.000327
+
+[2026-02-20 12:26:03,580][root][INFO] - 
+                              Steps Env: 3801088 Log: 29
+                  Steps per second: 90941
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.005768
+                     Train kl_mean: 0.039942
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.079432
+                 Train policy_loss: -0.019423
+                  Train total_loss: -0.013362
+                      Train v_loss: 0.000292
+
+[2026-02-20 12:26:04,912][root][INFO] - 
+                              Steps Env: 3932160 Log: 30
+                  Steps per second: 98419
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.006075
+                     Train kl_mean: 0.041957
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.073328
+                 Train policy_loss: -0.017408
+                  Train total_loss: -0.011072
+                      Train v_loss: 0.000261
+
+[2026-02-20 12:26:06,115][absl][INFO] - {'eval/walltime': 64.86454606056213, 'training/sps': np.float64(96052.91439916531), 'training/walltime': 101.00220036506653, 'training/entropy_loss': Array(0.00560789, dtype=float32), 'training/kl_mean': Array(0.04209843, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.08344881, dtype=float32), 'training/policy_loss': Array(-0.01794102, dtype=float32), 'training/total_loss': Array(-0.01202035, dtype=float32), 'training/v_loss': Array(0.00031279, dtype=float32), 'eval/episode_reward': Array(846.932, dtype=float32), 'eval/episode_reward_action_penalty': Array(3.547596, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(174.57253, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-1.71875, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(255.04947, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(846.932, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(123.316376, dtype=float32), 'eval/episode_reward_xy_alignment': Array(129.21692, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(165.8535, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.9055674, dtype=float32), 'eval/episode_reward_std': Array(185.02357, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(1.7998556, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(76.07744, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(5.605435, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(114.78963, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(185.02357, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(30.704344, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(43.705654, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(45.17926, dtype=float32), 'eval/episode_reward_z_progress_std': Array(3.0788207, dtype=float32), 'eval/avg_episode_length': Array(239.375, dtype=float32), 'eval/std_episode_length': Array(37.04495, dtype=float32), 'eval/epoch_eval_time': 1.1857314109802246, 'eval/sps': 26987.56202599552}
+[2026-02-20 12:26:06,123][absl][INFO] - starting iteration 5 199.1248016357422
+[2026-02-20 12:26:07,481][root][INFO] - 
+                              Steps Env: 4063232 Log: 31
+                  Steps per second: 51023
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.006382
+                     Train kl_mean: 0.042644
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.067740
+                 Train policy_loss: -0.016158
+                  Train total_loss: -0.009546
+                      Train v_loss: 0.000230
+
+[2026-02-20 12:26:08,845][root][INFO] - 
+                              Steps Env: 4194304 Log: 32
+                  Steps per second: 96092
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.006682
+                     Train kl_mean: 0.045729
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.062662
+                 Train policy_loss: -0.013861
+                  Train total_loss: -0.006981
+                      Train v_loss: 0.000199
+
+[2026-02-20 12:26:10,219][root][INFO] - 
+                              Steps Env: 4325376 Log: 33
+                  Steps per second: 95341
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.007023
+                     Train kl_mean: 0.046959
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.057483
+                 Train policy_loss: -0.013128
+                  Train total_loss: -0.005937
+                      Train v_loss: 0.000168
+
+[2026-02-20 12:26:11,643][root][INFO] - 
+                              Steps Env: 4456448 Log: 34
+                  Steps per second: 92065
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.007394
+                     Train kl_mean: 0.048634
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.052397
+                 Train policy_loss: -0.013195
+                  Train total_loss: -0.005662
+                      Train v_loss: 0.000139
+
+[2026-02-20 12:26:13,087][root][INFO] - 
+                              Steps Env: 4587520 Log: 35
+                  Steps per second: 90778
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.007796
+                     Train kl_mean: 0.054215
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.047392
+                 Train policy_loss: -0.011005
+                  Train total_loss: -0.003096
+                      Train v_loss: 0.000113
+
+[2026-02-20 12:26:14,471][root][INFO] - 
+                              Steps Env: 4718592 Log: 36
+                  Steps per second: 94736
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.008187
+                     Train kl_mean: 0.061312
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.042945
+                 Train policy_loss: -0.009177
+                  Train total_loss: -0.000899
+                      Train v_loss: 0.000090
+
+[2026-02-20 12:26:15,672][absl][INFO] - {'eval/walltime': 66.04636979103088, 'training/sps': np.float64(94094.74589817855), 'training/walltime': 109.36007404327393, 'training/entropy_loss': Array(0.00763184, dtype=float32), 'training/kl_mean': Array(0.0548298, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.04985664, dtype=float32), 'training/policy_loss': Array(-0.01046264, dtype=float32), 'training/total_loss': Array(-0.00270309, dtype=float32), 'training/v_loss': Array(0.00012771, dtype=float32), 'eval/episode_reward': Array(811.485, dtype=float32), 'eval/episode_reward_action_penalty': Array(3.7174506, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(144.20915, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-3.59375, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(204.98279, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(811.485, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(155.93735, dtype=float32), 'eval/episode_reward_xy_alignment': Array(154.54434, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(154.67276, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.9851456, dtype=float32), 'eval/episode_reward_std': Array(199.10306, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.240315, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(69.7021, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(7.678539, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(107.19254, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(199.10306, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(30.42832, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(45.786316, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(44.66074, dtype=float32), 'eval/episode_reward_z_progress_std': Array(3.5207684, dtype=float32), 'eval/avg_episode_length': Array(227.60156, dtype=float32), 'eval/std_episode_length': Array(48.93528, dtype=float32), 'eval/epoch_eval_time': 1.18182373046875, 'eval/sps': 27076.795951040644}
+[2026-02-20 12:26:15,680][absl][INFO] - starting iteration 6 208.68214964866638
+[2026-02-20 12:26:17,043][root][INFO] - 
+                              Steps Env: 4849664 Log: 37
+                  Steps per second: 50951
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.008553
+                     Train kl_mean: 0.077690
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.039150
+                 Train policy_loss: -0.001823
+                  Train total_loss: 0.006803
+                      Train v_loss: 0.000073
+
+[2026-02-20 12:26:18,335][root][INFO] - 
+                              Steps Env: 4980736 Log: 38
+                  Steps per second: 101458
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.008872
+                     Train kl_mean: 0.105423
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.036131
+                 Train policy_loss: 0.008368
+                  Train total_loss: 0.017300
+                      Train v_loss: 0.000060
+
+[2026-02-20 12:26:19,692][root][INFO] - 
+                              Steps Env: 5111808 Log: 39
+                  Steps per second: 96552
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.009173
+                     Train kl_mean: 0.133399
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.033483
+                 Train policy_loss: 0.020272
+                  Train total_loss: 0.029495
+                      Train v_loss: 0.000051
+
+[2026-02-20 12:26:21,063][root][INFO] - 
+                              Steps Env: 5242880 Log: 40
+                  Steps per second: 95671
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.009469
+                     Train kl_mean: 0.130497
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.031034
+                 Train policy_loss: 0.019100
+                  Train total_loss: 0.028615
+                      Train v_loss: 0.000046
+
+[2026-02-20 12:26:22,519][root][INFO] - 
+                              Steps Env: 5373952 Log: 41
+                  Steps per second: 90002
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.009774
+                     Train kl_mean: 0.107536
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.028702
+                 Train policy_loss: 0.011681
+                  Train total_loss: 0.021498
+                      Train v_loss: 0.000043
+
+[2026-02-20 12:26:23,942][root][INFO] - 
+                              Steps Env: 5505024 Log: 42
+                  Steps per second: 92070
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.010063
+                     Train kl_mean: 0.088491
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.026646
+                 Train policy_loss: 0.007564
+                  Train total_loss: 0.017669
+                      Train v_loss: 0.000042
+
+[2026-02-20 12:26:25,020][absl][INFO] - {'eval/walltime': 67.10290932655334, 'training/sps': np.float64(95061.56250586834), 'training/walltime': 117.63294458389282, 'training/entropy_loss': Array(0.00964085, dtype=float32), 'training/kl_mean': Array(0.11154368, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.02987428, dtype=float32), 'training/policy_loss': Array(0.01453764, dtype=float32), 'training/total_loss': Array(0.0242245, dtype=float32), 'training/v_loss': Array(4.6006688e-05, dtype=float32), 'eval/episode_reward': Array(932.439, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.3446774, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(175.01094, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-0.78125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(251.04599, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(932.439, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(161.81387, dtype=float32), 'eval/episode_reward_xy_alignment': Array(153.35574, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(190.35965, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.7105322, dtype=float32), 'eval/episode_reward_std': Array(141.37863, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.1950006, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(58.98033, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(3.8748739, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(91.86995, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(141.37863, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(27.291521, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(42.100815, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(48.59459, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.4000597, dtype=float32), 'eval/avg_episode_length': Array(244.77344, dtype=float32), 'eval/std_episode_length': Array(26.123867, dtype=float32), 'eval/epoch_eval_time': 1.056539535522461, 'eval/sps': 30287.555670291065}
+[2026-02-20 12:26:25,027][absl][INFO] - starting iteration 7 218.02858996391296
+[2026-02-20 12:26:26,346][root][INFO] - 
+                              Steps Env: 5636096 Log: 43
+                  Steps per second: 54526
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.010337
+                     Train kl_mean: 0.088344
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.024855
+                 Train policy_loss: 0.013155
+                  Train total_loss: 0.023532
+                      Train v_loss: 0.000041
+
+[2026-02-20 12:26:27,652][root][INFO] - 
+                              Steps Env: 5767168 Log: 44
+                  Steps per second: 100356
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.010608
+                     Train kl_mean: 0.121324
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.023189
+                 Train policy_loss: 0.033649
+                  Train total_loss: 0.044297
+                      Train v_loss: 0.000041
+
+[2026-02-20 12:26:28,953][root][INFO] - 
+                              Steps Env: 5898240 Log: 45
+                  Steps per second: 100751
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.010844
+                     Train kl_mean: 0.186093
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.021781
+                 Train policy_loss: 0.061441
+                  Train total_loss: 0.072325
+                      Train v_loss: 0.000040
+
+[2026-02-20 12:26:30,278][root][INFO] - 
+                              Steps Env: 6029312 Log: 46
+                  Steps per second: 98920
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.011028
+                     Train kl_mean: 0.217386
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.020708
+                 Train policy_loss: 0.075467
+                  Train total_loss: 0.086534
+                      Train v_loss: 0.000040
+
+[2026-02-20 12:26:31,592][root][INFO] - 
+                              Steps Env: 6160384 Log: 47
+                  Steps per second: 99808
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.011218
+                     Train kl_mean: 0.218323
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.019702
+                 Train policy_loss: 0.075707
+                  Train total_loss: 0.086965
+                      Train v_loss: 0.000040
+
+[2026-02-20 12:26:32,911][root][INFO] - 
+                              Steps Env: 6291456 Log: 48
+                  Steps per second: 99373
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.011432
+                     Train kl_mean: 0.149331
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.018673
+                 Train policy_loss: 0.051361
+                  Train total_loss: 0.062833
+                      Train v_loss: 0.000040
+
+[2026-02-20 12:26:34,009][absl][INFO] - {'eval/walltime': 68.1834146976471, 'training/sps': np.float64(99646.55326951429), 'training/walltime': 125.52515935897827, 'training/entropy_loss': Array(0.0111548, dtype=float32), 'training/kl_mean': Array(0.16889922, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.0201345, dtype=float32), 'training/policy_loss': Array(0.05694972, dtype=float32), 'training/total_loss': Array(0.06814438, dtype=float32), 'training/v_loss': Array(3.9860384e-05, dtype=float32), 'eval/episode_reward': Array(839.2794, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.421653, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(151.06775, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.8125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(213.00948, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(839.2794, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(172.06053, dtype=float32), 'eval/episode_reward_xy_alignment': Array(167.03912, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(137.3036, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.8102024, dtype=float32), 'eval/episode_reward_std': Array(175.26276, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.6476452, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(63.283257, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.952686, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(100.57173, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(175.26276, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(32.287666, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(54.29353, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(31.497057, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.7640667, dtype=float32), 'eval/avg_episode_length': Array(234.46875, dtype=float32), 'eval/std_episode_length': Array(39.82009, dtype=float32), 'eval/epoch_eval_time': 1.08050537109375, 'eval/sps': 29615.771338191265}
+[2026-02-20 12:26:34,016][absl][INFO] - starting iteration 8 227.01813054084778
+[2026-02-20 12:26:35,440][root][INFO] - 
+                              Steps Env: 6422528 Log: 49
+                  Steps per second: 51827
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.011685
+                     Train kl_mean: 0.131027
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.017546
+                 Train policy_loss: 0.045870
+                  Train total_loss: 0.057595
+                      Train v_loss: 0.000039
+
+[2026-02-20 12:26:36,728][root][INFO] - 
+                              Steps Env: 6553600 Log: 50
+                  Steps per second: 101765
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.011896
+                     Train kl_mean: 0.170280
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.016652
+                 Train policy_loss: 0.063678
+                  Train total_loss: 0.075614
+                      Train v_loss: 0.000039
+
+[2026-02-20 12:26:38,035][root][INFO] - 
+                              Steps Env: 6684672 Log: 51
+                  Steps per second: 100225
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012046
+                     Train kl_mean: 0.246132
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.016024
+                 Train policy_loss: 0.095651
+                  Train total_loss: 0.107735
+                      Train v_loss: 0.000039
+
+[2026-02-20 12:26:39,314][root][INFO] - 
+                              Steps Env: 6815744 Log: 52
+                  Steps per second: 102521
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012138
+                     Train kl_mean: 0.235009
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.015650
+                 Train policy_loss: 0.089946
+                  Train total_loss: 0.102124
+                      Train v_loss: 0.000039
+
+[2026-02-20 12:26:40,592][root][INFO] - 
+                              Steps Env: 6946816 Log: 53
+                  Steps per second: 102557
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012237
+                     Train kl_mean: 0.187566
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.015263
+                 Train policy_loss: 0.069582
+                  Train total_loss: 0.081858
+                      Train v_loss: 0.000039
+
+[2026-02-20 12:26:41,862][root][INFO] - 
+                              Steps Env: 7077888 Log: 54
+                  Steps per second: 103175
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012359
+                     Train kl_mean: 0.137700
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.014819
+                 Train policy_loss: 0.051271
+                  Train total_loss: 0.063668
+                      Train v_loss: 0.000038
+
+[2026-02-20 12:26:42,919][absl][INFO] - {'eval/walltime': 69.22066640853882, 'training/sps': np.float64(100109.91437401403), 'training/walltime': 133.38084483146667, 'training/entropy_loss': Array(0.01221517, dtype=float32), 'training/kl_mean': Array(0.19196779, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.01537085, dtype=float32), 'training/policy_loss': Array(0.07324903, dtype=float32), 'training/total_loss': Array(0.0855028, dtype=float32), 'training/v_loss': Array(3.8603728e-05, dtype=float32), 'eval/episode_reward': Array(875.10516, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.353221, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(160.5679, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.1875, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(227.36346, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(875.10516, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(179.3854, dtype=float32), 'eval/episode_reward_xy_alignment': Array(168.41249, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(139.79459, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.5844498, dtype=float32), 'eval/episode_reward_std': Array(167.6109, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.3090992, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(59.892933, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.2421827, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(96.2822, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(167.6109, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(32.644016, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(46.151684, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(30.703037, dtype=float32), 'eval/episode_reward_z_progress_std': Array(1.7280043, dtype=float32), 'eval/avg_episode_length': Array(238.16406, dtype=float32), 'eval/std_episode_length': Array(35.779877, dtype=float32), 'eval/epoch_eval_time': 1.0372517108917236, 'eval/sps': 30850.756536703757}
+[2026-02-20 12:26:42,927][absl][INFO] - starting iteration 9 235.9286823272705
+[2026-02-20 12:26:44,198][root][INFO] - 
+                              Steps Env: 7208960 Log: 55
+                  Steps per second: 56123
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012524
+                     Train kl_mean: 0.176891
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.014233
+                 Train policy_loss: 0.068573
+                  Train total_loss: 0.081135
+                      Train v_loss: 0.000038
+
+[2026-02-20 12:26:45,476][root][INFO] - 
+                              Steps Env: 7340032 Log: 56
+                  Steps per second: 102579
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012631
+                     Train kl_mean: 0.163588
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.013856
+                 Train policy_loss: 0.063733
+                  Train total_loss: 0.076401
+                      Train v_loss: 0.000038
+
+[2026-02-20 12:26:46,771][root][INFO] - 
+                              Steps Env: 7471104 Log: 57
+                  Steps per second: 101179
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012752
+                     Train kl_mean: 0.138949
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.013443
+                 Train policy_loss: 0.053449
+                  Train total_loss: 0.066239
+                      Train v_loss: 0.000038
+
+[2026-02-20 12:26:48,034][root][INFO] - 
+                              Steps Env: 7602176 Log: 58
+                  Steps per second: 103776
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.012857
+                     Train kl_mean: 0.088779
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.013086
+                 Train policy_loss: 0.031929
+                  Train total_loss: 0.044823
+                      Train v_loss: 0.000037
+
+[2026-02-20 12:26:49,289][root][INFO] - 
+                              Steps Env: 7733248 Log: 59
+                  Steps per second: 104442
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013017
+                     Train kl_mean: 0.096806
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.012575
+                 Train policy_loss: 0.035671
+                  Train total_loss: 0.048725
+                      Train v_loss: 0.000037
+
+[2026-02-20 12:26:50,537][root][INFO] - 
+                              Steps Env: 7864320 Log: 60
+                  Steps per second: 105043
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013153
+                     Train kl_mean: 0.155114
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.012156
+                 Train policy_loss: 0.060198
+                  Train total_loss: 0.073388
+                      Train v_loss: 0.000037
+
+[2026-02-20 12:26:51,555][absl][INFO] - {'eval/walltime': 70.22095108032227, 'training/sps': np.float64(103214.27420724626), 'training/walltime': 141.00025606155396, 'training/entropy_loss': Array(0.01296334, dtype=float32), 'training/kl_mean': Array(0.14823553, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.01276459, dtype=float32), 'training/policy_loss': Array(0.05723028, dtype=float32), 'training/total_loss': Array(0.07023096, dtype=float32), 'training/v_loss': Array(3.7348364e-05, dtype=float32), 'eval/episode_reward': Array(853.93494, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.279601, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(150.61859, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-3.28125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(209.6464, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(853.93494, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(180.15186, dtype=float32), 'eval/episode_reward_xy_alignment': Array(179.33688, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(136.25435, dtype=float32), 'eval/episode_reward_z_progress': Array(-3.07149, dtype=float32), 'eval/episode_reward_std': Array(160.19, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.4974194, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(62.18821, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(7.406646, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(98.95168, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(160.19, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(35.13708, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(46.970238, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(34.412045, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.9559655, dtype=float32), 'eval/avg_episode_length': Array(230.90625, dtype=float32), 'eval/std_episode_length': Array(44.141895, dtype=float32), 'eval/epoch_eval_time': 1.0002846717834473, 'eval/sps': 31990.89309540846}
+[2026-02-20 12:26:51,563][absl][INFO] - starting iteration 10 244.56511807441711
+[2026-02-20 12:26:52,831][root][INFO] - 
+                              Steps Env: 7995392 Log: 61
+                  Steps per second: 57137
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013295
+                     Train kl_mean: 0.177461
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.011751
+                 Train policy_loss: 0.070550
+                  Train total_loss: 0.083882
+                      Train v_loss: 0.000037
+
+[2026-02-20 12:26:54,088][root][INFO] - 
+                              Steps Env: 8126464 Log: 62
+                  Steps per second: 104268
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013410
+                     Train kl_mean: 0.168938
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.011434
+                 Train policy_loss: 0.066990
+                  Train total_loss: 0.080437
+                      Train v_loss: 0.000037
+
+[2026-02-20 12:26:55,345][root][INFO] - 
+                              Steps Env: 8257536 Log: 63
+                  Steps per second: 104253
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013507
+                     Train kl_mean: 0.139316
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.011176
+                 Train policy_loss: 0.053722
+                  Train total_loss: 0.067265
+                      Train v_loss: 0.000036
+
+[2026-02-20 12:26:56,593][root][INFO] - 
+                              Steps Env: 8388608 Log: 64
+                  Steps per second: 105046
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013565
+                     Train kl_mean: 0.228816
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.011013
+                 Train policy_loss: 0.080606
+                  Train total_loss: 0.094207
+                      Train v_loss: 0.000036
+
+[2026-02-20 12:26:57,904][root][INFO] - 
+                              Steps Env: 8519680 Log: 65
+                  Steps per second: 99990
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013555
+                     Train kl_mean: 0.362691
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.011039
+                 Train policy_loss: 0.115246
+                  Train total_loss: 0.128836
+                      Train v_loss: 0.000036
+
+[2026-02-20 12:26:59,139][root][INFO] - 
+                              Steps Env: 8650752 Log: 66
+                  Steps per second: 106063
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013598
+                     Train kl_mean: 0.349905
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010924
+                 Train policy_loss: 0.111244
+                  Train total_loss: 0.124877
+                      Train v_loss: 0.000036
+
+[2026-02-20 12:27:00,172][absl][INFO] - {'eval/walltime': 71.2351086139679, 'training/sps': np.float64(103679.39242689218), 'training/walltime': 148.5854856967926, 'training/entropy_loss': Array(0.01355737, dtype=float32), 'training/kl_mean': Array(0.24669719, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.01103616, dtype=float32), 'training/policy_loss': Array(0.08282563, dtype=float32), 'training/total_loss': Array(0.09641908, dtype=float32), 'training/v_loss': Array(3.6077778e-05, dtype=float32), 'eval/episode_reward': Array(821.1196, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.554276, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(163.0209, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.65625, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(227.63203, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(821.1196, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(158.53664, dtype=float32), 'eval/episode_reward_xy_alignment': Array(151.40033, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(121.48959, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.8579268, dtype=float32), 'eval/episode_reward_std': Array(167.63217, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.508112, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(62.42379, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.7874393, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(98.68634, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(167.63217, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(35.07914, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(33.921257, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(25.494556, dtype=float32), 'eval/episode_reward_z_progress_std': Array(3.5750022, dtype=float32), 'eval/avg_episode_length': Array(233.36719, dtype=float32), 'eval/std_episode_length': Array(43.843624, dtype=float32), 'eval/epoch_eval_time': 1.0141575336456299, 'eval/sps': 31553.28332963066}
+[2026-02-20 12:27:00,180][absl][INFO] - starting iteration 11 253.18178582191467
+[2026-02-20 12:27:01,432][root][INFO] - 
+                              Steps Env: 8781824 Log: 67
+                  Steps per second: 57186
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013658
+                     Train kl_mean: 0.320775
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010766
+                 Train policy_loss: 0.105659
+                  Train total_loss: 0.119353
+                      Train v_loss: 0.000036
+
+[2026-02-20 12:27:02,662][root][INFO] - 
+                              Steps Env: 8912896 Log: 68
+                  Steps per second: 106513
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013734
+                     Train kl_mean: 0.289117
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010552
+                 Train policy_loss: 0.104534
+                  Train total_loss: 0.118304
+                      Train v_loss: 0.000035
+
+[2026-02-20 12:27:03,875][root][INFO] - 
+                              Steps Env: 9043968 Log: 69
+                  Steps per second: 108039
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013779
+                     Train kl_mean: 0.287342
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010429
+                 Train policy_loss: 0.102256
+                  Train total_loss: 0.116070
+                      Train v_loss: 0.000035
+
+[2026-02-20 12:27:05,089][root][INFO] - 
+                              Steps Env: 9175040 Log: 70
+                  Steps per second: 108015
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013836
+                     Train kl_mean: 0.245128
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010279
+                 Train policy_loss: 0.085418
+                  Train total_loss: 0.099288
+                      Train v_loss: 0.000035
+
+[2026-02-20 12:27:06,300][root][INFO] - 
+                              Steps Env: 9306112 Log: 71
+                  Steps per second: 108213
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013927
+                     Train kl_mean: 0.217567
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010043
+                 Train policy_loss: 0.079703
+                  Train total_loss: 0.093665
+                      Train v_loss: 0.000034
+
+[2026-02-20 12:27:07,513][root][INFO] - 
+                              Steps Env: 9437184 Log: 72
+                  Steps per second: 108045
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013986
+                     Train kl_mean: 0.301959
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009880
+                 Train policy_loss: 0.105575
+                  Train total_loss: 0.119595
+                      Train v_loss: 0.000034
+
+[2026-02-20 12:27:08,618][absl][INFO] - {'eval/walltime': 72.32178688049316, 'training/sps': np.float64(107108.95176621719), 'training/walltime': 155.92784118652344, 'training/entropy_loss': Array(0.01388557, dtype=float32), 'training/kl_mean': Array(0.3041151, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.01014724, dtype=float32), 'training/policy_loss': Array(0.10733166, dtype=float32), 'training/total_loss': Array(0.12125181, dtype=float32), 'training/v_loss': Array(3.4572015e-05, dtype=float32), 'eval/episode_reward': Array(873.1302, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.95098, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(177.84494, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.65625, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(248.06343, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(873.1302, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(152.9646, dtype=float32), 'eval/episode_reward_xy_alignment': Array(170.78091, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(123.89261, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.710977, dtype=float32), 'eval/episode_reward_std': Array(185.70638, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.6943462, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(67.1021, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.7874393, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(102.216415, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(185.70638, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(26.176651, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(46.403347, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(24.707253, dtype=float32), 'eval/episode_reward_z_progress_std': Array(1.7338121, dtype=float32), 'eval/avg_episode_length': Array(233.48438, dtype=float32), 'eval/std_episode_length': Array(45.371895, dtype=float32), 'eval/epoch_eval_time': 1.0866782665252686, 'eval/sps': 29447.538416611835}
+[2026-02-20 12:27:08,625][absl][INFO] - starting iteration 12 261.62694358825684
+[2026-02-20 12:27:09,865][root][INFO] - 
+                              Steps Env: 9568256 Log: 73
+                  Steps per second: 55723
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014009
+                     Train kl_mean: 0.288176
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009815
+                 Train policy_loss: 0.099230
+                  Train total_loss: 0.113273
+                      Train v_loss: 0.000034
+
+[2026-02-20 12:27:11,076][root][INFO] - 
+                              Steps Env: 9699328 Log: 74
+                  Steps per second: 108229
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013992
+                     Train kl_mean: 0.336956
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009847
+                 Train policy_loss: 0.105079
+                  Train total_loss: 0.119105
+                      Train v_loss: 0.000034
+
+[2026-02-20 12:27:12,314][root][INFO] - 
+                              Steps Env: 9830400 Log: 75
+                  Steps per second: 105930
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013937
+                     Train kl_mean: 0.277449
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009983
+                 Train policy_loss: 0.088848
+                  Train total_loss: 0.102819
+                      Train v_loss: 0.000033
+
+[2026-02-20 12:27:13,538][root][INFO] - 
+                              Steps Env: 9961472 Log: 76
+                  Steps per second: 107061
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013919
+                     Train kl_mean: 0.260073
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.010021
+                 Train policy_loss: 0.080628
+                  Train total_loss: 0.094580
+                      Train v_loss: 0.000033
+
+[2026-02-20 12:27:14,808][root][INFO] - 
+                              Steps Env: 10092544 Log: 77
+                  Steps per second: 103170
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.013954
+                     Train kl_mean: 0.113201
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009930
+                 Train policy_loss: 0.039416
+                  Train total_loss: 0.053403
+                      Train v_loss: 0.000033
+
+[2026-02-20 12:27:16,081][root][INFO] - 
+                              Steps Env: 10223616 Log: 78
+                  Steps per second: 102977
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014078
+                     Train kl_mean: 0.061392
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009621
+                 Train policy_loss: 0.017759
+                  Train total_loss: 0.031870
+                      Train v_loss: 0.000032
+
+[2026-02-20 12:27:17,161][absl][INFO] - {'eval/walltime': 73.38387560844421, 'training/sps': np.float64(105348.14753950242), 'training/walltime': 163.39291787147522, 'training/entropy_loss': Array(0.014013, dtype=float32), 'training/kl_mean': Array(0.16768101, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00978932, dtype=float32), 'training/policy_loss': Array(0.05215927, dtype=float32), 'training/total_loss': Array(0.06620497, dtype=float32), 'training/v_loss': Array(3.2703247e-05, dtype=float32), 'eval/episode_reward': Array(851.11115, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.8780913, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(156.82245, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-3.28125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(221.27762, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(851.11115, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(166.99107, dtype=float32), 'eval/episode_reward_xy_alignment': Array(165.37082, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(141.63606, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.5837219, dtype=float32), 'eval/episode_reward_std': Array(184.3291, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.1083546, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(69.820816, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(7.406646, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(108.759636, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(184.3291, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(30.421862, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(37.94982, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(37.492603, dtype=float32), 'eval/episode_reward_z_progress_std': Array(1.78243, dtype=float32), 'eval/avg_episode_length': Array(227.61719, dtype=float32), 'eval/std_episode_length': Array(51.100258, dtype=float32), 'eval/epoch_eval_time': 1.0620887279510498, 'eval/sps': 30129.309499154046}
+[2026-02-20 12:27:17,168][absl][INFO] - starting iteration 13 270.1705274581909
+[2026-02-20 12:27:18,485][root][INFO] - 
+                              Steps Env: 10354688 Log: 79
+                  Steps per second: 54519
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014179
+                     Train kl_mean: 0.139144
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009383
+                 Train policy_loss: 0.050736
+                  Train total_loss: 0.064946
+                      Train v_loss: 0.000032
+
+[2026-02-20 12:27:19,863][root][INFO] - 
+                              Steps Env: 10485760 Log: 80
+                  Steps per second: 95146
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014247
+                     Train kl_mean: 0.158288
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009222
+                 Train policy_loss: 0.060472
+                  Train total_loss: 0.074750
+                      Train v_loss: 0.000031
+
+[2026-02-20 12:27:21,070][root][INFO] - 
+                              Steps Env: 10616832 Log: 81
+                  Steps per second: 108581
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014323
+                     Train kl_mean: 0.161156
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009052
+                 Train policy_loss: 0.062574
+                  Train total_loss: 0.076928
+                      Train v_loss: 0.000031
+
+[2026-02-20 12:27:22,259][root][INFO] - 
+                              Steps Env: 10747904 Log: 82
+                  Steps per second: 110228
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014380
+                     Train kl_mean: 0.196222
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008927
+                 Train policy_loss: 0.069762
+                  Train total_loss: 0.084172
+                      Train v_loss: 0.000031
+
+[2026-02-20 12:27:23,459][root][INFO] - 
+                              Steps Env: 10878976 Log: 83
+                  Steps per second: 109257
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014392
+                     Train kl_mean: 0.218327
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008901
+                 Train policy_loss: 0.079050
+                  Train total_loss: 0.093472
+                      Train v_loss: 0.000030
+
+[2026-02-20 12:27:24,659][root][INFO] - 
+                              Steps Env: 11010048 Log: 84
+                  Steps per second: 109202
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014359
+                     Train kl_mean: 0.277332
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008977
+                 Train policy_loss: 0.102046
+                  Train total_loss: 0.116435
+                      Train v_loss: 0.000030
+
+[2026-02-20 12:27:25,726][absl][INFO] - {'eval/walltime': 74.43248081207275, 'training/sps': np.float64(104868.8345368827), 'training/walltime': 170.89211440086365, 'training/entropy_loss': Array(0.0143413, dtype=float32), 'training/kl_mean': Array(0.22539465, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00901367, dtype=float32), 'training/policy_loss': Array(0.08475714, dtype=float32), 'training/total_loss': Array(0.09912881, dtype=float32), 'training/v_loss': Array(3.0359062e-05, dtype=float32), 'eval/episode_reward': Array(832.5796, dtype=float32), 'eval/episode_reward_action_penalty': Array(5.2356987, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(176.38632, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-3.125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(260.42758, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(832.5796, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(128.00935, dtype=float32), 'eval/episode_reward_xy_alignment': Array(140.94745, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(127.51579, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.817583, dtype=float32), 'eval/episode_reward_std': Array(206.9273, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.181092, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(78.908455, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(7.2618437, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(121.31522, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(206.9273, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(19.779749, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(32.661125, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(26.529215, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.092759, dtype=float32), 'eval/avg_episode_length': Array(226.91406, dtype=float32), 'eval/std_episode_length': Array(55.028263, dtype=float32), 'eval/epoch_eval_time': 1.04860520362854, 'eval/sps': 30516.728211216985}
+[2026-02-20 12:27:25,733][absl][INFO] - starting iteration 14 278.73458194732666
+[2026-02-20 12:27:26,955][root][INFO] - 
+                              Steps Env: 11141120 Log: 85
+                  Steps per second: 57084
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014337
+                     Train kl_mean: 0.197771
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.009022
+                 Train policy_loss: 0.072396
+                  Train total_loss: 0.086762
+                      Train v_loss: 0.000029
+
+[2026-02-20 12:27:28,158][root][INFO] - 
+                              Steps Env: 11272192 Log: 86
+                  Steps per second: 108997
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014385
+                     Train kl_mean: 0.128069
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008907
+                 Train policy_loss: 0.043176
+                  Train total_loss: 0.057590
+                      Train v_loss: 0.000029
+
+[2026-02-20 12:27:29,385][root][INFO] - 
+                              Steps Env: 11403264 Log: 87
+                  Steps per second: 106848
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014468
+                     Train kl_mean: 0.062552
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008721
+                 Train policy_loss: 0.015113
+                  Train total_loss: 0.029609
+                      Train v_loss: 0.000028
+
+[2026-02-20 12:27:30,643][root][INFO] - 
+                              Steps Env: 11534336 Log: 88
+                  Steps per second: 104122
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014563
+                     Train kl_mean: 0.057968
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008517
+                 Train policy_loss: 0.012942
+                  Train total_loss: 0.027533
+                      Train v_loss: 0.000028
+
+[2026-02-20 12:27:31,835][root][INFO] - 
+                              Steps Env: 11665408 Log: 89
+                  Steps per second: 110024
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014618
+                     Train kl_mean: 0.219753
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008402
+                 Train policy_loss: 0.058450
+                  Train total_loss: 0.073096
+                      Train v_loss: 0.000027
+
+[2026-02-20 12:27:33,052][root][INFO] - 
+                              Steps Env: 11796480 Log: 90
+                  Steps per second: 107717
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014694
+                     Train kl_mean: 0.242128
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008249
+                 Train policy_loss: 0.068907
+                  Train total_loss: 0.083628
+                      Train v_loss: 0.000027
+
+[2026-02-20 12:27:34,123][absl][INFO] - {'eval/walltime': 75.48644852638245, 'training/sps': np.float64(107321.81410594245), 'training/walltime': 178.21990704536438, 'training/entropy_loss': Array(0.01458703, dtype=float32), 'training/kl_mean': Array(0.153612, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00847162, dtype=float32), 'training/policy_loss': Array(0.04196233, dtype=float32), 'training/total_loss': Array(0.056577, dtype=float32), 'training/v_loss': Array(2.7644808e-05, dtype=float32), 'eval/episode_reward': Array(855.97, dtype=float32), 'eval/episode_reward_action_penalty': Array(5.712884, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(175.46149, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.5, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(262.21857, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(855.97, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(133.7836, dtype=float32), 'eval/episode_reward_xy_alignment': Array(144.77203, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(139.78873, dtype=float32), 'eval/episode_reward_z_progress': Array(-3.2672467, dtype=float32), 'eval/episode_reward_std': Array(196.6677, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.9985023, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(73.49995, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.6143785, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(112.831, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(196.6677, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(25.097519, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(37.777977, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(32.844307, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.280648, dtype=float32), 'eval/avg_episode_length': Array(231.28125, dtype=float32), 'eval/std_episode_length': Array(50.746754, dtype=float32), 'eval/epoch_eval_time': 1.0539677143096924, 'eval/sps': 30361.4613289732}
+[2026-02-20 12:27:34,132][absl][INFO] - starting iteration 15 287.13356924057007
+[2026-02-20 12:27:35,359][root][INFO] - 
+                              Steps Env: 11927552 Log: 91
+                  Steps per second: 56795
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014766
+                     Train kl_mean: 0.269315
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.008107
+                 Train policy_loss: 0.081748
+                  Train total_loss: 0.096541
+                      Train v_loss: 0.000026
+
+[2026-02-20 12:27:36,570][root][INFO] - 
+                              Steps Env: 12058624 Log: 92
+                  Steps per second: 108285
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014864
+                     Train kl_mean: 0.119351
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007908
+                 Train policy_loss: 0.041363
+                  Train total_loss: 0.056253
+                      Train v_loss: 0.000026
+
+[2026-02-20 12:27:37,814][root][INFO] - 
+                              Steps Env: 12189696 Log: 93
+                  Steps per second: 105363
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014934
+                     Train kl_mean: 0.108606
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007773
+                 Train policy_loss: 0.038013
+                  Train total_loss: 0.052972
+                      Train v_loss: 0.000025
+
+[2026-02-20 12:27:39,054][root][INFO] - 
+                              Steps Env: 12320768 Log: 94
+                  Steps per second: 105714
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014965
+                     Train kl_mean: 0.159951
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007712
+                 Train policy_loss: 0.051867
+                  Train total_loss: 0.066857
+                      Train v_loss: 0.000025
+
+[2026-02-20 12:27:40,299][root][INFO] - 
+                              Steps Env: 12451840 Log: 95
+                  Steps per second: 105263
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015001
+                     Train kl_mean: 0.234051
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007641
+                 Train policy_loss: 0.078735
+                  Train total_loss: 0.093760
+                      Train v_loss: 0.000025
+
+[2026-02-20 12:27:41,544][root][INFO] - 
+                              Steps Env: 12582912 Log: 96
+                  Steps per second: 105266
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.014991
+                     Train kl_mean: 0.310611
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007660
+                 Train policy_loss: 0.105842
+                  Train total_loss: 0.120857
+                      Train v_loss: 0.000024
+
+[2026-02-20 12:27:42,576][absl][INFO] - {'eval/walltime': 76.50061130523682, 'training/sps': np.float64(105967.41324724187), 'training/walltime': 185.64135837554932, 'training/entropy_loss': Array(0.01496545, dtype=float32), 'training/kl_mean': Array(0.21461801, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00771083, dtype=float32), 'training/policy_loss': Array(0.07377904, dtype=float32), 'training/total_loss': Array(0.08876928, dtype=float32), 'training/v_loss': Array(2.4792782e-05, dtype=float32), 'eval/episode_reward': Array(858.57837, dtype=float32), 'eval/episode_reward_action_penalty': Array(4.9436984, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(157.41383, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.8125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(227.09708, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(858.57837, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(173.77405, dtype=float32), 'eval/episode_reward_xy_alignment': Array(168.33026, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(132.50674, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.6748185, dtype=float32), 'eval/episode_reward_std': Array(161.54753, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(2.7634413, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(63.374584, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.952686, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(97.8028, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(161.54753, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(20.953108, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(39.95101, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(25.845806, dtype=float32), 'eval/episode_reward_z_progress_std': Array(1.7536577, dtype=float32), 'eval/avg_episode_length': Array(232.73438, dtype=float32), 'eval/std_episode_length': Array(43.2322, dtype=float32), 'eval/epoch_eval_time': 1.0141627788543701, 'eval/sps': 31553.120137329628}
+[2026-02-20 12:27:42,584][absl][INFO] - starting iteration 16 295.5860469341278
+[2026-02-20 12:27:43,803][root][INFO] - 
+                              Steps Env: 12713984 Log: 97
+                  Steps per second: 58031
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015028
+                     Train kl_mean: 0.251243
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007598
+                 Train policy_loss: 0.087788
+                  Train total_loss: 0.102840
+                      Train v_loss: 0.000024
+
+[2026-02-20 12:27:44,993][root][INFO] - 
+                              Steps Env: 12845056 Log: 98
+                  Steps per second: 110071
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015067
+                     Train kl_mean: 0.181023
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007536
+                 Train policy_loss: 0.062203
+                  Train total_loss: 0.077293
+                      Train v_loss: 0.000023
+
+[2026-02-20 12:27:46,180][root][INFO] - 
+                              Steps Env: 12976128 Log: 99
+                  Steps per second: 110427
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015166
+                     Train kl_mean: 0.109406
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007363
+                 Train policy_loss: 0.035334
+                  Train total_loss: 0.050522
+                      Train v_loss: 0.000023
+
+[2026-02-20 12:27:47,363][root][INFO] - 
+                              Steps Env: 13107200 Log: 100
+                  Steps per second: 110839
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015212
+                     Train kl_mean: 0.180196
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007285
+                 Train policy_loss: 0.054859
+                  Train total_loss: 0.070093
+                      Train v_loss: 0.000023
+
+[2026-02-20 12:27:48,588][root][INFO] - 
+                              Steps Env: 13238272 Log: 101
+                  Steps per second: 106995
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015259
+                     Train kl_mean: 0.277774
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007200
+                 Train policy_loss: 0.082251
+                  Train total_loss: 0.097533
+                      Train v_loss: 0.000022
+
+[2026-02-20 12:27:49,825][root][INFO] - 
+                              Steps Env: 13369344 Log: 102
+                  Steps per second: 105953
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015234
+                     Train kl_mean: 0.316704
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007237
+                 Train policy_loss: 0.094588
+                  Train total_loss: 0.109844
+                      Train v_loss: 0.000022
+
+[2026-02-20 12:27:50,931][absl][INFO] - {'eval/walltime': 77.58871746063232, 'training/sps': np.float64(108475.57317159917), 'training/walltime': 192.89121174812317, 'training/entropy_loss': Array(0.01520344, dtype=float32), 'training/kl_mean': Array(0.21293017, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00729395, dtype=float32), 'training/policy_loss': Array(0.06443848, dtype=float32), 'training/total_loss': Array(0.07966448, dtype=float32), 'training/v_loss': Array(2.2578619e-05, dtype=float32), 'eval/episode_reward': Array(780.5282, dtype=float32), 'eval/episode_reward_action_penalty': Array(5.8623123, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(158.10744, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.65625, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(231.68755, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(780.5282, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(134.6876, dtype=float32), 'eval/episode_reward_xy_alignment': Array(130.14124, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(125.59642, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.898039, dtype=float32), 'eval/episode_reward_std': Array(188.73677, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.019832, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(74.07749, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.7874393, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(115.38826, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(188.73677, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(22.57151, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(30.335316, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(31.142666, dtype=float32), 'eval/episode_reward_z_progress_std': Array(3.3595974, dtype=float32), 'eval/avg_episode_length': Array(231.44531, dtype=float32), 'eval/std_episode_length': Array(47.798374, dtype=float32), 'eval/epoch_eval_time': 1.0881061553955078, 'eval/sps': 29408.895300632274}
+[2026-02-20 12:27:50,938][absl][INFO] - starting iteration 17 303.9404664039612
+[2026-02-20 12:27:52,336][root][INFO] - 
+                              Steps Env: 13500416 Log: 103
+                  Steps per second: 52203
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015237
+                     Train kl_mean: 0.243368
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007218
+                 Train policy_loss: 0.072275
+                  Train total_loss: 0.087534
+                      Train v_loss: 0.000022
+
+[2026-02-20 12:27:53,740][root][INFO] - 
+                              Steps Env: 13631488 Log: 104
+                  Steps per second: 93361
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015223
+                     Train kl_mean: 0.254050
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007236
+                 Train policy_loss: 0.067577
+                  Train total_loss: 0.082822
+                      Train v_loss: 0.000022
+
+[2026-02-20 12:27:55,136][root][INFO] - 
+                              Steps Env: 13762560 Log: 105
+                  Steps per second: 93876
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015177
+                     Train kl_mean: 0.309705
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007319
+                 Train policy_loss: 0.069282
+                  Train total_loss: 0.084480
+                      Train v_loss: 0.000022
+
+[2026-02-20 12:27:56,516][root][INFO] - 
+                              Steps Env: 13893632 Log: 106
+                  Steps per second: 94968
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015210
+                     Train kl_mean: 0.288205
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007257
+                 Train policy_loss: 0.061701
+                  Train total_loss: 0.076933
+                      Train v_loss: 0.000021
+
+[2026-02-20 12:27:57,945][root][INFO] - 
+                              Steps Env: 14024704 Log: 107
+                  Steps per second: 91759
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015243
+                     Train kl_mean: 0.240463
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.007197
+                 Train policy_loss: 0.052483
+                  Train total_loss: 0.067747
+                      Train v_loss: 0.000021
+
+[2026-02-20 12:27:59,325][root][INFO] - 
+                              Steps Env: 14155776 Log: 108
+                  Steps per second: 94956
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015387
+                     Train kl_mean: 0.089101
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006941
+                 Train policy_loss: 0.024234
+                  Train total_loss: 0.039642
+                      Train v_loss: 0.000021
+
+[2026-02-20 12:28:00,509][absl][INFO] - {'eval/walltime': 78.75362920761108, 'training/sps': np.float64(93672.49707528221), 'training/walltime': 201.2867603302002, 'training/entropy_loss': Array(0.01528497, dtype=float32), 'training/kl_mean': Array(0.2000204, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00712463, dtype=float32), 'training/policy_loss': Array(0.04681813, dtype=float32), 'training/total_loss': Array(0.06212433, dtype=float32), 'training/v_loss': Array(2.1236945e-05, dtype=float32), 'eval/episode_reward': Array(827.7008, dtype=float32), 'eval/episode_reward_action_penalty': Array(5.300653, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(159.67, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.8125, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(236.26477, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(827.7008, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(149.80072, dtype=float32), 'eval/episode_reward_xy_alignment': Array(152.2925, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(129.9016, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.7169423, dtype=float32), 'eval/episode_reward_std': Array(171.05219, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.0145397, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(68.133514, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.952686, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(107.253174, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(171.05219, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(19.81384, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(31.235703, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(26.505196, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.084072, dtype=float32), 'eval/avg_episode_length': Array(231.27344, dtype=float32), 'eval/std_episode_length': Array(47.526096, dtype=float32), 'eval/epoch_eval_time': 1.1649117469787598, 'eval/sps': 27469.892103838032}
+[2026-02-20 12:28:00,517][absl][INFO] - starting iteration 18 313.5188488960266
+[2026-02-20 12:28:01,881][root][INFO] - 
+                              Steps Env: 14286848 Log: 109
+                  Steps per second: 51271
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015442
+                     Train kl_mean: 0.162815
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006852
+                 Train policy_loss: 0.050061
+                  Train total_loss: 0.065524
+                      Train v_loss: 0.000021
+
+[2026-02-20 12:28:03,254][root][INFO] - 
+                              Steps Env: 14417920 Log: 110
+                  Steps per second: 95453
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015518
+                     Train kl_mean: 0.178066
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006730
+                 Train policy_loss: 0.056431
+                  Train total_loss: 0.071970
+                      Train v_loss: 0.000021
+
+[2026-02-20 12:28:04,627][root][INFO] - 
+                              Steps Env: 14548992 Log: 111
+                  Steps per second: 95510
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015558
+                     Train kl_mean: 0.255262
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006669
+                 Train policy_loss: 0.081265
+                  Train total_loss: 0.096843
+                      Train v_loss: 0.000020
+
+[2026-02-20 12:28:05,995][root][INFO] - 
+                              Steps Env: 14680064 Log: 112
+                  Steps per second: 95830
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015638
+                     Train kl_mean: 0.205878
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006541
+                 Train policy_loss: 0.066570
+                  Train total_loss: 0.082228
+                      Train v_loss: 0.000020
+
+[2026-02-20 12:28:07,376][root][INFO] - 
+                              Steps Env: 14811136 Log: 113
+                  Steps per second: 94917
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015679
+                     Train kl_mean: 0.187520
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006470
+                 Train policy_loss: 0.060302
+                  Train total_loss: 0.076001
+                      Train v_loss: 0.000020
+
+[2026-02-20 12:28:08,789][root][INFO] - 
+                              Steps Env: 14942208 Log: 114
+                  Steps per second: 92708
+                    Episode length: 0.0000
+     Episode reward_action_penalty: 0.0000
+     Episode reward_angvel_penalty: 0.0000
+      Episode reward_crash_penalty: 0.0000
+     Episode reward_linvel_penalty: 0.0000
+       Episode reward_time_penalty: 0.0000
+              Episode reward_total: 0.0000
+    Episode reward_touchdown_bonus: 0.0000
+ Episode reward_touchdown_progress: 0.0000
+            Episode reward_upright: 0.0000
+       Episode reward_xy_alignment: 0.0000
+        Episode reward_xy_progress: 0.0000
+        Episode reward_z_alignment: 0.0000
+         Episode reward_z_progress: 0.0000
+                Episode sum_reward: 0.0000
+                Train entropy_loss: 0.015738
+                     Train kl_mean: 0.124117
+               Train learning_rate: 0.000300
+        Train policy_dist_mean_std: 0.006372
+                 Train policy_loss: 0.039933
+                  Train total_loss: 0.055691
+                      Train v_loss: 0.000020
+
+[2026-02-20 12:28:09,915][absl][INFO] - {'eval/walltime': 79.85442996025085, 'training/sps': np.float64(94899.25517971546), 'training/walltime': 209.57378005981445, 'training/entropy_loss': Array(0.01565194, dtype=float32), 'training/kl_mean': Array(0.19272399, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(0.00651366, dtype=float32), 'training/policy_loss': Array(0.06145417, dtype=float32), 'training/total_loss': Array(0.07712624, dtype=float32), 'training/v_loss': Array(2.0135903e-05, dtype=float32), 'eval/episode_reward': Array(830.02423, dtype=float32), 'eval/episode_reward_action_penalty': Array(5.6858015, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(170.25668, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-3.4375, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(252.02716, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(830.02423, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(136.65942, dtype=float32), 'eval/episode_reward_xy_alignment': Array(157.56807, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(114.119995, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.8554282, dtype=float32), 'eval/episode_reward_std': Array(201.06078, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(3.0114799, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(74.9472, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(7.5454354, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(114.79387, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(201.06078, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(19.055399, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(45.38821, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(23.908747, dtype=float32), 'eval/episode_reward_z_progress_std': Array(2.7064788, dtype=float32), 'eval/avg_episode_length': Array(224.09375, dtype=float32), 'eval/std_episode_length': Array(56.888245, dtype=float32), 'eval/epoch_eval_time': 1.1008007526397705, 'eval/sps': 29069.74756627168}
+[2026-02-20 12:28:09,923][absl][INFO] - starting iteration 19 322.92547369003296

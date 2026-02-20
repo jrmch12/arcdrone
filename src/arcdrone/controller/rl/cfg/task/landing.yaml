@@ -94,6 +94,7 @@ train:
   unroll_length: 10
   num_minibatches: 24
   num_updates_per_batch: 8
+  log_training_metrics: false
   discounting: 0.97
   learning_rate: 3e-4
   entropy_cost: 1e-3

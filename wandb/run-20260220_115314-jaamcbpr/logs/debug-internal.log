@@ -1,0 +1,12 @@
+{"time":"2026-02-20T11:53:15.076227619-05:00","level":"INFO","msg":"stream: starting","core version":"0.24.2"}
+{"time":"2026-02-20T11:53:15.732120568-05:00","level":"INFO","msg":"stream: created new stream","id":"jaamcbpr"}
+{"time":"2026-02-20T11:53:15.732188325-05:00","level":"INFO","msg":"handler: started","stream_id":"jaamcbpr"}
+{"time":"2026-02-20T11:53:15.732344008-05:00","level":"INFO","msg":"stream: started","id":"jaamcbpr"}
+{"time":"2026-02-20T11:53:15.732347054-05:00","level":"INFO","msg":"writer: started","stream_id":"jaamcbpr"}
+{"time":"2026-02-20T11:53:15.732354047-05:00","level":"INFO","msg":"sender: started","stream_id":"jaamcbpr"}
+{"time":"2026-02-20T11:59:30.310030497-05:00","level":"INFO","msg":"fileTransfer: Close: file transfer manager closed"}
+{"time":"2026-02-20T11:59:30.798960002-05:00","level":"INFO","msg":"handler: operation stats","stats":{}}
+{"time":"2026-02-20T11:59:30.802697767-05:00","level":"INFO","msg":"stream: closing","id":"jaamcbpr"}
+{"time":"2026-02-20T11:59:30.802712775-05:00","level":"INFO","msg":"handler: closed","stream_id":"jaamcbpr"}
+{"time":"2026-02-20T11:59:30.802774642-05:00","level":"INFO","msg":"sender: closed","stream_id":"jaamcbpr"}
+{"time":"2026-02-20T11:59:30.802792355-05:00","level":"INFO","msg":"stream: closed","id":"jaamcbpr"}

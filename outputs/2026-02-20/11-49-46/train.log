@@ -1,0 +1,24 @@
+[2026-02-20 11:49:50,066][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+[2026-02-20 11:49:50,205][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:49:53,219][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-20 11:49:53,914][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:12,546][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:25,690][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:52,400][absl][INFO] - {'eval/walltime': 26.5268394947052, 'eval/episode_reward': Array(427.0452, dtype=float32), 'eval/episode_reward_action_penalty': Array(0.41592705, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(100.67117, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.1875, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(141.46527, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(427.0452, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(53.580093, dtype=float32), 'eval/episode_reward_xy_alignment': Array(71.44229, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(64.22783, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.5697865, dtype=float32), 'eval/episode_reward_std': Array(236.21072, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(0.75414664, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(100.71409, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.2421827, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(138.3009, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(236.21072, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(28.482756, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(45.29724, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(24.802662, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.0106072, dtype=float32), 'eval/avg_episode_length': Array(231.05469, dtype=float32), 'eval/std_episode_length': Array(54.71907, dtype=float32), 'eval/epoch_eval_time': 26.5268394947052, 'eval/sps': 1206.325390040802}
+[2026-02-20 11:50:52,417][absl][INFO] - starting iteration 0 59.19893479347229
+[2026-02-20 11:51:13,570][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,571][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,585][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,585][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,586][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,588][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,588][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,589][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,591][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,591][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,591][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,591][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,591][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,592][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,601][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 11:51:13,616][asyncio][WARNING] - socket.send() raised exception.

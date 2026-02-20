@@ -1,0 +1,19 @@
+[2026-02-20 12:14:14,962][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+[2026-02-20 12:14:15,094][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:14:18,159][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-20 12:14:18,855][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:14:37,709][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:14:50,758][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 12:15:05,952][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,953][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,962][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,963][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,964][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,964][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:05,964][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-20 12:15:06,118][asyncio][WARNING] - socket.send() raised exception.
