@@ -1,0 +1,9 @@
+- train.num_envs=256
+- train.unroll_length=32
+- train.batch_size=2048
+- train.num_minibatches=4
+- train.num_updates_per_batch=2
+- train.num_timesteps=2000000
+- train.use_wandb=true
+- train.num_evals=30
+- env.curriculum_stage=hover

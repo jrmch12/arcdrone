@@ -1,0 +1,13 @@
+# cfg/config.yaml
+defaults:
+  - task: landing
+  - override hydra/job_logging: default  # ← ADD THIS
+  - override hydra/hydra_logging: default  # ← ADD THIS
+  - _self_
+
+# Global configuration flags
+debug_cpu: false  # Set to true to force CPU mode for debugging
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

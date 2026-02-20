@@ -1,0 +1,36 @@
+
+
+
+{
+    "version": "0.2.0",
+    "configurations": [
+        {
+            "name": "Train ARCDrone - Minimal Debug",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/arcdrone/controller/rl/scripts/train.py",
+            "args": [
+                "train.num_envs=1",
+                "train.unroll_length=2",
+                "train.batch_size=128",
+                "train.num_minibatches=2",
+                "train.num_updates_per_batch=2",
+                "train.num_timesteps=100",
+                "train.num_evals=2",
+                "train.use_wandb=false"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
+        },
+        {
+            "name": "Debug Current Script",
+            "type": "python",
+            "request": "launch",
+            "program": "${file}",
+            "args": [],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}"
+        }
+    ]
+}

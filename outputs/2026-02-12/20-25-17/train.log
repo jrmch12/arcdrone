@@ -1,0 +1,36 @@
+[2026-02-12 20:25:19,704][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+[2026-02-12 20:25:19,780][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-12 20:25:23,726][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-12 20:25:24,596][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-12 20:25:40,611][absl][INFO] - Restoring TrainingState from `restore_params`.
+[2026-02-12 20:25:41,004][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-12 20:25:52,270][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,270][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,274][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,274][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,274][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,275][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,275][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,276][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,276][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,277][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,277][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,277][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,278][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,278][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,278][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,278][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,278][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,279][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,279][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,314][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,320][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,332][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,338][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,338][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,338][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,338][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,443][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,461][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,467][asyncio][WARNING] - socket.send() raised exception.
+[2026-02-12 20:25:52,468][asyncio][WARNING] - socket.send() raised exception.

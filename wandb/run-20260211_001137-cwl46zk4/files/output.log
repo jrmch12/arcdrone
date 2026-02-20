@@ -1,0 +1,63 @@
+[2026-02-11 00:11:38,911][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-11 00:11:39,698][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-11 00:11:52,005][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-11 00:12:02,236][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-11 00:12:32,191][absl][INFO] - {'eval/walltime': 29.82777452468872, 'eval/episode_reward': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty': Array(nan, dtype=float32), 'eval/episode_reward_distance': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty': Array(nan, dtype=float32), 'eval/episode_reward_oscillation': Array(-39.375, dtype=float32), 'eval/episode_reward_overshoot': Array(-211.36719, dtype=float32), 'eval/episode_reward_success_bonus': Array(0., dtype=float32), 'eval/episode_reward_time_penalty': Array(-0.84874946, dtype=float32), 'eval/episode_reward_total': Array(nan, dtype=float32), 'eval/episode_reward_std': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering_std': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_distance_std': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_oscillation_std': Array(36.497116, dtype=float32), 'eval/episode_reward_overshoot_std': Array(180.16129, dtype=float32), 'eval/episode_reward_success_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0.6436389, dtype=float32), 'eval/episode_reward_total_std': Array(nan, dtype=float32), 'eval/avg_episode_length': Array(84.875, dtype=float32), 'eval/std_episode_length': Array(64.36395, dtype=float32), 'eval/epoch_eval_time': 29.82777452468872, 'eval/sps': 858.2604772880608}
+[2026-02-11 00:12:32,202][absl][INFO] - starting iteration 0 53.291295766830444
+[2026-02-11 00:13:11,557][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-11 00:13:39,293][absl][INFO] - {'eval/walltime': 57.56746220588684, 'training/sps': np.float64(1687.0886800477444), 'training/walltime': 38.845616579055786, 'training/entropy_loss': Array(nan, dtype=float32), 'training/kl_mean': Array(nan, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(nan, dtype=float32), 'training/policy_loss': Array(nan, dtype=float32), 'training/total_loss': Array(nan, dtype=float32), 'training/v_loss': Array(nan, dtype=float32), 'eval/episode_reward': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty': Array(nan, dtype=float32), 'eval/episode_reward_distance': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty': Array(nan, dtype=float32), 'eval/episode_reward_oscillation': Array(0., dtype=float32), 'eval/episode_reward_overshoot': Array(0., dtype=float32), 'eval/episode_reward_success_bonus': Array(0., dtype=float32), 'eval/episode_reward_time_penalty': Array(-1.9999985, dtype=float32), 'eval/episode_reward_total': Array(nan, dtype=float32), 'eval/episode_reward_std': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering_std': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_distance_std': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_oscillation_std': Array(0., dtype=float32), 'eval/episode_reward_overshoot_std': Array(0., dtype=float32), 'eval/episode_reward_success_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(nan, dtype=float32), 'eval/avg_episode_length': Array(200., dtype=float32), 'eval/std_episode_length': Array(0., dtype=float32), 'eval/epoch_eval_time': 27.73968768119812, 'eval/sps': 922.8654732602345}
+[2026-02-11 00:13:39,303][absl][INFO] - starting iteration 1 120.39279913902283
+[2026-02-11 00:13:43,891][absl][INFO] - {'eval/walltime': 59.00003099441528, 'training/sps': np.float64(20841.13569769205), 'training/walltime': 41.990166902542114, 'training/entropy_loss': Array(nan, dtype=float32), 'training/kl_mean': Array(nan, dtype=float32), 'training/learning_rate': Array(0.0003, dtype=float32), 'training/policy_dist_mean_std': Array(nan, dtype=float32), 'training/policy_loss': Array(nan, dtype=float32), 'training/total_loss': Array(nan, dtype=float32), 'training/v_loss': Array(nan, dtype=float32), 'eval/episode_reward': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty': Array(nan, dtype=float32), 'eval/episode_reward_distance': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty': Array(nan, dtype=float32), 'eval/episode_reward_oscillation': Array(0., dtype=float32), 'eval/episode_reward_overshoot': Array(0., dtype=float32), 'eval/episode_reward_success_bonus': Array(0., dtype=float32), 'eval/episode_reward_time_penalty': Array(-1.9999985, dtype=float32), 'eval/episode_reward_total': Array(nan, dtype=float32), 'eval/episode_reward_std': Array(nan, dtype=float32), 'eval/episode_reward_action_chattering_std': Array(nan, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_distance_std': Array(nan, dtype=float32), 'eval/episode_reward_ground_penalty_std': Array(nan, dtype=float32), 'eval/episode_reward_oscillation_std': Array(0., dtype=float32), 'eval/episode_reward_overshoot_std': Array(0., dtype=float32), 'eval/episode_reward_success_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(nan, dtype=float32), 'eval/avg_episode_length': Array(200., dtype=float32), 'eval/std_episode_length': Array(0., dtype=float32), 'eval/epoch_eval_time': 1.4325687885284424, 'eval/sps': 17869.997032600946}
+[2026-02-11 00:13:43,898][absl][INFO] - starting iteration 2 124.98781204223633
+Traceback (most recent call last):
+  File "/home/jrmch12/Documents/code/260110_arcdrone/arcdrone/src/arcdrone/controller/rl/scripts/train.py", line 136, in <module>
+    main()
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "/home/jrmch12/Documents/code/260110_arcdrone/arcdrone/src/arcdrone/controller/rl/scripts/train.py", line 105, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/agents/ppo/train.py", line 841, in train
+    metrics = evaluator.run_evaluation(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 146, in run_evaluation
+    eval_state = self._generate_eval_unroll(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/mujoco/mjx/_src/dataclasses.py", line 86, in clz_from_iterable
+    def clz_from_iterable(meta, data):
+KeyboardInterrupt
+Traceback (most recent call last):
+  File "/home/jrmch12/Documents/code/260110_arcdrone/arcdrone/src/arcdrone/controller/rl/scripts/train.py", line 136, in <module>
+    main()
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "/home/jrmch12/Documents/code/260110_arcdrone/arcdrone/src/arcdrone/controller/rl/scripts/train.py", line 105, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/agents/ppo/train.py", line 841, in train
+    metrics = evaluator.run_evaluation(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 146, in run_evaluation
+    eval_state = self._generate_eval_unroll(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/mujoco/mjx/_src/dataclasses.py", line 86, in clz_from_iterable
+    def clz_from_iterable(meta, data):
+KeyboardInterrupt
