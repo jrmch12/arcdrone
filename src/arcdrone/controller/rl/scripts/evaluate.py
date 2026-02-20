@@ -47,7 +47,7 @@ print(f"Latest checkpoint found: {CHECKPOINT_PATH}")
 
 def evaluate(
     model_path: str = "outputs/2026-01-28/23-20-35/trained_model.pkl",
-    num_episodes: int = 5,
+    num_episodes: int = 20,
     max_steps: int = 200
 ):
     """
@@ -189,7 +189,7 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser(description='Evaluate trained ARCDrone velocity controller')
     parser.add_argument('--model_path', type=str, default=CHECKPOINT_PATH,
                         help='Path to trained model')
-    parser.add_argument('--episodes', type=int, default=5,
+    parser.add_argument('--episodes', type=int, default=20,
                         help='Number of episodes to evaluate')
     parser.add_argument('--steps', type=int, default=200,
                         help='Maximum steps per episode')

@@ -1,0 +1,84 @@
+[2026-02-20 11:49:53,219][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-20 11:49:53,914][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:12,546][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:25,690][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-20 11:50:52,400][absl][INFO] - {'eval/walltime': 26.5268394947052, 'eval/episode_reward': Array(427.0452, dtype=float32), 'eval/episode_reward_action_penalty': Array(0.41592705, dtype=float32), 'eval/episode_reward_angvel_penalty': Array(100.67117, dtype=float32), 'eval/episode_reward_crash_penalty': Array(-2.1875, dtype=float32), 'eval/episode_reward_linvel_penalty': Array(141.46527, dtype=float32), 'eval/episode_reward_time_penalty': Array(0., dtype=float32), 'eval/episode_reward_total': Array(427.0452, dtype=float32), 'eval/episode_reward_touchdown_bonus': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress': Array(0., dtype=float32), 'eval/episode_reward_upright': Array(53.580093, dtype=float32), 'eval/episode_reward_xy_alignment': Array(71.44229, dtype=float32), 'eval/episode_reward_xy_progress': Array(0., dtype=float32), 'eval/episode_reward_z_alignment': Array(64.22783, dtype=float32), 'eval/episode_reward_z_progress': Array(-2.5697865, dtype=float32), 'eval/episode_reward_std': Array(236.21072, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(0.75414664, dtype=float32), 'eval/episode_reward_angvel_penalty_std': Array(100.71409, dtype=float32), 'eval/episode_reward_crash_penalty_std': Array(6.2421827, dtype=float32), 'eval/episode_reward_linvel_penalty_std': Array(138.3009, dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0., dtype=float32), 'eval/episode_reward_total_std': Array(236.21072, dtype=float32), 'eval/episode_reward_touchdown_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_touchdown_progress_std': Array(0., dtype=float32), 'eval/episode_reward_upright_std': Array(28.482756, dtype=float32), 'eval/episode_reward_xy_alignment_std': Array(45.29724, dtype=float32), 'eval/episode_reward_xy_progress_std': Array(0., dtype=float32), 'eval/episode_reward_z_alignment_std': Array(24.802662, dtype=float32), 'eval/episode_reward_z_progress_std': Array(4.0106072, dtype=float32), 'eval/avg_episode_length': Array(231.05469, dtype=float32), 'eval/std_episode_length': Array(54.71907, dtype=float32), 'eval/epoch_eval_time': 26.5268394947052, 'eval/sps': 1206.325390040802}
+[2026-02-20 11:50:52,417][absl][INFO] - starting iteration 0 59.19893479347229
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 1163, in from_hlo
+    compiled = compiler.compile_or_get_cached(
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 478, in compile_or_get_cached
+    return _compile_and_write_cache(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 746, in _compile_and_write_cache
+    executable = backend_compile_and_load(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/profiler.py", line 359, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 372, in backend_compile_and_load
+    raise e
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 362, in backend_compile_and_load
+    return backend.compile_and_load(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+jax.errors.JaxRuntimeError: INTERNAL: Autotuner could not compile any configs for HLO: %loop_gather_slice_transpose_fusion = (f32[1,1024,6]{2,1,0}, f32[1,1024,6]{2,1,0}, f32[6,1,1024]{2,1,0}, f32[2,1024,1,3]{3,1,0,2}) fusion(%get-tuple-element.16781, %get-tuple-element.16780, %constant.17072.0, %constant.1886..sunk4.3.0, %wrapped_transpose.43, /*index=5*/%get-tuple-element.16795, %wrapped_transpose.44, %get-tuple-element.16518.0, %get-tuple-element.16807, %input_concatenate_fusion.3, /*index=10*/%get-tuple-element.15594.0, %constant.17053.0), kind=kLoop, calls=%fused_gather_slice_transpose, metadata={op_name="pmap(training_epoch)/while/body/closed_call/while/body/closed_call/while/body/closed_call/jit(f)/while/body/closed_call/vmap()/while/body/closed_call/step/forward/fwd_velocity/slice" stack_frame_id=21}
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/scripts/train.py", line 136, in <module>
+    main()
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/scripts/train.py", line 105, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 804, in train
+    training_epoch_with_timing(training_state, env_state, epoch_keys)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 675, in training_epoch_with_timing
+    result = training_epoch(training_state, env_state, key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/api.py", line 1790, in cache_miss
+    execute, const_args = pxla.xla_pmap_impl_lazy(p.flat_fun, *p.flat_args, **params)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 355, in xla_pmap_impl_lazy
+    compiled_fun, fingerprint, const_args = parallel_callable(
+                                            ^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/linear_util.py", line 460, in memoized_fun
+    ans = call(fun, *args)
+          ^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 646, in parallel_callable
+    pmap_executable = pmap_computation.compile()
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/profiler.py", line 359, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 998, in compile
+    executable = UnloadedPmapExecutable.from_hlo(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 1154, in from_hlo
+    with dispatch.log_elapsed_time(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/dispatch.py", line 199, in __exit__
+    def __exit__(self, exc_type, exc_value, traceback):
+
+KeyboardInterrupt
