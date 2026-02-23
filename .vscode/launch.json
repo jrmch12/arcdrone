@@ -10,8 +10,8 @@
             "request": "launch",
             "program": "${workspaceFolder}/src/arcdrone/controller/rl/scripts/train.py",
             "args": [
-                "train.num_envs=1",
-                "train.unroll_length=2",
+                "train.num_envs=2",
+                "train.unroll_length=4",
                 "train.batch_size=128",
                 "train.num_minibatches=2",
                 "train.num_updates_per_batch=2",

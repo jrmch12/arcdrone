@@ -1,0 +1,162 @@
+_wandb:
+    value:
+        cli_version: 0.24.2
+        e:
+            ljx3tca29vx8idj71tqywqfjp1f61ayu:
+                args:
+                    - train.num_envs=256
+                    - train.unroll_length=16
+                    - train.batch_size=2048
+                    - train.num_minibatches=2
+                    - train.num_updates_per_batch=4
+                    - train.num_timesteps=500000
+                    - train.use_wandb=true
+                    - train.num_evals=30
+                    - env.curriculum_stage=hover
+                codePath: src/arcdrone/controller/rl/scripts/train.py
+                codePathLocal: src/arcdrone/controller/rl/scripts/train.py
+                cpu_count: 6
+                cpu_count_logical: 12
+                cudaVersion: "13.0"
+                disk:
+                    /:
+                        total: "250375106560"
+                        used: "105378598912"
+                email: jraimundo.mares.12@gmail.com
+                executable: /home/jrmch12/miniconda3/envs/h3f/bin/python
+                git:
+                    commit: e9247365d01e48a58b83caeb2ffa65c819e32bad
+                    remote: https://github.com/jrmch12/borrador_braxenvs.git
+                gpu: NVIDIA GeForce GTX 1050 Ti
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Pascal
+                      cudaCores: 768
+                      memoryTotal: "4294967296"
+                      name: NVIDIA GeForce GTX 1050 Ti
+                      uuid: GPU-68058ce9-21ec-e3a2-e906-5315549efaf3
+                host: jrmch12
+                memory:
+                    total: "16454492160"
+                os: Linux-6.8.0-94-generic-x86_64-with-glibc2.35
+                program: /home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone/src/arcdrone/controller/rl/scripts/train.py
+                python: CPython 3.10.0
+                root: /home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone
+                startedAt: "2026-02-22T14:42:24.074877Z"
+                writerId: ljx3tca29vx8idj71tqywqfjp1f61ayu
+        m: []
+        python_version: 3.10.0
+        t:
+            "1":
+                - 12
+                - 45
+                - 50
+            "2":
+                - 12
+                - 45
+                - 50
+            "3":
+                - 13
+                - 16
+            "4": 3.10.0
+            "5": 0.24.2
+            "12": 0.24.2
+            "13": linux-x86_64
+debug_cpu:
+    value: false
+env:
+    value:
+        action_dense_weight: 1
+        action_exp_scale: 2
+        action_penalty_weight: 0.0001
+        angvel_dense_weight: 1.5
+        angvel_exp_scale: 1.2
+        angvel_penalty_weight: 0.12
+        angvel_success_threshold: 0.8
+        approach_xy_success_threshold: 0.18
+        approach_z_success_threshold: 0.25
+        backend: mjx
+        crash_height: 0.03
+        crash_penalty: 20
+        curriculum_stage: hover
+        eval_mode: false
+        hover_angvel_success_threshold: 1.2
+        hover_linvel_success_threshold: 0.4
+        hover_target_z: 1.2
+        hover_xy_success_threshold: 0.2
+        hover_z_dense_weight: 3
+        hover_z_exp_scale: 3
+        hover_z_progress_weight: 3
+        hover_z_success_threshold: 0.2
+        hover_z_weight: 2.5
+        landing_target_x: 0
+        landing_target_y: 0
+        landing_target_z: 0
+        linvel_dense_weight: 2
+        linvel_exp_scale: 2
+        linvel_penalty_weight: 0.35
+        linvel_success_threshold: 0.25
+        max_episode_steps: 250
+        mj_timestep: 0.004
+        n_frames: 5
+        numEnvs: 2
+        reset_xy_range: 0.6
+        reset_z: 1.5
+        success_bonus: 20
+        success_progress_scale: 0.1
+        success_steps_required: 8
+        time_penalty: 0.01
+        upright_dense_weight: 2
+        upright_exp_scale: 5
+        upright_success_threshold: 0.92
+        upright_weight: 0.8
+        xml_path_rel: assets/skydio_x2/scene.xml
+        xy_dense_weight: 3
+        xy_exp_scale: 1.2
+        xy_progress_weight: 3
+        xy_success_threshold: 0.08
+        xy_weight: 2
+        z_dense_weight: 3
+        z_exp_scale: 1.2
+        z_progress_weight: 3
+        z_success_threshold: 0.1
+        z_weight: 2
+file_path:
+    value: task/landing_mode/arcdrone.py
+name:
+    value: arcdrone_landing
+train:
+    value:
+        action_repeat: 1
+        batch_size: 2048
+        discounting: 0.97
+        entropy_cost: 0.001
+        episode_length: 250
+        learning_rate: 0.0003
+        log_training_metrics: false
+        normalize_observations: true
+        num_envs: 256
+        num_evals: 30
+        num_minibatches: 2
+        num_timesteps: 500000
+        num_updates_per_batch: 4
+        policy_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        policy_obs_key: state
+        restore_params_path: null
+        restore_value_fn: true
+        reward_scaling: 0.1
+        seed: 0
+        unroll_length: 16
+        use_wandb: true
+        value_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        value_obs_key: privileged_state
+        wandb_project: brax-training
+        wandb_run_name: arcdrone_landing_ppo_run

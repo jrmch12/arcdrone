@@ -3,6 +3,7 @@ src/arcdrone/__init__.py
 src/arcdrone.egg-info/PKG-INFO
 src/arcdrone.egg-info/SOURCES.txt
 src/arcdrone.egg-info/dependency_links.txt
+src/arcdrone.egg-info/entry_points.txt
 src/arcdrone.egg-info/requires.txt
 src/arcdrone.egg-info/top_level.txt
 src/arcdrone/controller/__init__.py
@@ -21,6 +22,7 @@ src/arcdrone/controller/rl/task/landing_mode/arcdrone.py
 src/arcdrone/controller/rl/task/landing_mode/episode.py
 src/arcdrone/controller/rl/task/landing_mode/obs.py
 src/arcdrone/controller/rl/task/landing_mode/reward.py
+src/arcdrone/controller/rl/task/landing_mode/reward_minimal.py
 src/arcdrone/controller/rl/task/landing_mode/target.py
 src/arcdrone/controller/rl/task/velocity_mode/__init__.py
 src/arcdrone/controller/rl/task/velocity_mode/arcdrone.py

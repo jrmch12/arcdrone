@@ -1,0 +1,40 @@
+[2026-02-22 09:51:33,804][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-22 09:51:34,907][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-22 09:51:50,900][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-22 09:52:02,028][root][INFO] - Using JAX default device: cuda:0.
+Error executing job with overrides: ['train.num_envs=256', 'train.unroll_length=16', 'train.batch_size=2048', 'train.num_minibatches=2', 'train.num_updates_per_batch=4', 'train.num_timesteps=500000', 'train.use_wandb=true', 'train.num_evals=30', 'env.curriculum_stage=hover']
+jax.errors.SimplifiedTraceback: For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone/src/arcdrone/controller/rl/scripts/train.py", line 130, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/agents/ppo/train.py", line 777, in train
+    metrics = evaluator.run_evaluation(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 146, in run_evaluation
+    eval_state = self._generate_eval_unroll(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 123, in generate_eval_unroll
+    return generate_unroll(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 73, in generate_unroll
+    (final_state, _), data = jax.lax.scan(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 67, in f
+    nstate, transition = actor_step(
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/training/acting.py", line 42, in actor_step
+    nstate = env.step(env_state, actions)
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/envs/wrappers/training.py", line 200, in step
+    nstate = self.env.step(state, action)
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/envs/wrappers/training.py", line 144, in step
+    state = self.env.step(state, action)
+  File "/home/jrmch12/miniconda3/envs/h3f/lib/python3.10/site-packages/brax/envs/wrappers/training.py", line 103, in step
+    state, rewards = jax.lax.scan(f, state, (), self.action_repeat)
+TypeError: scan body function carry input and carry output must have equal types, but they differ:
+
+  * the input carry component state.state_vars['is_crash'] has type float32[128] but the corresponding output carry component has type bool[128], so the dtypes do not match;
+
+  * the input carry component state.state_vars['is_success'] has type float32[128] but the corresponding output carry component has type bool[128], so the dtypes do not match;
+  * the input carry component state.state_vars['is_timeout'] has type float32[128] but the corresponding output carry component has type bool[128], so the dtypes do not match.
+
+Revise the function so that all output types match the corresponding input types.
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.
