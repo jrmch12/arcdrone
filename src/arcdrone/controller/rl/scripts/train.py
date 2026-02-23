@@ -52,12 +52,12 @@ def main(cfg: DictConfig):
     from brax.training.agents.ppo import networks as ppo_networks
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing
+    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
 
 
     # =========== Load environment ===========
 
-    env = ARCDroneRL_Landing(cfg=cfg.env)
+    env = ARCDroneRL_Hover(cfg=cfg.env)
     print("env instantiated successfully")
 
     # =========== Load config and Logger ===========

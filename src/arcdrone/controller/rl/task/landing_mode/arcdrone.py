@@ -7,7 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from flax import struct
 
 from .obs import _get_obs_impl
-from .reward_minimal import _get_reward_impl
+from .reward import _get_reward_impl  
 from .target import _get_target_impl
 
 
@@ -92,17 +92,15 @@ class ARCDroneRL_Landing(PipelineEnv):
 
     def _initialize_state_vars(self, data, rng):
         initial_xy_error = jp.linalg.norm(data.qpos[0:2])
-        initial_z_error = jp.abs(data.qpos[2])
-        initial_hover_z_error = jp.abs(data.qpos[2] - self.cfg.hover_target_z)
+        initial_z_error = jp.abs(data.qpos[2] - 1.5)  # Hover target z=1.5
         return {
             'step': 0,
             'rng': rng,
             'goal_achieved': jp.array(0.0),
             'steps_within_success': jp.array(0),
-            'target_pos': jp.array([0.0, 0.0, 0.0]),
+            'target_pos': jp.array([0.0, 0.0, 1.5]),
             'prev_xy_error': initial_xy_error,
             'prev_z_error': initial_z_error,
-            'prev_hover_z_error': initial_hover_z_error,
             'is_success': False,
             'is_crash': False,
             'is_timeout': False,
@@ -110,22 +108,15 @@ class ARCDroneRL_Landing(PipelineEnv):
 
     def _initialize_metrics(self):
         return {
-            'reward_xy_alignment': jp.float32(0.0),
-            'reward_z_alignment': jp.float32(0.0),
-            'reward_xy_progress': jp.float32(0.0),
-            'reward_z_progress': jp.float32(0.0),
-            'reward_upright': jp.float32(0.0),
-            'reward_linvel_penalty': jp.float32(0.0),
-            'reward_angvel_penalty': jp.float32(0.0),
-            'reward_action_penalty': jp.float32(0.0),
+            'reward_distance': jp.float32(0.0),
             'reward_time_penalty': jp.float32(0.0),
-            'reward_touchdown_progress': jp.float32(0.0),
-            'reward_touchdown_bonus': jp.float32(0.0),
-            'reward_crash_penalty': jp.float32(0.0),
-            'reward_total': jp.float32(0.0),
-            'reward_xy': jp.float32(0.0),
-            'reward_z': jp.float32(0.0),
+            'reward_overshoot': jp.float32(0.0),
+            'reward_oscillation': jp.float32(0.0),
+            'reward_action_chattering': jp.float32(0.0),
+            'reward_action_penalty': jp.float32(0.0),
+            'reward_ground_penalty': jp.float32(0.0),
             'reward_success_bonus': jp.float32(0.0),
+            'reward_total': jp.float32(0.0),
         }
 
     def _get_obs(self, state: CustomState, action: jp.ndarray) -> CustomState:

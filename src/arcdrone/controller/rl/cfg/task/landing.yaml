@@ -13,73 +13,51 @@ env:
   xml_path_rel: "assets/skydio_x2/scene.xml"
   eval_mode: False
 
-  # ==== Landing target (floor marker center) ====
+  max_episode_steps: 250           # Maximum episode steps
+
+ 
+ # ==== Event / Termination script  ====
+  hover_xy_success_threshold: 0.15
+  hover_z_success_threshold: 0.10
+  success_steps_required: 5
+  success_bonus: 50.0
+
+
+  # ==== Reward script ====
+
+  # Distance reward
+  hover_z_exp_scale: 5.0
+  hover_z_dense_weight: 1.0
+
+  # Oscillation penalty
+  hover_z_weight: 2.0
+
+  # Overshoot penalty
+  hover_z_progress_weight: 5.0
+
+  # Action penalties
+  action_chattering_weight: 0.001
+  action_penalty_weight: 0.0001
+
+  # Time penalty
+  time_penalty: 0.01
+
+  # Ground / crash penalty
+  crash_height: 0.10
+  crash_penalty: 100.0
+
+
+  # ==== Observation script ====
+  buffer_size: 5
+
+  # ===== Reset script ====
+  reset_xy_range: 0.3
+  reset_z: 1.5
+
+  # ==== Target script ====
   landing_target_x: 0.0
   landing_target_y: 0.0
-  landing_target_z: 0.0
-
-  # ==== Episode control ====
-  max_episode_steps: 250
-  success_steps_required: 8
-  reset_xy_range: 0.6
-  reset_z: 1.5
-  crash_height: 0.3
-
-  # ==== Curriculum ====
-  curriculum_stage: "hover"   # hover -> approach -> landing
-  success_progress_scale: 0.1
-
-  # Hover stage
-  hover_target_z: 1.2
-  hover_z_weight: 2.5
-  hover_z_dense_weight: 3.0
-  hover_z_exp_scale: 3.0
-  hover_z_progress_weight: 3.0
-  hover_xy_success_threshold: 0.20
-  hover_z_success_threshold: 0.20
-  hover_linvel_success_threshold: 0.40
-  hover_angvel_success_threshold: 1.20
-
-  # Approach stage
-  approach_xy_success_threshold: 0.18
-  approach_z_success_threshold: 0.25
-
-  # ==== Landing success thresholds ====
-  xy_success_threshold: 0.08
-  z_success_threshold: 0.10
-  linvel_success_threshold: 0.25
-  angvel_success_threshold: 0.8
-  upright_success_threshold: 0.92
-
-  # ==== Reward weights ====
-  xy_weight: 2.0
-  z_weight: 2.0
-  xy_progress_weight: 3.0
-  z_progress_weight: 3.0
-  upright_weight: 0.8
-  linvel_penalty_weight: 0.35
-  angvel_penalty_weight: 0.12
-  action_penalty_weight: 0.0001
-  time_penalty: 0.1
-
-  # Dense reward (bounded weighted sum of exponentials)
-  xy_dense_weight: 3.0
-  z_dense_weight: 3.0
-  upright_dense_weight: 2.0
-  linvel_dense_weight: 2.0
-  angvel_dense_weight: 1.5
-  action_dense_weight: 1.0
-
-  xy_exp_scale: 1.2
-  z_exp_scale: 1.2
-  upright_exp_scale: 5.0
-  linvel_exp_scale: 2.0
-  angvel_exp_scale: 1.2
-  action_exp_scale: 2.0
-
-  # Sparse reward
-  success_bonus: 20.0
-  crash_penalty: 20.0
+  landing_target_z: 1.5
 
 
 train:

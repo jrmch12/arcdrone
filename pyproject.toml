@@ -29,9 +29,8 @@ cad = [
 
 [project.scripts]
 
-arcdrone-train-flags = "tools.train_flags"
-arcdrone-train = "src.arcdrone.controller.rl.scripts.train"
-arcdrone-evaluate = "src.arcdrone.controller.rl.scripts.evaluate"
+arcdrone-train = "arcdrone.controller.rl.scripts.train:main"
+arcdrone-evaluate = "arcdrone.controller.rl.scripts.evaluate:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

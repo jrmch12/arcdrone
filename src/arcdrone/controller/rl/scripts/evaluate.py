@@ -13,8 +13,7 @@ import mujoco
 from mujoco import mjx
 import mujoco.viewer
 import arcdrone
-from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing
-import time
+from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
 
 
 def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
@@ -63,7 +62,7 @@ def evaluate(
     # ====== Load Config ======
     scripts_dir = Path(__file__).resolve().parent
     rl_dir = scripts_dir.parent
-    yaml_file = rl_dir / 'cfg' / 'task' / 'landing.yaml'
+    yaml_file = rl_dir / 'cfg' / 'task' / 'velocity.yaml'
     cfg = OmegaConf.load(yaml_file)
     
     cfg_env = cfg.env
@@ -79,7 +78,7 @@ def evaluate(
 
 
     # ====== Initialize Environment ======
-    env = ARCDroneRL_Landing(cfg=cfg_env)        
+    env = ARCDroneRL_Hover(cfg=cfg_env)        
 
     
     # ====== Setup Reset ======  
@@ -183,22 +182,25 @@ def evaluate(
 
 
 
-if __name__ == '__main__':
+
+def main():
     import argparse
-    
     parser = argparse.ArgumentParser(description='Evaluate trained ARCDrone velocity controller')
     parser.add_argument('--model_path', type=str, default=CHECKPOINT_PATH,
                         help='Path to trained model')
-    parser.add_argument('--episodes', type=int, default=20,
+    parser.add_argument('--episodes', type=int, default=50,
                         help='Number of episodes to evaluate')
     parser.add_argument('--steps', type=int, default=200,
                         help='Maximum steps per episode')
     args = parser.parse_args()
-    
     evaluate(
         model_path=args.model_path,
         num_episodes=args.episodes,
         max_steps=args.steps
     )
+
+
+if __name__ == '__main__':
+    main()
 
 

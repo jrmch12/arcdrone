@@ -20,7 +20,7 @@
 
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <!-- <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
-    <geom name="fiducial_plate" type="box" pos="0 0 0.002" size="0.2 0.2 0.002" material="fiducial" contype="0" conaffinity="0"/> -->
+    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
+    <geom name="fiducial_plate" type="box" pos="0 0 0.002" size="0.2 0.2 0.002" material="fiducial" contype="0" conaffinity="0"/>
   </worldbody>
 </mujoco>
