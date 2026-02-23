@@ -1,0 +1,65 @@
+name: arcdrone_landing
+file_path: task/landing_mode/arcdrone.py
+env:
+  numEnvs: 2
+  mj_timestep: 0.004
+  n_frames: 5
+  backend: mjx
+  xml_path_rel: assets/skydio_x2/scene.xml
+  eval_mode: false
+  max_episode_steps: 250
+  hover_xy_success_threshold: 0.15
+  hover_z_success_threshold: 0.1
+  success_steps_required: 5
+  success_bonus: 50.0
+  hover_z_exp_scale: 5.0
+  hover_z_dense_weight: 1.0
+  hover_z_weight: 2.0
+  hover_z_progress_weight: 5.0
+  action_chattering_weight: 0.001
+  action_penalty_weight: 0.0001
+  time_penalty: 0.01
+  crash_height: 0.1
+  crash_penalty: 100.0
+  buffer_size: 5
+  reset_xy_range: 0.3
+  reset_z: 1.5
+  landing_target_x: 0.0
+  landing_target_y: 0.0
+  landing_target_z: 1.5
+train:
+  num_timesteps: 10000000
+  num_evals: 30
+  reward_scaling: 1
+  episode_length: ${env.max_episode_steps}
+  normalize_observations: true
+  action_repeat: 1
+  unroll_length: 32
+  num_minibatches: 16
+  num_updates_per_batch: 16
+  log_training_metrics: false
+  discounting: 0.97
+  learning_rate: 0.0003
+  entropy_cost: 0.001
+  num_envs: 2056
+  batch_size: 1028
+  seed: 0
+  policy_hidden_layers:
+  - 512
+  - 512
+  - 256
+  - 128
+  value_hidden_layers:
+  - 512
+  - 512
+  - 256
+  - 128
+  policy_obs_key: state
+  value_obs_key: privileged_state
+  use_wandb: true
+  wandb_project: brax-training
+  wandb_run_name: arcdrone_landing_ppo_run
+  restore_params_path: null
+  restore_value_fn: true
+  frompreviouscheckpoint: 0
+debug_cpu: false

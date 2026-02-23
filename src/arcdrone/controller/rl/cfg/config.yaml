@@ -1,6 +1,6 @@
 # cfg/config.yaml
 defaults:
-  - task: landing
+  - task: hover #landing
   - override hydra/job_logging: default  # ← ADD THIS
   - override hydra/hydra_logging: default  # ← ADD THIS
   - _self_

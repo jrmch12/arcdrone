@@ -1,174 +1,124 @@
+def _compute_task_events(state, position, xy_error, z_error, cfg=None):
+    # Use config thresholds if provided, else fallback to defaults
+    xy_thresh = cfg.hover_xy_success_threshold if cfg and hasattr(cfg, 'hover_xy_success_threshold') else 0.15
+    z_thresh = cfg.hover_z_success_threshold if cfg and hasattr(cfg, 'hover_z_success_threshold') else 0.10
+    steps_required = cfg.success_steps_required if cfg and hasattr(cfg, 'success_steps_required') else 5
+    max_steps = cfg.max_episode_steps if cfg and hasattr(cfg, 'max_episode_steps') else 1000
+
+    success_condition = jp.logical_and(
+        xy_error < xy_thresh,
+        z_error < z_thresh,
+    )
+    steps_within_success = jp.where(
+        success_condition,
+        state.state_vars.get('steps_within_success', 0) + 1,
+        0,
+    )
+    is_success = steps_within_success >= steps_required
+    is_timeout = state.state_vars.get('step', 0) >= max_steps
+    return {
+        'success_condition': success_condition,
+        'steps_within_success': steps_within_success,
+        'is_success': is_success,
+        'is_crash': False,  # No crash logic
+        'is_timeout': is_timeout,
+    }
 from jax import numpy as jp
 
 
-def _extract_state(self, state):
-    position = state.pipeline_state.qpos[0:3]
-    quat = state.pipeline_state.sensordata[0:4]
-    angvel = state.pipeline_state.sensordata[4:7]
-    linvel = state.pipeline_state.sensordata[10:13]
-    target_pos = state.state_vars['target_pos']
+def _get_reward_impl(self, state, action):
+    """Calculate reward from current state."""
+    
+    # ==== Extract data from MuJoCo and state ====
+    # Target hover position (x=0, y=0, z=1.5)
+    target_pos = jp.array([0.0, 0.0, 1.5])
+    current_pos = state.pipeline_state.qpos[:3]  # [x, y, z]
 
-    xy_error = jp.linalg.norm(position[0:2] - target_pos[0:2])
-    z_error = jp.abs(position[2] - target_pos[2])
-    linvel_norm = jp.linalg.norm(linvel)
-    angvel_norm = jp.linalg.norm(angvel)
+    # ==== Distance reward (position tracking) ====
+    pos_error = jp.linalg.norm(target_pos - current_pos)
+    r_distance = jp.exp(-self.cfg.hover_z_exp_scale * pos_error) * self.cfg.hover_z_dense_weight
 
-    cos_tilt = 1.0 - 2.0 * (quat[1] ** 2 + quat[2] ** 2)
-    cos_tilt = jp.clip(cos_tilt, -1.0, 1.0)
+    # ==== Oscillation penalty (position component sign flip detection) ====
+    pos_buffer = state.state_vars.get('pos_buffer', jp.zeros((3, 3)))  # shape: (history, 3)
+    pos_t = pos_buffer[0]
+    pos_t_minus_1 = pos_buffer[1]
+    pos_t_minus_2 = pos_buffer[2]
+    # Check if position error changed sign (oscillation indicator)
+    pos_error_t = pos_t - target_pos
+    pos_error_t_minus_1 = pos_t_minus_1 - target_pos
+    pos_error_t_minus_2 = pos_t_minus_2 - target_pos
+    x_osc = (pos_error_t_minus_1[0] * pos_error_t_minus_2[0]) < 0
+    y_osc = (pos_error_t_minus_1[1] * pos_error_t_minus_2[1]) < 0
+    z_osc = (pos_error_t_minus_1[2] * pos_error_t_minus_2[2]) < 0
+    osc_flags = jp.array([x_osc, y_osc, z_osc])
+    r_osc = -self.cfg.hover_z_weight * jp.mean(osc_flags.astype(jp.float32))
 
-    prev_xy_error = state.state_vars.get('prev_xy_error', xy_error)
-    prev_z_error = state.state_vars.get('prev_z_error', z_error)
+    # ==== Overshoot penalty (crossing target position) ====
+    x_overshoot = (pos_error_t[0] * pos_error_t_minus_1[0]) < 0
+    y_overshoot = (pos_error_t[1] * pos_error_t_minus_1[1]) < 0
+    z_overshoot = (pos_error_t[2] * pos_error_t_minus_1[2]) < 0
+    any_overshoot = x_overshoot | y_overshoot | z_overshoot
+    ro = jp.where(any_overshoot, -self.cfg.hover_z_progress_weight, 0.0)
 
-    return {
-        'position': position,
-        'xy_error': xy_error,
-        'z_error': z_error,
-        'linvel_norm': linvel_norm,
-        'angvel_norm': angvel_norm,
-        'cos_tilt': cos_tilt,
-        'prev_xy_error': prev_xy_error,
-        'prev_z_error': prev_z_error,
-    }
+    # ==== Action chattering penalty ====
+    action_buffer = state.state_vars.get('action_buffer', jp.zeros((5, action.shape[0])))
+    current_action = action_buffer[0]
+    previous_action = action_buffer[1]
+    action_change = jp.linalg.norm(current_action - previous_action)
+    r_action_chattering = -self.cfg.action_chattering_weight * action_change
 
+    # ==== Action penalty ====
+    actuator_forces = state.pipeline_state.actuator_force
+    r_action_penalty = -self.cfg.action_penalty_weight * jp.mean(jp.square(actuator_forces))
+    
+    # ==== Time penalty ====
+    rt = -self.cfg.time_penalty
 
-def _build_common_terms(self, state, s):
-    action_effort = jp.mean(jp.square(state.pipeline_state.actuator_force))
-    tilt_error = 1.0 - s['cos_tilt']
+    # ==== Ground penalty ====
+    z_position = state.pipeline_state.qpos[2]
+    ground_violation = jp.maximum(0.0, self.cfg.crash_height - z_position)
+    r_ground = -self.cfg.crash_penalty * jp.square(ground_violation / self.cfg.crash_height)
 
-    r_xy = self.cfg.xy_dense_weight * jp.exp(-self.cfg.xy_exp_scale * s['xy_error'])
-    r_z = self.cfg.z_dense_weight * jp.exp(-self.cfg.z_exp_scale * s['z_error'])
-    r_xy_progress = self.cfg.xy_progress_weight * (s['prev_xy_error'] - s['xy_error'])
-    r_z_progress = self.cfg.z_progress_weight * (s['prev_z_error'] - s['z_error'])
-    r_upright = self.cfg.upright_dense_weight * jp.exp(-self.cfg.upright_exp_scale * tilt_error)
+    # ==== Compute event flags using helper ====
+    xy_error = jp.linalg.norm(current_pos[0:2] - target_pos[0:2])
+    z_error = jp.abs(current_pos[2] - target_pos[2])
+    events = _compute_task_events(state, current_pos, xy_error, z_error, self.cfg)
+    success_bonus = jp.where(events['success_condition'], self.cfg.success_bonus, 0.0)
 
-    r_linvel_penalty = self.cfg.linvel_dense_weight * jp.exp(-self.cfg.linvel_exp_scale * s['linvel_norm'])
-    r_angvel_penalty = self.cfg.angvel_dense_weight * jp.exp(-self.cfg.angvel_exp_scale * s['angvel_norm'])
-    r_action_penalty = self.cfg.action_dense_weight * jp.exp(-self.cfg.action_exp_scale * action_effort)
-    r_time_penalty = -jp.array(self.cfg.time_penalty)
+    # ==== Total reward ====
+    total_reward = (r_distance + rt + ro + r_osc + r_action_chattering + r_action_penalty +
+                    r_ground + success_bonus)
 
-    return {
-        'reward_xy_alignment': r_xy,
-        'reward_z_alignment': r_z,
-        'reward_xy_progress': r_xy_progress,
-        'reward_z_progress': r_z_progress,
-        'reward_upright': r_upright,
-        'reward_linvel_penalty': r_linvel_penalty,
-        'reward_angvel_penalty': r_angvel_penalty,
-        'reward_action_penalty': r_action_penalty,
-        'reward_time_penalty': r_time_penalty,
-    }
-
-
-def _finalize_reward(self, state, s, components, success_condition):
-    steps_within_success = jp.where(
-        success_condition,
-        state.state_vars['steps_within_success'] + 1,
-        0,
-    )
-
-    stage_bonus = jp.where(
-        steps_within_success >= self.cfg.success_steps_required,
-        self.cfg.success_bonus,
-        0.0,
-    )
-
-    stage_progress = jp.array(0.0)
-
-    crashed = jp.logical_and(s['position'][2] <= self.cfg.crash_height, jp.logical_not(success_condition))
-    crash_penalty = jp.where(crashed, -self.cfg.crash_penalty, 0.0)
-
-    total_reward = (
-        components['reward_xy_alignment']
-        + components['reward_z_alignment']
-        + components['reward_xy_progress']
-        + components['reward_z_progress']
-        + components['reward_upright']
-        + components['reward_linvel_penalty']
-        + components['reward_angvel_penalty']
-        + components['reward_action_penalty']
-        + components['reward_time_penalty']
-        + stage_progress
-        + stage_bonus
-        + crash_penalty
-    )
-
+    # ==== Update variables ====
     state_vars = state.state_vars.copy()
     state_vars.update({
-        'goal_achieved': success_condition.astype(jp.float32),
-        'steps_within_success': steps_within_success,
-        'prev_xy_error': s['xy_error'],
-        'prev_z_error': s['z_error'],
+        'goal_achieved': events['success_condition'].astype(jp.float32),
+        'steps_within_success': events['steps_within_success'],
+        'is_success': events['is_success'],
+        'is_crash': events['is_crash'],
+        'is_timeout': events['is_timeout'],
+        'pos_buffer': jp.concatenate([
+            current_pos[jp.newaxis, :],
+            pos_buffer[:-1, :]
+        ], axis=0),
     })
 
+    # Reward metrics for visualization
     metrics = state.metrics.copy()
     metrics.update({
-        **components,
-        'reward_touchdown_progress': stage_progress,
-        'reward_touchdown_bonus': stage_bonus,
-        'reward_crash_penalty': crash_penalty,
+        'reward_distance': r_distance,
+        'reward_time_penalty': rt,
+        'reward_overshoot': ro,
+        'reward_oscillation': r_osc,
+        'reward_action_chattering': r_action_chattering,
+        'reward_action_penalty': r_action_penalty,
+        'reward_ground_penalty': r_ground,
+        'reward_success_bonus': success_bonus,
         'reward_total': total_reward,
     })
 
     return state.replace(
         reward=total_reward,
         metrics=metrics,
-        state_vars=state_vars,
+        state_vars=state_vars
     )
-
-
-def _get_reward_hover_impl(self, state):
-    s = _extract_state(self, state)
-    hover_z_error = jp.abs(s['position'][2] - self.cfg.hover_target_z)
-    hover_prev_z_error = state.state_vars.get('prev_hover_z_error', hover_z_error)
-
-    components = _build_common_terms(self, state, s)
-    components['reward_z_alignment'] = self.cfg.hover_z_dense_weight * jp.exp(-self.cfg.hover_z_exp_scale * hover_z_error)
-    components['reward_z_progress'] = self.cfg.hover_z_progress_weight * (hover_prev_z_error - hover_z_error)
-
-    hover_success = jp.logical_and(
-        jp.logical_and(s['xy_error'] < self.cfg.hover_xy_success_threshold, hover_z_error < self.cfg.hover_z_success_threshold),
-        jp.logical_and(s['linvel_norm'] < self.cfg.hover_linvel_success_threshold, s['angvel_norm'] < self.cfg.hover_angvel_success_threshold),
-    )
-
-    updated_state = _finalize_reward(self, state, s, components, hover_success)
-    updated_state_vars = updated_state.state_vars.copy()
-    updated_state_vars.update({'prev_hover_z_error': hover_z_error})
-    return updated_state.replace(state_vars=updated_state_vars)
-
-
-def _get_reward_approach_impl(self, state):
-    s = _extract_state(self, state)
-    components = _build_common_terms(self, state, s)
-
-    approach_success = jp.logical_and(
-        s['xy_error'] < self.cfg.approach_xy_success_threshold,
-        s['z_error'] < self.cfg.approach_z_success_threshold,
-    )
-    return _finalize_reward(self, state, s, components, approach_success)
-
-
-def _get_reward_landing_impl(self, state):
-    s = _extract_state(self, state)
-    components = _build_common_terms(self, state, s)
-
-    touchdown = jp.logical_and(
-        jp.logical_and(s['xy_error'] < self.cfg.xy_success_threshold, s['position'][2] < self.cfg.z_success_threshold),
-        jp.logical_and(
-            s['linvel_norm'] < self.cfg.linvel_success_threshold,
-            jp.logical_and(
-                s['angvel_norm'] < self.cfg.angvel_success_threshold,
-                s['cos_tilt'] > self.cfg.upright_success_threshold,
-            ),
-        ),
-    )
-    return _finalize_reward(self, state, s, components, touchdown)
-
-
-def _get_reward_impl(self, state, action):
-    stage = self.cfg.get('curriculum_stage', 'landing')
-
-    if stage == 'hover':
-        return _get_reward_hover_impl(self, state)
-    if stage == 'approach':
-        return _get_reward_approach_impl(self, state)
-    return _get_reward_landing_impl(self, state)

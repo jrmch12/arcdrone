@@ -1,4 +1,3 @@
 [console_scripts]
-arcdrone-evaluate = src.arcdrone.controller.rl.scripts.evaluate
-arcdrone-train = src.arcdrone.controller.rl.scripts.train
-arcdrone-train-flags = tools.train_flags
+arcdrone-evaluate = arcdrone.controller.rl.scripts.evaluate:main
+arcdrone-train = arcdrone.controller.rl.scripts.train:main

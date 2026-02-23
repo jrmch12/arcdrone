@@ -1,0 +1,21 @@
+2026-02-23 12:00:45,628 INFO    MainThread:32423 [wandb_setup.py:_flush():81] Current SDK version is 0.24.2
+2026-02-23 12:00:45,628 INFO    MainThread:32423 [wandb_setup.py:_flush():81] Configure stats pid to 32423
+2026-02-23 12:00:45,628 INFO    MainThread:32423 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-02-23 12:00:45,628 INFO    MainThread:32423 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/jrmch12f/Documents/code/borrador_braxenvs/wandb/run-20260223_120045-xfrfa3yg/logs/debug.log
+2026-02-23 12:00:45,628 INFO    MainThread:32423 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/jrmch12f/Documents/code/borrador_braxenvs/wandb/run-20260223_120045-xfrfa3yg/logs/debug-internal.log
+2026-02-23 12:00:45,629 INFO    MainThread:32423 [wandb_init.py:init():844] calling init triggers
+2026-02-23 12:00:45,629 INFO    MainThread:32423 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'name': 'arcdrone_landing', 'file_path': 'task/landing_mode/arcdrone.py', 'env': {'numEnvs': 2, 'mj_timestep': 0.004, 'n_frames': 5, 'backend': 'mjx', 'xml_path_rel': 'assets/skydio_x2/scene.xml', 'eval_mode': False, 'max_episode_steps': 250, 'hover_xy_success_threshold': 0.15, 'hover_z_success_threshold': 0.1, 'success_steps_required': 5, 'success_bonus': 50.0, 'hover_z_exp_scale': 5.0, 'hover_z_dense_weight': 1.0, 'hover_z_weight': 2.0, 'hover_z_progress_weight': 5.0, 'action_chattering_weight': 0.001, 'action_penalty_weight': 0.0001, 'time_penalty': 0.01, 'crash_height': 0.1, 'crash_penalty': 100.0, 'buffer_size': 5}, 'train': {'num_timesteps': 10000000, 'num_evals': 30, 'reward_scaling': 1, 'episode_length': 250, 'normalize_observations': True, 'action_repeat': 1, 'unroll_length': 32, 'num_minibatches': 16, 'num_updates_per_batch': 16, 'log_training_metrics': False, 'discounting': 0.97, 'learning_rate': 0.0003, 'entropy_cost': 0.001, 'num_envs': 2056, 'batch_size': 1028, 'seed': 0, 'policy_hidden_layers': [512, 512, 256, 128], 'value_hidden_layers': [512, 512, 256, 128], 'policy_obs_key': 'state', 'value_obs_key': 'privileged_state', 'use_wandb': True, 'wandb_project': 'brax-training', 'wandb_run_name': 'arcdrone_landing_ppo_run', 'restore_params_path': None, 'restore_value_fn': True, 'frompreviouscheckpoint': 0}, 'debug_cpu': False, '_wandb': {}}
+2026-02-23 12:00:45,629 INFO    MainThread:32423 [wandb_init.py:init():892] starting backend
+2026-02-23 12:00:45,839 INFO    MainThread:32423 [wandb_init.py:init():895] sending inform_init request
+2026-02-23 12:00:45,844 INFO    MainThread:32423 [wandb_init.py:init():903] backend started and connected
+2026-02-23 12:00:45,845 INFO    MainThread:32423 [wandb_init.py:init():973] updated telemetry
+2026-02-23 12:00:45,850 INFO    MainThread:32423 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-02-23 12:00:47,034 INFO    MainThread:32423 [wandb_init.py:init():1042] starting run threads in backend
+2026-02-23 12:00:47,117 INFO    MainThread:32423 [wandb_run.py:_console_start():2529] atexit reg
+2026-02-23 12:00:47,117 INFO    MainThread:32423 [wandb_run.py:_redirect():2377] redirect: wrap_raw
+2026-02-23 12:00:47,117 INFO    MainThread:32423 [wandb_run.py:_redirect():2446] Wrapping output streams.
+2026-02-23 12:00:47,117 INFO    MainThread:32423 [wandb_run.py:_redirect():2469] Redirects installed.
+2026-02-23 12:00:47,119 INFO    MainThread:32423 [wandb_init.py:init():1082] run started, returning control to user process
+2026-02-23 12:00:47,682 INFO    wandb-AsyncioManager-main:32423 [service_client.py:_forward_responses():94] Reached EOF.
+2026-02-23 12:00:47,682 INFO    wandb-AsyncioManager-main:32423 [mailbox.py:close():154] Closing mailbox, abandoning 1 handles.

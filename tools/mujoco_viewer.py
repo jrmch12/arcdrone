@@ -3,8 +3,8 @@ import time
 import mujoco.viewer
 
 
-model_path = "assets/skydio_x2/mocap/scene_mocap.xml"
-# model_path = "assets/skydio_x2/scene.xml"
+# model_path = "assets/skydio_x2/mocap/scene_mocap.xml"
+model_path = "assets/skydio_x2/scene.xml"
 model = mujoco.MjModel.from_xml_path(model_path)
 data = mujoco.MjData(model)
 n_steps = 5
