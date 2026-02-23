@@ -4,8 +4,10 @@
 
 
 from datetime import datetime
+from pathlib import Path
 import functools
 import os
+import glob
 
 # These imports need to be available before the main function
 from omegaconf import DictConfig, OmegaConf
@@ -17,6 +19,26 @@ import numpy as np
 
 @hydra.main(config_name="config", config_path="../cfg", version_base=None)
 def main(cfg: DictConfig):
+    # =========== Handle auto-restore from previous checkpoint ===========
+    from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))
+    restore_path = getattr(cfg.train, 'restore_params_path', None)
+    # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
+    if from_prev and (not restore_path or restore_path == ""):
+        outputs_path = Path("outputs")
+        # Find all trained_model.pkl files recursively
+        pkl_files = list(outputs_path.rglob("trained_model.pkl"))
+        if pkl_files:
+            # Sort by modification time, most recent last
+            pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
+            if len(pkl_files) >= from_prev:
+                chosen_pkl = pkl_files[-from_prev]
+                cfg.train.restore_params_path = str(chosen_pkl)
+                cfg.train.restore_value_fn = True
+                print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
+            else:
+                print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
+        else:
+            print(f"[Auto-restore] No trained_model.pkl files found in outputs/")
 
     # =========== Handle CPU debugging mode ===========
     if cfg.get('debug_cpu', False):
@@ -64,9 +86,10 @@ def main(cfg: DictConfig):
 
     # Handle model restoration
     restore_params = None
-    if cfg.restore_params_path is not None:
-        print(f"Loading parameters from: {cfg.restore_params_path}")
-        restore_params = model.load_params(cfg.restore_params_path)
+    restore_path = getattr(cfg, 'restore_params_path', None)
+    if restore_path:
+        print(f"Loading parameters from: {restore_path}")
+        restore_params = model.load_params(restore_path)
         print("Parameters loaded successfully!")
 
     train_fn = functools.partial(
@@ -83,17 +106,42 @@ def main(cfg: DictConfig):
 
         times.append(datetime.now())
 
+
+        # Automate logging for all eval/episode_reward_* metrics as mean, upper, lower (no std)
+        eval_reward_metrics = {}
+        std_reward_metrics = {}
+        for key, value in metrics.items():
+            if key.startswith('eval/episode_reward') and not key.endswith('_std'):
+                reward_name = key[len('eval/episode_reward_'):]
+                std_key = f"eval/episode_reward_{reward_name}_std"
+                std_val = metrics.get(std_key, 0.0)
+                eval_reward_metrics[f"rewards/{reward_name}"] = value
+                std_reward_metrics[f"std/{reward_name}_upper"] = value + std_val
+                std_reward_metrics[f"std/{reward_name}_lower"] = value - std_val
+
+        avg_len = metrics.get('eval/avg_episode_length', 0.0)
+        std_len = metrics.get('eval/std_episode_length', 0.0)
         log_dict = {
+            # 'timesteps': num_steps,
+            'eval/episode_length': avg_len,
+            'std/episode_length_upper': avg_len + std_len,
+            'std/episode_length_lower': avg_len - std_len,
             'eval/episode_reward': metrics.get('eval/episode_reward', 0.0),
-            'eval/episode_reward_std': metrics.get('eval/episode_reward_std', 0.0),
-            'timesteps': num_steps,
-            'eval/episode_length': metrics.get('eval/avg_episode_length', 0.0),
-            'training/entropy': metrics.get('training/entropy', 0.0),
+            'eval/epoch_eval_time': metrics.get('eval/epoch_eval_time', 0.0),
+            'eval/sps': metrics.get('eval/sps', 0.0),
+            'eval/walltime': metrics.get('eval/walltime', 0.0),
             'training/learning_rate': metrics.get('training/learning_rate', 0.0),
+            'training/total_loss': metrics.get('training/total_loss', 0.0),
             'training/policy_loss': metrics.get('training/policy_loss', 0.0),
-            'training/value_loss': metrics.get('training/value_loss', 0.0),
-            'training/approx_kl': metrics.get('training/approx_kl', 0.0),
+            'training/v_loss': metrics.get('training/v_loss', 0.0),
+            'training/entropy_loss': metrics.get('training/entropy_loss', 0.0),
+            'training/kl_mean': metrics.get('training/kl_mean', 0.0),
+            'training/policy_dist_mean_std': metrics.get('training/policy_dist_mean_std', 0.0),
+            'training/sps': metrics.get('training/sps', 0.0),
+            'training/walltime': metrics.get('training/walltime', 0.0),
         }
+        log_dict.update(eval_reward_metrics)
+        log_dict.update(std_reward_metrics)
 
         if use_wandb:
             logger.log_metrics(num_steps, log_dict)
@@ -134,3 +182,4 @@ def main(cfg: DictConfig):
 
 if __name__ == '__main__':
     main()
+    

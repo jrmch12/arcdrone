@@ -1,0 +1,6 @@
+[2026-02-21 09:26:46,649][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+[2026-02-21 09:26:46,843][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-21 09:28:31,945][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-21 09:28:34,040][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-21 09:28:59,418][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-21 09:30:18,099][root][INFO] - Using JAX default device: cuda:0.

@@ -7,7 +7,7 @@ from omegaconf import DictConfig, OmegaConf
 from flax import struct
 
 from .obs import _get_obs_impl
-from .reward import _get_reward_impl
+from .reward_minimal import _get_reward_impl
 from .target import _get_target_impl
 
 
@@ -72,15 +72,11 @@ class ARCDroneRL_Landing(PipelineEnv):
         return state.replace(state_vars=state_vars)
 
     def _check_termination(self, state: CustomState) -> CustomState:
-        z_position = state.pipeline_state.qpos[2]
-        done = jp.logical_or(
-            state.state_vars['steps_within_success'] >= self.cfg.success_steps_required,
-            state.state_vars['step'] >= self.cfg.max_episode_steps,
-        )
-
-        touchdown_active = state.state_vars['goal_achieved'] > 0.5
-        crash = jp.logical_and(z_position <= self.cfg.crash_height, jp.logical_not(touchdown_active))
-        done = jp.logical_or(done, crash)
+        # Only read event flags from state_vars, do not recompute
+        is_success = state.state_vars.get('is_success', False)
+        is_crash = state.state_vars.get('is_crash', False)
+        is_timeout = state.state_vars.get('is_timeout', False)
+        done = jp.logical_or(is_success, jp.logical_or(is_crash, is_timeout))
         return state.replace(done=done.astype(jp.float32))
 
     def _sample_initial_state(self, rng: jp.ndarray):
@@ -107,6 +103,9 @@ class ARCDroneRL_Landing(PipelineEnv):
             'prev_xy_error': initial_xy_error,
             'prev_z_error': initial_z_error,
             'prev_hover_z_error': initial_hover_z_error,
+            'is_success': False,
+            'is_crash': False,
+            'is_timeout': False,
         }
 
     def _initialize_metrics(self):
@@ -124,6 +123,9 @@ class ARCDroneRL_Landing(PipelineEnv):
             'reward_touchdown_bonus': jp.float32(0.0),
             'reward_crash_penalty': jp.float32(0.0),
             'reward_total': jp.float32(0.0),
+            'reward_xy': jp.float32(0.0),
+            'reward_z': jp.float32(0.0),
+            'reward_success_bonus': jp.float32(0.0),
         }
 
     def _get_obs(self, state: CustomState, action: jp.ndarray) -> CustomState:

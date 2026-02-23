@@ -37,14 +37,14 @@ def _build_common_terms(self, state, s):
 
     r_xy = self.cfg.xy_dense_weight * jp.exp(-self.cfg.xy_exp_scale * s['xy_error'])
     r_z = self.cfg.z_dense_weight * jp.exp(-self.cfg.z_exp_scale * s['z_error'])
-    r_xy_progress = jp.array(0.0)
-    r_z_progress = jp.array(0.0)
+    r_xy_progress = self.cfg.xy_progress_weight * (s['prev_xy_error'] - s['xy_error'])
+    r_z_progress = self.cfg.z_progress_weight * (s['prev_z_error'] - s['z_error'])
     r_upright = self.cfg.upright_dense_weight * jp.exp(-self.cfg.upright_exp_scale * tilt_error)
 
     r_linvel_penalty = self.cfg.linvel_dense_weight * jp.exp(-self.cfg.linvel_exp_scale * s['linvel_norm'])
     r_angvel_penalty = self.cfg.angvel_dense_weight * jp.exp(-self.cfg.angvel_exp_scale * s['angvel_norm'])
     r_action_penalty = self.cfg.action_dense_weight * jp.exp(-self.cfg.action_exp_scale * action_effort)
-    r_time_penalty = jp.array(0.0)
+    r_time_penalty = -jp.array(self.cfg.time_penalty)
 
     return {
         'reward_xy_alignment': r_xy,
