@@ -57,7 +57,10 @@ class TrainingState:
   params: ppo_losses.PPONetworkParams
   normalizer_params: running_statistics.RunningStatisticsState
   env_steps: types.UInt64
-
+  # if use_student:
+  student_params: Any = None  
+  proj_params: Any = None
+  align_opt_state: Any = None
 
 def _unpmap(v):
   return jax.tree_util.tree_map(lambda x: x[0], v)
@@ -443,6 +446,30 @@ def train(
       compute_value=bootstrap_on_timeout or clipping_epsilon_value is not None,
   )
 
+  use_student = True
+
+  if use_student:
+      import flax.linen as nn
+      import optax
+      import copy
+
+      # Student = Kopie der Policy
+      student_policy_network = copy.deepcopy(
+          ppo_network.policy_network
+      )
+
+      # Proxy Network
+      class ProjNet(nn.Module):
+          @nn.compact
+          def __call__(self, x):
+              x = nn.Dense(64)(x)
+              x = nn.relu(x)
+              x = nn.Dense(64)(x)
+              x = nn.tanh(x)
+              return x
+
+      proj_network = ProjNet()
+
   # Optimizer.
   base_optimizer = optax.adam(learning_rate=learning_rate)
   lr_schedule = learning_rate_schedule or ppo_optimizer.LRSchedule.NONE
@@ -460,6 +487,13 @@ def train(
     )
   else:
     optimizer = base_optimizer
+
+  if use_student:
+      align_optimizer = optax.adam(1e-4)
+
+      align_opt_state = align_optimizer.init(
+          (student_params, proj_params)
+      )
 
   loss_fn = functools.partial(
       ppo_losses.compute_ppo_loss,
@@ -590,30 +624,30 @@ def train(
 
     if use_student:
 
-    teacher_logits = ppo_network.policy_network.apply(
-        training_state.params.policy,
-        data.observation
-    )
+      teacher_logits = ppo_network.policy_network.apply(
+          training_state.params.policy,
+          data.observation
+      )
 
-    proxy_logits = proxy_network.apply(
-        proxy_params,
-        data.observation
-    )
+      proxy_logits = proxy_network.apply(
+          proxy_params,
+          data.observation
+      )
 
-    teacher_probs = jax.nn.softmax(teacher_logits)
-    proxy_probs = jax.nn.softmax(proxy_logits)
+      teacher_probs = jax.nn.softmax(teacher_logits)
+      proxy_probs = jax.nn.softmax(proxy_logits)
 
-    kl = jnp.sum(
-        teacher_probs * (
-            jnp.log(teacher_probs + 1e-8)
-            - jnp.log(proxy_probs + 1e-8)
-        ),
-        axis=-1
-    )
+      kl = jnp.sum(
+          teacher_probs * (
+              jnp.log(teacher_probs + 1e-8)
+              - jnp.log(proxy_probs + 1e-8)
+          ),
+          axis=-1
+      )
 
-    data = data.replace(
-        reward = data.reward + 1.9 * kl
-    )
+      data = data.replace(
+          reward = data.reward + 1.9 * kl
+      )
 
     if bootstrap_on_timeout:  # bootstrap reward on timeout
       time_out = data.extras['state_extras']['time_out']
@@ -659,6 +693,10 @@ def train(
         params=params,
         normalizer_params=normalizer_params,
         env_steps=training_state.env_steps + env_step_per_training_step,
+        # If use_student is false, these fields are None.
+        student_params=student_params if use_student else None,
+        proj_params=proj_params if use_student else None,
+        align_opt_state=align_opt_state if use_student else None,
     )
 
     if log_training_metrics:  # log unroll metrics
@@ -725,9 +763,40 @@ def train(
       value=ppo_network.value_network.init(key_value),
   )
 
+  if use_student:
+    key_student, key_proj = jax.random.split(key_policy)
+
+    student_params = student_policy_network.init(
+        key_student, dummy_obs
+    )
+
+    proj_params = proj_network.init(
+        key_proj, dummy_obs
+    )
+
   obs_shape = jax.tree_util.tree_map(
       lambda x: specs.Array(x.shape[-1:], jnp.dtype('float32')), env_state.obs
   )
+  if use_student:
+
+    key_student, key_proj = jax.random.split(key)
+
+    student_params = student_policy_network.init(
+        key_student, dummy_obs
+    )
+
+    proj_params = proj_network.init(
+        key_proj, dummy_obs
+    )
+
+    align_optimizer = optax.adam(1e-4)
+    align_optimizer_state = align_optimizer.init(
+        (student_params, proj_params)
+    )
+  else:
+      student_params = None
+      proj_params = None
+      align_optimizer_state = None
   training_state = TrainingState(  # pytype: disable=wrong-arg-types  # jax-ndarray
       optimizer_state=optimizer.init(init_params),  # pytype: disable=wrong-arg-types  # numpy-scalars
       params=init_params,
@@ -737,6 +806,11 @@ def train(
           mode=normalize_observations_mode,
       ),
       env_steps=types.UInt64(hi=0, lo=0),
+
+      # Student fields ---> if use_student is false this are none
+      student_params=student_params,
+      proj_params=proj_params,
+      align_optimizer_state=align_optimizer_state,
   )
 
   if restore_checkpoint_path is not None:
