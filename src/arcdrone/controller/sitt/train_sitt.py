@@ -630,7 +630,7 @@ def train(
       )
 
       proxy_logits = proxy_network.apply(
-          proxy_params,
+          proj_params,
           data.observation
       )
 
