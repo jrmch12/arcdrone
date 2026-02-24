@@ -1,0 +1,35 @@
+[2026-02-23 20:25:22,396][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-23 20:25:22,833][root][INFO] - Using JAX default device: cuda:0.
+Error executing job with overrides: ['task=landing']
+Traceback (most recent call last):
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/scripts/train.py", line 162, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 419, in train
+    env_state = reset_fn_(key_envs)
+                ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/envs/wrappers/training.py", line 133, in reset
+    state = self.env.reset(rng)
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/envs/wrappers/training.py", line 84, in reset
+    state = self.env.reset(rng)
+            ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/envs/wrappers/training.py", line 69, in reset
+    return jax.vmap(self.env.reset)(rng)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/task/landing_mode/arcdrone.py", line 55, in reset
+    state = self._get_obs(state, zero_action)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/task/landing_mode/arcdrone.py", line 123, in _get_obs
+    return _get_obs_impl(self, state, action)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/task/landing_mode/obs.py", line 22, in _get_obs_impl
+    linacc_noisy = linacc + jax.random.normal(rng_linacc, shape=(3,)) * self.cfg.linacc_noise
+                                                                        ^^^^^^^^^^^^^^^^^^^^^
+omegaconf.errors.ConfigAttributeError: Key 'linacc_noise' is not in struct
+    full_key: env.linacc_noise
+    object_type=dict
+--------------------
+For simplicity, JAX has removed its internal frames from the traceback of the following exception. Set JAX_TRACEBACK_FILTERING=off to include these.
+
+Set the environment variable HYDRA_FULL_ERROR=1 for a complete stack trace.

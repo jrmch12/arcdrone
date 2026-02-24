@@ -47,7 +47,8 @@ print(f"Latest checkpoint found: {CHECKPOINT_PATH}")
 def evaluate(
     model_path: str = "outputs/2026-01-28/23-20-35/trained_model.pkl",
     num_episodes: int = 20,
-    max_steps: int = 200
+    max_steps: int = 200,
+    task_name: str = "velocity"
 ):
     """
     Evaluate a trained controller.
@@ -62,8 +63,9 @@ def evaluate(
     # ====== Load Config ======
     scripts_dir = Path(__file__).resolve().parent
     rl_dir = scripts_dir.parent
-    yaml_file = rl_dir / 'cfg' / 'task' / 'velocity.yaml'
+    yaml_file = rl_dir / 'cfg' / 'task' / f'{task_name}.yaml'
     cfg = OmegaConf.load(yaml_file)
+
     
     cfg_env = cfg.env
     cfg_train = cfg.train
@@ -78,7 +80,19 @@ def evaluate(
 
 
     # ====== Initialize Environment ======
-    env = ARCDroneRL_Hover(cfg=cfg_env)        
+    # Map task names to environment classes
+    ENV_CLASSES = {
+        'hover': ARCDroneRL_Hover,
+        'landing': ARCDroneRL_Landing,
+        'vel': ARCDroneRL_Vel,
+    }
+
+    print(f"Instantiating environment for task: '{task_name}'")
+    if task_name not in ENV_CLASSES:
+        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+    env_class = ENV_CLASSES[task_name]
+    env = env_class(cfg=cfg.env)
+    print(f"env '{task_name}' instantiated successfully")      
 
     
     # ====== Setup Reset ======  
@@ -185,18 +199,21 @@ def evaluate(
 
 def main():
     import argparse
-    parser = argparse.ArgumentParser(description='Evaluate trained ARCDrone velocity controller')
+    parser = argparse.ArgumentParser(description='Evaluate trained ARCDrone controller')
     parser.add_argument('--model_path', type=str, default=CHECKPOINT_PATH,
                         help='Path to trained model')
     parser.add_argument('--episodes', type=int, default=50,
                         help='Number of episodes to evaluate')
     parser.add_argument('--steps', type=int, default=200,
                         help='Maximum steps per episode')
+    parser.add_argument('--task', type=str, default='velocity', choices=['hover', 'landing', 'velocity'],
+                        help='Task/environment to evaluate (hover, landing, velocity)')
     args = parser.parse_args()
     evaluate(
         model_path=args.model_path,
         num_episodes=args.episodes,
-        max_steps=args.steps
+        max_steps=args.steps,
+        task_name=args.task
     )
 
 

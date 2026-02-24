@@ -1,0 +1,62 @@
+task_name: hover
+env:
+  numEnvs: 2
+  mj_timestep: 0.004
+  n_frames: 5
+  backend: mjx
+  xml_path_rel: assets/skydio_x2/scene.xml
+  eval_mode: false
+  buffer_size: 5
+  max_episode_steps: 200
+  success_threshold: 0.02
+  success_steps_required: 10
+  distance_weight: 1
+  distance_scale: 5
+  overshoot_penalty: 5
+  oscillation_penalty: 2
+  action_chattering_weight: 0.001
+  action_penalty_weight: 0.0001
+  time_penalty: 0.01
+  success_bonus: 50.0
+  ground_penalty_weight: 100.0
+  ground_threshold_event: 0.5
+  ground_threshold_penalty: 0.15
+  linacc_noise: 0.02
+  quat_noise: 0.001
+  angvel_noise: 0.01
+  linvel_noise: 0.01
+train:
+  num_timesteps: 10000000
+  num_evals: 30
+  reward_scaling: 0.1
+  episode_length: ${env.max_episode_steps}
+  normalize_observations: true
+  action_repeat: 1
+  unroll_length: 32
+  num_minibatches: 16
+  num_updates_per_batch: 16
+  log_training_metrics: false
+  discounting: 0.97
+  learning_rate: 0.0003
+  entropy_cost: 0.001
+  num_envs: 2056
+  batch_size: 1028
+  seed: 0
+  policy_hidden_layers:
+  - 512
+  - 512
+  - 256
+  - 128
+  value_hidden_layers:
+  - 512
+  - 512
+  - 256
+  - 128
+  policy_obs_key: state
+  value_obs_key: privileged_state
+  use_wandb: true
+  wandb_project: brax-training
+  wandb_run_name: arcdrone_vel_ppo_run
+  restore_params_path: null
+  restore_value_fn: true
+debug_cpu: false
