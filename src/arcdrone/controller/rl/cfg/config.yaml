@@ -1,6 +1,6 @@
 # cfg/config.yaml
 defaults:
-  - task: hover #landing
+  - task: hover # Change to 'landing' or 'vel' to select environment
   - override hydra/job_logging: default  # ← ADD THIS
   - override hydra/hydra_logging: default  # ← ADD THIS
   - _self_

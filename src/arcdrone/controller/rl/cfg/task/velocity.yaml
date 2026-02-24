@@ -1,6 +1,8 @@
 # @package _global_
-name: arcdrone
-file_path: task/arcdrone.py
+task_name: velocity
+# name: arcdrone
+# file_path: task/arcdrone.py
+
 
 
 env:

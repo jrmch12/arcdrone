@@ -8,8 +8,7 @@ from jax import numpy as jp
 from omegaconf import OmegaConf
 import numpy as np
 from mujoco import mjx
-
-from arcdrone.controller.rl.task.landing_mode.arcdrone import CustomState, ARCDroneRL_Landing
+from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
 from arcdrone.utils.plotjuggler import PlotJugglerLogger
 
 
@@ -21,7 +20,7 @@ class RewardAnalyzer:
     for visualization. This is a sandbox tool for reward tuning and debugging.
     """
     
-    def __init__(self, cfg_path: str, layout_file: str = None):
+    def __init__(self, cfg_path: str, task_name: str = 'landing', layout_file: str = None):
         # Load configuration
         cfg = OmegaConf.load(cfg_path)
         self.cfg = cfg.env
@@ -29,9 +28,17 @@ class RewardAnalyzer:
         # 1. Create MuJoCo model (for GUI interaction)
         self.mj_model = mujoco.MjModel.from_xml_path("assets/skydio_x2/mocap/scene_mocap.xml")
         self.mj_data = mujoco.MjData(self.mj_model)
-        
+
         # 2. Create RL task instance (for reward computation)
-        self.rl_task = ARCDroneRL_Landing(cfg=self.cfg)
+        ENV_CLASSES = {
+            'hover': ARCDroneRL_Hover,
+            'landing': ARCDroneRL_Landing,
+            'vel': ARCDroneRL_Vel,
+        }
+        if task_name not in ENV_CLASSES:
+            raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+        env_class = ENV_CLASSES[task_name]
+        self.rl_task = env_class(cfg=self.cfg)
         
         # 3. Create PlotJuggler logger for real-time visualization
         if layout_file and os.path.exists(layout_file):
@@ -49,7 +56,6 @@ class RewardAnalyzer:
         # ========== SANDBOX MODE ==========
         # From here we diverge from normal RL training:
         # - Actions are set to zero (manual GUI control instead)
-        # - pipeline_state is overwritten with mj_data each step
         #   TODO: maybe a global flag to enable/disable metrics computation?
         # - Reward metrics are computed and streamed to PlotJuggler
         # ==================================
@@ -57,8 +63,8 @@ class RewardAnalyzer:
         print("✓ Reward Analyzer initialized")
         print("✓ Move the robot in the GUI to see reward components in PlotJuggler")
     
-    def _update_state_from_mujoco(self) -> CustomState:
-        """Update CustomState with current MuJoCo GUI state.
+    def _update_state_from_mujoco(self):
+        """Update state with current MuJoCo GUI state.
         
         Syncs the RL task's pipeline_state with the manually controlled
         MuJoCo simulation, allowing reward computation on GUI interactions.
@@ -96,14 +102,14 @@ class RewardAnalyzer:
                 
     #             viewer.user_scn.ngeom += 1
     
-    def _prepare_metrics_for_logging(self, state: CustomState) -> dict:
+    def _prepare_metrics_for_logging(self, state) -> dict:
         """Prepare metrics dictionary for PlotJuggler logging.
         
-        Converts metrics from CustomState and adds additional computed values
+        Converts metrics from state and adds additional computed values
         like total reward. This centralizes all metric transformations before logging.
         
         Args:
-            state: Current CustomState with computed reward components
+            state: Current state with computed reward components
             
         Returns:
             Dictionary ready for PlotJuggler with all metrics as Python types
@@ -184,25 +190,28 @@ class RewardAnalyzer:
 def main():
     """Entry point for reward analyzer tool."""
     import argparse
-    
+
     parser = argparse.ArgumentParser(description='Analyze reward components in real-time')
     parser.add_argument(
-        '--config',
+        '--task',
         type=str,
-        default='./src/arcdrone/controller/rl/cfg/task/landing.yaml',
-        help='Path to config file'
+        default='landing',
+        choices=['hover', 'landing', 'vel'],
+        help='Task/environment to analyze (hover, landing, vel)'
     )
     parser.add_argument(
         '--layout',
         type=str,
-        default= None,
+        default=None,
         help='Path to PlotJuggler layout file (auto-launches if exists)'
     )
     args = parser.parse_args()
-    
-    analyzer = RewardAnalyzer(args.config, layout_file=args.layout)
+
+    # Build config path automatically from task
+    config_path = f'./src/arcdrone/controller/rl/cfg/task/{args.task}.yaml'
+    analyzer = RewardAnalyzer(config_path, task_name=args.task, layout_file=args.layout)
     analyzer.run()
 
 
-if __name__ == '__main__':
+if __name__ == "__main__":
     main()

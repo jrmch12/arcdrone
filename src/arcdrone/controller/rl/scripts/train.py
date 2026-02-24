@@ -54,11 +54,20 @@ def main(cfg: DictConfig):
     from arcdrone.utils.wandb_logger import WandbLogger
     from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
 
+    # Map task names to environment classes
+    ENV_CLASSES = {
+        'hover': ARCDroneRL_Hover,
+        'landing': ARCDroneRL_Landing,
+        'vel': ARCDroneRL_Vel,
+    }
 
-    # =========== Load environment ===========
-
-    env = ARCDroneRL_Hover(cfg=cfg.env)
-    print("env instantiated successfully")
+    task_name = cfg.task_name
+    print(f"Instantiating environment for task: '{task_name}'")
+    if task_name not in ENV_CLASSES:
+        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+    env_class = ENV_CLASSES[task_name]
+    env = env_class(cfg=cfg.env)
+    print(f"env '{task_name}' instantiated successfully")
 
     # =========== Load config and Logger ===========
 

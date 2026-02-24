@@ -138,7 +138,7 @@ class ARCDroneRL_Hover(PipelineEnv):
         )
         
         # Add ground collision termination (z <= threshold means drone is too close to ground)
-        ground_collision = z_position <= self.cfg.ground_threshold
+        ground_collision = z_position <= self.cfg.ground_threshold_event
         done = jp.logical_or(done, ground_collision)
         
         return state.replace(done=done.astype(jp.float32))

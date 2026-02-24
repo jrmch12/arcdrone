@@ -1,6 +1,7 @@
 # @package _global_
-name: arcdrone
-file_path: task/arcdrone.py
+task_name: hover
+# name: arcdrone
+# file_path: task/arcdrone.py
 
 
 env:
@@ -25,15 +26,16 @@ env:
   
   # Reward function
   distance_weight: 1 
-  distance_scale: 5  # exponential          
+  distance_scale: 0.3  # exponential          
   overshoot_penalty: 5
   oscillation_penalty: 2
   action_chattering_weight: 0.001
   action_penalty_weight: 0.0001
   time_penalty: 0.01 
   success_bonus: 50.0
-  ground_penalty_weight: 100.0  
-  ground_threshold: 0.5  
+  ground_penalty_weight: 10.0  
+  ground_threshold_event: 0.15  
+  ground_threshold_penalty: 0.5 
 
   # Sensor noise
   linacc_noise: 0.02  # m/s²

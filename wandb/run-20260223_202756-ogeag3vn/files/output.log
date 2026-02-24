@@ -1,0 +1,2137 @@
+[2026-02-23 20:27:58,240][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+[2026-02-23 20:27:58,670][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-23 20:28:11,825][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-23 20:28:19,961][root][INFO] - Using JAX default device: cuda:0.
+[2026-02-23 20:28:45,190][absl][INFO] - {'eval/walltime': 25.083792209625244, 'eval/episode_reward': Array(-21.559849, dtype=float32), 'eval/episode_reward_action_chattering': Array(-0.45418411, dtype=float32), 'eval/episode_reward_action_penalty': Array(-0.20388311, dtype=float32), 'eval/episode_reward_distance': Array(0.01042089, dtype=float32), 'eval/episode_reward_ground_penalty': Array(-2.2204833, dtype=float32), 'eval/episode_reward_oscillation': Array(-2.25, dtype=float32), 'eval/episode_reward_overshoot': Array(-15.9765625, dtype=float32), 'eval/episode_reward_success_bonus': Array(0., dtype=float32), 'eval/episode_reward_time_penalty': Array(-0.46515608, dtype=float32), 'eval/episode_reward_total': Array(-21.559849, dtype=float32), 'eval/episode_reward_std': Array(6.0892973, dtype=float32), 'eval/episode_reward_action_chattering_std': Array(0.07241432, dtype=float32), 'eval/episode_reward_action_penalty_std': Array(0.04715312, dtype=float32), 'eval/episode_reward_distance_std': Array(0.00675384, dtype=float32), 'eval/episode_reward_ground_penalty_std': Array(2.5157175, dtype=float32), 'eval/episode_reward_oscillation_std': Array(0.68211275, dtype=float32), 'eval/episode_reward_overshoot_std': Array(5.0797772, dtype=float32), 'eval/episode_reward_success_bonus_std': Array(0., dtype=float32), 'eval/episode_reward_time_penalty_std': Array(0.06928179, dtype=float32), 'eval/episode_reward_total_std': Array(6.0892973, dtype=float32), 'eval/avg_episode_length': Array(46.515625, dtype=float32), 'eval/std_episode_length': Array(6.9281855, dtype=float32), 'eval/epoch_eval_time': 25.083792209625244, 'eval/sps': 1020.5793360932353}
+[2026-02-23 20:28:45,303][absl][INFO] - starting iteration 0 47.06352424621582
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2495, in _lower_jaxpr_to_fun_cached
+    func_op, _, _ = ctx.cached_primitive_lowerings[key]
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+KeyError: <exception str() failed>
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2495, in _lower_jaxpr_to_fun_cached
+    func_op, _, _ = ctx.cached_primitive_lowerings[key]
+                    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^
+KeyError: ('closed_call', let _shuffle = { [34;1mlambda [39;22m; a[35m:key<fry>[][39m b[35m:i32[12288][39m. [34;1mlet
+    [39;22mc[35m:key<fry>[2][39m = random_split[shape=(2,)] a
+    d[35m:key<fry>[1][39m = slice[limit_indices=(1,) start_indices=(0,) strides=(1,)] c
+    e[35m:key<fry>[][39m = squeeze[dimensions=(0,)] d
+    f[35m:key<fry>[1][39m = slice[limit_indices=(2,) start_indices=(1,) strides=(1,)] c
+    g[35m:key<fry>[][39m = squeeze[dimensions=(0,)] f
+    h[35m:u32[12288][39m = random_bits[bit_width=32 shape=(12288,)] g
+    _[35m:u32[12288][39m i[35m:i32[12288][39m = sort[dimension=0 is_stable=True num_keys=1] h b
+    j[35m:key<fry>[2][39m = random_split[shape=(2,)] e
+    k[35m:key<fry>[1][39m = slice[limit_indices=(1,) start_indices=(0,) strides=(1,)] j
+    _[35m:key<fry>[][39m = squeeze[dimensions=(0,)] k
+    l[35m:key<fry>[1][39m = slice[limit_indices=(2,) start_indices=(1,) strides=(1,)] j
+    m[35m:key<fry>[][39m = squeeze[dimensions=(0,)] l
+    n[35m:u32[12288][39m = random_bits[bit_width=32 shape=(12288,)] m
+    _[35m:u32[12288][39m o[35m:i32[12288][39m = sort[dimension=0 is_stable=True num_keys=1] n i
+  [34;1min [39;22m(o,) } in
+let _take = { [34;1mlambda [39;22m; p[35m:f32[12288,10,115][39m q[35m:i32[12288][39m. [34;1mlet
+    [39;22mr[35m:bool[12288][39m = lt q 0:i32[]
+    s[35m:i32[12288][39m = add q 12288:i32[]
+    t[35m:i32[12288][39m = jit[
+      name=_where
+      jaxpr={ [34;1mlambda [39;22m; r[35m:bool[12288][39m s[35m:i32[12288][39m q[35m:i32[12288][39m. [34;1mlet
+          [39;22mt[35m:i32[12288][39m = select_n r q s
+        [34;1min [39;22m(t,) }
+    ] r s q
+    u[35m:i32[12288,1][39m = broadcast_in_dim[
+      broadcast_dimensions=(0,)
+      shape=(12288, 1)
+      sharding=None
+    ] t
+    v[35m:f32[12288,10,115][39m = gather[
+      dimension_numbers=GatherDimensionNumbers(offset_dims=(1, 2), collapsed_slice_dims=(0,), start_index_map=(0,), operand_batching_dims=(), start_indices_batching_dims=())
+      fill_value=nan
+      indices_are_sorted=False
+      mode=GatherScatterMode.FILL_OR_DROP
+      slice_sizes=(1, 10, 115)
+      unique_indices=True
+    ] p u
+  [34;1min [39;22m(v,) } in
+let _take1 = { [34;1mlambda [39;22m; w[35m:f32[12288,10,4][39m x[35m:i32[12288][39m. [34;1mlet
+    [39;22my[35m:bool[12288][39m = lt x 0:i32[]
+    z[35m:i32[12288][39m = add x 12288:i32[]
+    ba[35m:i32[12288][39m = jit[
+      name=_where
+      jaxpr={ [34;1mlambda [39;22m; r[35m:bool[12288][39m s[35m:i32[12288][39m q[35m:i32[12288][39m. [34;1mlet
+          [39;22mt[35m:i32[12288][39m = select_n r q s
+        [34;1min [39;22m(t,) }
+    ] y z x
+    bb[35m:i32[12288,1][39m = broadcast_in_dim[
+      broadcast_dimensions=(0,)
+      shape=(12288, 1)
+      sharding=None
+    ] ba
+    bc[35m:f32[12288,10,4][39m = gather[
+      dimension_numbers=GatherDimensionNumbers(offset_dims=(1, 2), collapsed_slice_dims=(0,), start_index_map=(0,), operand_batching_dims=(), start_indices_batching_dims=())
+      fill_value=nan
+      indices_are_sorted=False
+      mode=GatherScatterMode.FILL_OR_DROP
+      slice_sizes=(1, 10, 4)
+      unique_indices=True
+    ] w bb
+  [34;1min [39;22m(bc,) } in
+let _take2 = { [34;1mlambda [39;22m; bd[35m:f32[12288,10][39m be[35m:i32[12288][39m. [34;1mlet
+    [39;22mbf[35m:bool[12288][39m = lt be 0:i32[]
+    bg[35m:i32[12288][39m = add be 12288:i32[]
+    bh[35m:i32[12288][39m = jit[
+      name=_where
+      jaxpr={ [34;1mlambda [39;22m; r[35m:bool[12288][39m s[35m:i32[12288][39m q[35m:i32[12288][39m. [34;1mlet
+          [39;22mt[35m:i32[12288][39m = select_n r q s
+        [34;1min [39;22m(t,) }
+    ] bf bg be
+    bi[35m:i32[12288,1][39m = broadcast_in_dim[
+      broadcast_dimensions=(0,)
+      shape=(12288, 1)
+      sharding=None
+    ] bh
+    bj[35m:f32[12288,10][39m = gather[
+      dimension_numbers=GatherDimensionNumbers(offset_dims=(1,), collapsed_slice_dims=(0,), start_index_map=(0,), operand_batching_dims=(), start_indices_batching_dims=())
+      fill_value=nan
+      indices_are_sorted=False
+      mode=GatherScatterMode.FILL_OR_DROP
+      slice_sizes=(1, 10)
+      unique_indices=True
+    ] bd bi
+  [34;1min [39;22m(bj,) } in
+let _where = { [34;1mlambda [39;22m; r[35m:bool[12288][39m s[35m:i32[12288][39m q[35m:i32[12288][39m. [34;1mlet
+    [39;22mt[35m:i32[12288][39m = select_n r q s
+  [34;1min [39;22m(t,) } in
+let silu = { [34;1mlambda [39;22m; bk[35m:f32[10,512,512][39m. [34;1mlet
+    [39;22mbl[35m:f32[10,512,512][39m = logistic bk
+    bm[35m:f32[10,512,512][39m = sub 1.0:f32[] bl
+    bn[35m:f32[10,512,512][39m = mul bl bm
+    bo[35m:f32[10,512,512][39m = mul bk bl
+  [34;1min [39;22m(bo, bn, bl) } in
+let silu1 = { [34;1mlambda [39;22m; bp[35m:f32[10,512,256][39m. [34;1mlet
+    [39;22mbq[35m:f32[10,512,256][39m = logistic bp
+    br[35m:f32[10,512,256][39m = sub 1.0:f32[] bq
+    bs[35m:f32[10,512,256][39m = mul bq br
+    bt[35m:f32[10,512,256][39m = mul bp bq
+  [34;1min [39;22m(bt, bs, bq) } in
+let silu2 = { [34;1mlambda [39;22m; bu[35m:f32[10,512,128][39m. [34;1mlet
+    [39;22mbv[35m:f32[10,512,128][39m = logistic bu
+    bw[35m:f32[10,512,128][39m = sub 1.0:f32[] bv
+    bx[35m:f32[10,512,128][39m = mul bv bw
+    by[35m:f32[10,512,128][39m = mul bu bv
+  [34;1min [39;22m(by, bx, bv) } in
+let silu3 = { [34;1mlambda [39;22m; bz[35m:f32[512,512][39m. [34;1mlet
+    [39;22mca[35m:f32[512,512][39m = logistic bz
+    cb[35m:f32[512,512][39m = sub 1.0:f32[] ca
+    cc[35m:f32[512,512][39m = mul ca cb
+    cd[35m:f32[512,512][39m = mul bz ca
+  [34;1min [39;22m(cd, cc, ca) } in
+let softplus = { [34;1mlambda [39;22m; ce[35m:f32[10,512,4][39m. [34;1mlet
+    [39;22mcf[35m:f32[10,512,4][39m = custom_jvp_call[
+      name=logaddexp
+      call_jaxpr={ [34;1mlambda [39;22m; cg[35m:f32[10,512,4][39m ch[35m:f32[][39m. [34;1mlet
+          [39;22mci[35m:f32[10,512,4][39m = max cg ch
+          cj[35m:f32[10,512,4][39m = sub cg ch
+          ck[35m:bool[10,512,4][39m = ne cj cj
+          cl[35m:f32[10,512,4][39m = add cg ch
+          cm[35m:f32[10,512,4][39m = abs cj
+          cn[35m:f32[10,512,4][39m = neg cm
+          co[35m:f32[10,512,4][39m = exp cn
+          cp[35m:f32[10,512,4][39m = log1p co
+          cq[35m:f32[10,512,4][39m = add ci cp
+          cr[35m:f32[10,512,4][39m = select_n ck cq cl
+        [34;1min [39;22m(cr,) }
+      jvp=_logaddexp_jvp
+      symbolic_zeros=False
+    ] ce 0.0:f32[]
+    cs[35m:bool[10,512,4][39m = eq ce inf:f32[]
+    ct[35m:f32[10,512,4][39m = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(10, 512, 4)
+      sharding=None
+    ] 0.0:f32[]
+    cu[35m:f32[10,512,4][39m = select_n cs ce ct
+    cv[35m:bool[10,512,4][39m = eq cf inf:f32[]
+    cw[35m:f32[10,512,4][39m = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(10, 512, 4)
+      sharding=None
+    ] 0.0:f32[]
+    cx[35m:f32[10,512,4][39m = select_n cv cf cw
+    cy[35m:f32[10,512,4][39m = sub cu cx
+    cz[35m:f32[10,512,4][39m = exp cy
+    da[35m:bool[][39m = eq 0.0:f32[] inf:f32[]
+    db[35m:f32[][39m = select_n da 0.0:f32[] 0.0:f32[]
+    dc[35m:bool[10,512,4][39m = eq cf inf:f32[]
+    dd[35m:f32[10,512,4][39m = broadcast_in_dim[
+      broadcast_dimensions=()
+      shape=(10, 512, 4)
+      sharding=None
+    ] 0.0:f32[]
+    de[35m:f32[10,512,4][39m = select_n dc cf dd
+    df[35m:f32[10,512,4][39m = sub db de
+    dg[35m:f32[10,512,4][39m = exp df
+    dh[35m:f32[10,512,4][39m = mul 0.0:f32[] dg
+  [34;1min [39;22m(cf, cz, dh) } in
+let softplus1 = { [34;1mlambda [39;22m; di[35m:f32[10,512,4][39m. [34;1mlet
+    [39;22mdj[35m:f32[10,512,4][39m = custom_jvp_call[
+      name=logaddexp
+      call_jaxpr={ [34;1mlambda [39;22m; dk[35m:f32[10,512,4][39m dl[35m:f32[][39m. [34;1mlet
+          [39;22mdm[35m:f32[10,512,4][39m = max dk dl
+          dn[35m:f32[10,512,4][39m = sub dk dl
+          do[35m:bool[10,512,4][39m = ne dn dn
+          dp[35m:f32[10,512,4][39m = add dk dl
+          dq[35m:f32[10,512,4][39m = abs dn
+          dr[35m:f32[10,512,4][39m = neg dq
+          ds[35m:f32[10,512,4][39m = exp dr
+          dt[35m:f32[10,512,4][39m = log1p ds
+          du[35m:f32[10,512,4][39m = add dm dt
+          dv[35m:f32[10,512,4][39m = select_n do du dp
+        [34;1min [39;22m(dv,) }
+      jvp=_logaddexp_jvp
+      symbolic_zeros=False
+    ] di 0.0:f32[]
+  [34;1min [39;22m(dj,) } in
+let softplus2 = { [34;1mlambda [39;22m; dw[35m:f32[10,512,4][39m dx[35m:f32[10,512,4][39m dy[35m:f32[10,512,4][39m. [34;1mlet
+    [39;22mdz[35m:f32[10,512,4][39m = mul dy dw
+  [34;1min [39;22m(dz,) } in
+let silu4 = { [34;1mlambda [39;22m; ea[35m:f32[10,512,128][39m eb[35m:f32[10,512,128][39m ec[35m:f32[10,512,128][39m ed[35m:f32[10,512,128][39m. [34;1mlet
+    [39;22mee[35m:f32[10,512,128][39m = mul ec ed
+    ef[35m:f32[10,512,128][39m = mul ed eb
+    eg[35m:f32[10,512,128][39m = mul ee ea
+    eh[35m:f32[10,512,128][39m = add_any ef eg
+  [34;1min [39;22m(eh,) } in
+let silu5 = { [34;1mlambda [39;22m; ei[35m:f32[10,512,256][39m ej[35m:f32[10,512,256][39m ek[35m:f32[10,512,256][39m el[35m:f32[10,512,256][39m. [34;1mlet
+    [39;22mem[35m:f32[10,512,256][39m = mul ek el
+    en[35m:f32[10,512,256][39m = mul el ej
+    eo[35m:f32[10,512,256][39m = mul em ei
+    ep[35m:f32[10,512,256][39m = add_any en eo
+  [34;1min [39;22m(ep,) } in
+let silu6 = { [34;1mlambda [39;22m; eq[35m:f32[10,512,512][39m er[35m:f32[10,512,512][39m es[35m:f32[10,512,512][39m et[35m:f32[10,512,512][39m. [34;1mlet
+    [39;22meu[35m:f32[10,512,512][39m = mul es et
+    ev[35m:f32[10,512,512][39m = mul et er
+    ew[35m:f32[10,512,512][39m = mul eu eq
+    ex[35m:f32[10,512,512][39m = add_any ev ew
+  [34;1min [39;22m(ex,) } in
+let jaxpr = { [34;1mlambda [39;22m; cg[35m:f32[10,512,4][39m ch[35m:f32[][39m. [34;1mlet
+    [39;22mci[35m:f32[10,512,4][39m = max cg ch
+    cj[35m:f32[10,512,4][39m = sub cg ch
+    ck[35m:bool[10,512,4][39m = ne cj cj
+    cl[35m:f32[10,512,4][39m = add cg ch
+    cm[35m:f32[10,512,4][39m = abs cj
+    cn[35m:f32[10,512,4][39m = neg cm
+    co[35m:f32[10,512,4][39m = exp cn
+    cp[35m:f32[10,512,4][39m = log1p co
+    cq[35m:f32[10,512,4][39m = add ci cp
+    cr[35m:f32[10,512,4][39m = select_n ck cq cl
+  [34;1min [39;22m(cr,) } in
+let jaxpr1 = { [34;1mlambda [39;22m; dk[35m:f32[10,512,4][39m dl[35m:f32[][39m. [34;1mlet
+    [39;22mdm[35m:f32[10,512,4][39m = max dk dl
+    dn[35m:f32[10,512,4][39m = sub dk dl
+    do[35m:bool[10,512,4][39m = ne dn dn
+    dp[35m:f32[10,512,4][39m = add dk dl
+    dq[35m:f32[10,512,4][39m = abs dn
+    dr[35m:f32[10,512,4][39m = neg dq
+    ds[35m:f32[10,512,4][39m = exp dr
+    dt[35m:f32[10,512,4][39m = log1p ds
+    du[35m:f32[10,512,4][39m = add dm dt
+    dv[35m:f32[10,512,4][39m = select_n do du dp
+  [34;1min [39;22m(dv,) } in
+{ [34;1mlambda [39;22m; ey[35m:f32[12288,10,115][39m ez[35m:f32[12288,10,115][39m fa[35m:f32[12288,10,4][39m fb[35m:f32[12288,10][39m
+    fc[35m:f32[12288,10][39m fd[35m:f32[12288,10,115][39m fe[35m:f32[12288,10,115][39m ff[35m:f32[12288,10,8][39m
+    fg[35m:f32[12288,10][39m fh[35m:f32[12288,10,4][39m fi[35m:f32[12288,10][39m fj[35m:f32[12288,10][39m fk[35m:f32[12288,10][39m
+    fl[35m:f32[12288,10][39m fm[35m:f32[12288,10][39m fn[35m:f32[12288,10][39m fo[35m:f32[12288,10][39m fp[35m:f32[12288,10][39m
+    fq[35m:f32[12288,10][39m fr[35m:f32[12288,10][39m fs[35m:f32[12288,10][39m ft[35m:f32[12288,10][39m fu[35m:f32[12288,10][39m
+    fv[35m:f32[115][39m fw[35m:f32[115][39m fx[35m:f32[115][39m fy[35m:f32[115][39m fz[35m:i32[][39m ga[35m:f32[512][39m gb[35m:f32[115,512][39m
+    gc[35m:f32[512][39m gd[35m:f32[512,512][39m ge[35m:f32[256][39m gf[35m:f32[512,256][39m gg[35m:f32[128][39m gh[35m:f32[256,128][39m
+    gi[35m:f32[8][39m gj[35m:f32[128,8][39m gk[35m:f32[512][39m gl[35m:f32[115,512][39m gm[35m:f32[512][39m gn[35m:f32[512,512][39m
+    go[35m:f32[256][39m gp[35m:f32[512,256][39m gq[35m:f32[128][39m gr[35m:f32[256,128][39m gs[35m:f32[1][39m gt[35m:f32[128,1][39m
+    gu[35m:f32[512][39m gv[35m:f32[115,512][39m gw[35m:f32[512][39m gx[35m:f32[512,512][39m gy[35m:f32[256][39m gz[35m:f32[512,256][39m
+    ha[35m:f32[128][39m hb[35m:f32[256,128][39m hc[35m:f32[8][39m hd[35m:f32[128,8][39m he[35m:f32[512][39m hf[35m:f32[115,512][39m
+    hg[35m:f32[512][39m hh[35m:f32[512,512][39m hi[35m:f32[256][39m hj[35m:f32[512,256][39m hk[35m:f32[128][39m hl[35m:f32[256,128][39m
+    hm[35m:f32[1][39m hn[35m:f32[128,1][39m ho[35m:f32[512][39m hp[35m:f32[115,512][39m hq[35m:f32[512][39m hr[35m:f32[512,512][39m
+    hs[35m:f32[256][39m ht[35m:f32[512,256][39m hu[35m:f32[128][39m hv[35m:f32[256,128][39m hw[35m:f32[8][39m hx[35m:f32[128,8][39m
+    hy[35m:f32[512][39m hz[35m:f32[115,512][39m ia[35m:f32[512][39m ib[35m:f32[512,512][39m ic[35m:f32[256][39m id[35m:f32[512,256][39m
+    ie[35m:f32[128][39m if[35m:f32[256,128][39m ig[35m:f32[1][39m ih[35m:f32[128,1][39m ii[35m:u32[2][39m. [34;1mlet
+    [39;22mij[35m:key<fry>[][39m = random_wrap[impl=fry] ii
+    ik[35m:key<fry>[3][39m = random_split[shape=(3,)] ij
+    il[35m:u32[3,2][39m = random_unwrap ik
+    im[35m:u32[1,2][39m = slice[
+      limit_indices=(1, 2)
+      start_indices=(0, 0)
+      strides=(1, 1)
+    ] il
+    in[35m:u32[2][39m = squeeze[dimensions=(0,)] im
+    io[35m:u32[1,2][39m = slice[
+      limit_indices=(2, 2)
+      start_indices=(1, 0)
+      strides=(1, 1)
+    ] il
+    ip[35m:u32[2][39m = squeeze[dimensions=(0,)] io
+    iq[35m:u32[1,2][39m = slice[
+      limit_indices=(3, 2)
+      start_indices=(2, 0)
+      strides=(1, 1)
+    ] il
+    ir[35m:u32[2][39m = squeeze[dimensions=(0,)] iq
+    is[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    it[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    iu[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] is it
+    iv[35m:f32[12288,10,115][39m = jit[name=_take jaxpr=_take] ey iu
+    iw[35m:f32[24,512,10,115][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 115)
+      sharding=None
+    ] iv
+    ix[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    iy[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    iz[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] ix iy
+    ja[35m:f32[12288,10,115][39m = jit[name=_take jaxpr=_take] ez iz
+    jb[35m:f32[24,512,10,115][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 115)
+      sharding=None
+    ] ja
+    jc[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    jd[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    je[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] jc jd
+    jf[35m:f32[12288,10,4][39m = jit[name=_take jaxpr=_take1] fa je
+    jg[35m:f32[24,512,10,4][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 4)
+      sharding=None
+    ] jf
+    jh[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    ji[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    jj[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] jh ji
+    jk[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fb jj
+    jl[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] jk
+    jm[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    jn[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    jo[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] jm jn
+    jp[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fc jo
+    jq[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] jp
+    jr[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    js[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    jt[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] jr js
+    ju[35m:f32[12288,10,115][39m = jit[name=_take jaxpr=_take] fd jt
+    jv[35m:f32[24,512,10,115][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 115)
+      sharding=None
+    ] ju
+    jw[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    jx[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    jy[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] jw jx
+    jz[35m:f32[12288,10,115][39m = jit[name=_take jaxpr=_take] fe jy
+    ka[35m:f32[24,512,10,115][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 115)
+      sharding=None
+    ] jz
+    kb[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    kc[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    kd[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] kb kc
+    ke[35m:f32[12288,10,8][39m = jit[
+      name=_take
+      jaxpr={ [34;1mlambda [39;22m; ff[35m:f32[12288,10,8][39m kd[35m:i32[12288][39m. [34;1mlet
+          [39;22mkf[35m:bool[12288][39m = lt kd 0:i32[]
+          kg[35m:i32[12288][39m = add kd 12288:i32[]
+          kh[35m:i32[12288][39m = jit[name=_where jaxpr=_where] kf kg kd
+          ki[35m:i32[12288,1][39m = broadcast_in_dim[
+            broadcast_dimensions=(0,)
+            shape=(12288, 1)
+            sharding=None
+          ] kh
+          ke[35m:f32[12288,10,8][39m = gather[
+            dimension_numbers=GatherDimensionNumbers(offset_dims=(1, 2), collapsed_slice_dims=(0,), start_index_map=(0,), operand_batching_dims=(), start_indices_batching_dims=())
+            fill_value=nan
+            indices_are_sorted=False
+            mode=GatherScatterMode.FILL_OR_DROP
+            slice_sizes=(1, 10, 8)
+            unique_indices=True
+          ] ff ki
+        [34;1min [39;22m(ke,) }
+    ] ff kd
+    kj[35m:f32[24,512,10,8][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 8)
+      sharding=None
+    ] ke
+    kk[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    kl[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    km[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] kk kl
+    kn[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fg km
+    ko[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] kn
+    kp[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    kq[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    kr[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] kp kq
+    ks[35m:f32[12288,10,4][39m = jit[name=_take jaxpr=_take1] fh kr
+    kt[35m:f32[24,512,10,4][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10, 4)
+      sharding=None
+    ] ks
+    ku[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    kv[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    kw[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] ku kv
+    kx[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fi kw
+    ky[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] kx
+    kz[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    la[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    lb[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] kz la
+    lc[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fj lb
+    ld[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] lc
+    le[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    lf[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    lg[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] le lf
+    lh[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fk lg
+    li[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] lh
+    lj[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    lk[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    ll[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] lj lk
+    lm[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fl ll
+    ln[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] lm
+    lo[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    lp[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    lq[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] lo lp
+    lr[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fm lq
+    ls[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] lr
+    lt[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    lu[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    lv[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] lt lu
+    lw[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fn lv
+    lx[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] lw
+    ly[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    lz[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    ma[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] ly lz
+    mb[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fo ma
+    mc[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] mb
+    md[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    me[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    mf[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] md me
+    mg[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fp mf
+    mh[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] mg
+    mi[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    mj[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    mk[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] mi mj
+    ml[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fq mk
+    mm[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] ml
+    mn[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    mo[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    mp[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] mn mo
+    mq[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fr mp
+    mr[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] mq
+    ms[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    mt[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    mu[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] ms mt
+    mv[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fs mu
+    mw[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] mv
+    mx[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    my[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    mz[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] mx my
+    na[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] ft mz
+    nb[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] na
+    nc[35m:key<fry>[][39m = random_wrap[impl=fry] ip
+    nd[35m:i32[12288][39m = iota[dimension=0 dtype=int32 shape=(12288,) sharding=None]
+    ne[35m:i32[12288][39m = jit[name=_shuffle jaxpr=_shuffle] nc nd
+    nf[35m:f32[12288,10][39m = jit[name=_take jaxpr=_take2] fu ne
+    ng[35m:f32[24,512,10][39m = reshape[
+      dimensions=None
+      new_sizes=(24, 512, 10)
+      sharding=None
+    ] nf
+    nh[35m:i32[][39m ni[35m:f32[512][39m nj[35m:f32[115,512][39m nk[35m:f32[512][39m nl[35m:f32[512,512][39m nm[35m:f32[256][39m
+      nn[35m:f32[512,256][39m no[35m:f32[128][39m np[35m:f32[256,128][39m nq[35m:f32[8][39m nr[35m:f32[128,8][39m ns[35m:f32[512][39m
+      nt[35m:f32[115,512][39m nu[35m:f32[512][39m nv[35m:f32[512,512][39m nw[35m:f32[256][39m nx[35m:f32[512,256][39m ny[35m:f32[128][39m
+      nz[35m:f32[256,128][39m oa[35m:f32[1][39m ob[35m:f32[128,1][39m oc[35m:f32[512][39m od[35m:f32[115,512][39m oe[35m:f32[512][39m
+      of[35m:f32[512,512][39m og[35m:f32[256][39m oh[35m:f32[512,256][39m oi[35m:f32[128][39m oj[35m:f32[256,128][39m ok[35m:f32[8][39m
+      ol[35m:f32[128,8][39m om[35m:f32[512][39m on[35m:f32[115,512][39m oo[35m:f32[512][39m op[35m:f32[512,512][39m oq[35m:f32[256][39m
+      or[35m:f32[512,256][39m os[35m:f32[128][39m ot[35m:f32[256,128][39m ou[35m:f32[1][39m ov[35m:f32[128,1][39m ow[35m:f32[512][39m
+      ox[35m:f32[115,512][39m oy[35m:f32[512][39m oz[35m:f32[512,512][39m pa[35m:f32[256][39m pb[35m:f32[512,256][39m pc[35m:f32[128][39m
+      pd[35m:f32[256,128][39m pe[35m:f32[8][39m pf[35m:f32[128,8][39m pg[35m:f32[512][39m ph[35m:f32[115,512][39m pi[35m:f32[512][39m
+      pj[35m:f32[512,512][39m pk[35m:f32[256][39m pl[35m:f32[512,256][39m pm[35m:f32[128][39m pn[35m:f32[256,128][39m po[35m:f32[1][39m
+      pp[35m:f32[128,1][39m _[35m:u32[2][39m pq[35m:f32[24][39m pr[35m:f32[24][39m ps[35m:f32[24][39m pt[35m:f32[24][39m pu[35m:f32[24][39m
+      pv[35m:f32[24][39m pw[35m:f32[24][39m = scan[
+      _split_transpose=False
+      jaxpr={ [34;1mlambda [39;22m; px[35m:f32[115][39m py[35m:f32[115][39m pz[35m:f32[115][39m qa[35m:f32[115][39m qb[35m:i32[][39m qc[35m:f32[512][39m
+          qd[35m:f32[115,512][39m qe[35m:f32[512][39m qf[35m:f32[512,512][39m qg[35m:f32[256][39m qh[35m:f32[512,256][39m
+          qi[35m:f32[128][39m qj[35m:f32[256,128][39m qk[35m:f32[8][39m ql[35m:f32[128,8][39m qm[35m:f32[512][39m qn[35m:f32[115,512][39m
+          qo[35m:f32[512][39m qp[35m:f32[512,512][39m qq[35m:f32[256][39m qr[35m:f32[512,256][39m qs[35m:f32[128][39m qt[35m:f32[256,128][39m
+          qu[35m:f32[1][39m qv[35m:f32[128,1][39m qw[35m:f32[512][39m qx[35m:f32[115,512][39m qy[35m:f32[512][39m qz[35m:f32[512,512][39m
+          ra[35m:f32[256][39m rb[35m:f32[512,256][39m rc[35m:f32[128][39m rd[35m:f32[256,128][39m re[35m:f32[8][39m rf[35m:f32[128,8][39m
+          rg[35m:f32[512][39m rh[35m:f32[115,512][39m ri[35m:f32[512][39m rj[35m:f32[512,512][39m rk[35m:f32[256][39m rl[35m:f32[512,256][39m
+          rm[35m:f32[128][39m rn[35m:f32[256,128][39m ro[35m:f32[1][39m rp[35m:f32[128,1][39m rq[35m:f32[512][39m rr[35m:f32[115,512][39m
+          rs[35m:f32[512][39m rt[35m:f32[512,512][39m ru[35m:f32[256][39m rv[35m:f32[512,256][39m rw[35m:f32[128][39m rx[35m:f32[256,128][39m
+          ry[35m:f32[8][39m rz[35m:f32[128,8][39m sa[35m:f32[512][39m sb[35m:f32[115,512][39m sc[35m:f32[512][39m sd[35m:f32[512,512][39m
+          se[35m:f32[256][39m sf[35m:f32[512,256][39m sg[35m:f32[128][39m sh[35m:f32[256,128][39m si[35m:f32[1][39m sj[35m:f32[128,1][39m
+          sk[35m:u32[2][39m sl[35m:f32[512,10,115][39m sm[35m:f32[512,10,115][39m sn[35m:f32[512,10,4][39m so[35m:f32[512,10][39m
+          sp[35m:f32[512,10][39m sq[35m:f32[512,10,115][39m sr[35m:f32[512,10,115][39m ss[35m:f32[512,10,8][39m st[35m:f32[512,10][39m
+          su[35m:f32[512,10,4][39m sv[35m:f32[512,10][39m sw[35m:f32[512,10][39m sx[35m:f32[512,10][39m sy[35m:f32[512,10][39m
+          sz[35m:f32[512,10][39m ta[35m:f32[512,10][39m tb[35m:f32[512,10][39m tc[35m:f32[512,10][39m td[35m:f32[512,10][39m
+          te[35m:f32[512,10][39m tf[35m:f32[512,10][39m tg[35m:f32[512,10][39m th[35m:f32[512,10][39m. [34;1mlet
+          [39;22mti[35m:key<fry>[][39m = random_wrap[impl=fry] sk
+          tj[35m:key<fry>[2][39m = random_split[shape=(2,)] ti
+          tk[35m:u32[2,2][39m = random_unwrap tj
+          tl[35m:u32[1,2][39m = slice[
+            limit_indices=(1, 2)
+            start_indices=(0, 0)
+            strides=(1, 1)
+          ] tk
+          tm[35m:u32[2][39m = squeeze[dimensions=(0,)] tl
+          tn[35m:u32[1,2][39m = slice[
+            limit_indices=(2, 2)
+            start_indices=(1, 0)
+            strides=(1, 1)
+          ] tk
+          to[35m:u32[2][39m = squeeze[dimensions=(0,)] tn
+          tp[35m:f32[10,512,115][39m = transpose[permutation=(1, 0, 2)] sl
+          tq[35m:f32[10,512,115][39m = transpose[permutation=(1, 0, 2)] sm
+          _[35m:f32[10,512,4][39m = transpose[permutation=(1, 0, 2)] sn
+          tr[35m:f32[10,512][39m = transpose[permutation=(1, 0)] so
+          ts[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sp
+          tt[35m:f32[10,512,115][39m = transpose[permutation=(1, 0, 2)] sq
+          tu[35m:f32[10,512,115][39m = transpose[permutation=(1, 0, 2)] sr
+          tv[35m:f32[10,512,8][39m = transpose[permutation=(1, 0, 2)] ss
+          tw[35m:f32[10,512][39m = transpose[permutation=(1, 0)] st
+          tx[35m:f32[10,512,4][39m = transpose[permutation=(1, 0, 2)] su
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sv
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sw
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sx
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sy
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] sz
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] ta
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] tb
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] tc
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] td
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] te
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] tf
+          _[35m:f32[10,512][39m = transpose[permutation=(1, 0)] tg
+          ty[35m:f32[10,512][39m = transpose[permutation=(1, 0)] th
+          tz[35m:f32[1,1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(2,)
+            shape=(1, 1, 115)
+            sharding=None
+          ] px
+          ua[35m:f32[10,512,115][39m = sub tq tz
+          ub[35m:f32[1,1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(2,)
+            shape=(1, 1, 115)
+            sharding=None
+          ] py
+          uc[35m:f32[10,512,115][39m = div ua ub
+          ud[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] uc rr
+          ue[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] rq
+          uf[35m:f32[10,512,512][39m = add ud ue
+          ug[35m:f32[10,512,512][39m uh[35m:f32[10,512,512][39m ui[35m:f32[10,512,512][39m = jit[
+            name=silu
+            jaxpr=silu
+          ] uf
+          uj[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] ug rt
+          uk[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] rs
+          ul[35m:f32[10,512,512][39m = add uj uk
+          um[35m:f32[10,512,512][39m un[35m:f32[10,512,512][39m uo[35m:f32[10,512,512][39m = jit[
+            name=silu
+            jaxpr=silu
+          ] ul
+          up[35m:f32[10,512,256][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] um rv
+          uq[35m:f32[1,1,256][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 256)
+            sharding=None
+          ] ru
+          ur[35m:f32[10,512,256][39m = add up uq
+          us[35m:f32[10,512,256][39m ut[35m:f32[10,512,256][39m uu[35m:f32[10,512,256][39m = jit[
+            name=silu
+            jaxpr=silu1
+          ] ur
+          uv[35m:f32[10,512,128][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] us rx
+          uw[35m:f32[1,1,128][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 128)
+            sharding=None
+          ] rw
+          ux[35m:f32[10,512,128][39m = add uv uw
+          uy[35m:f32[10,512,128][39m uz[35m:f32[10,512,128][39m va[35m:f32[10,512,128][39m = jit[
+            name=silu
+            jaxpr=silu2
+          ] ux
+          vb[35m:f32[10,512,8][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] uy rz
+          vc[35m:f32[1,1,8][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 8)
+            sharding=None
+          ] ry
+          vd[35m:f32[10,512,8][39m = add vb vc
+          ve[35m:f32[1,1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(2,)
+            shape=(1, 1, 115)
+            sharding=None
+          ] pz
+          vf[35m:f32[10,512,115][39m = sub tp ve
+          vg[35m:f32[1,1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(2,)
+            shape=(1, 1, 115)
+            sharding=None
+          ] qa
+          vh[35m:f32[10,512,115][39m = div vf vg
+          vi[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] vh sb
+          vj[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] sa
+          vk[35m:f32[10,512,512][39m = add vi vj
+          vl[35m:f32[10,512,512][39m vm[35m:f32[10,512,512][39m vn[35m:f32[10,512,512][39m = jit[
+            name=silu
+            jaxpr=silu
+          ] vk
+          vo[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] vl sd
+          vp[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] sc
+          vq[35m:f32[10,512,512][39m = add vo vp
+          vr[35m:f32[10,512,512][39m vs[35m:f32[10,512,512][39m vt[35m:f32[10,512,512][39m = jit[
+            name=silu
+            jaxpr=silu
+          ] vq
+          vu[35m:f32[10,512,256][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] vr sf
+          vv[35m:f32[1,1,256][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 256)
+            sharding=None
+          ] se
+          vw[35m:f32[10,512,256][39m = add vu vv
+          vx[35m:f32[10,512,256][39m vy[35m:f32[10,512,256][39m vz[35m:f32[10,512,256][39m = jit[
+            name=silu
+            jaxpr=silu1
+          ] vw
+          wa[35m:f32[10,512,128][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] vx sh
+          wb[35m:f32[1,1,128][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 128)
+            sharding=None
+          ] sg
+          wc[35m:f32[10,512,128][39m = add wa wb
+          wd[35m:f32[10,512,128][39m we[35m:f32[10,512,128][39m wf[35m:f32[10,512,128][39m = jit[
+            name=silu
+            jaxpr=silu2
+          ] wc
+          wg[35m:f32[10,512,1][39m = dot_general[
+            dimension_numbers=(([2], [0]), ([], []))
+          ] wd sj
+          wh[35m:f32[1,1,1][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 1)
+            sharding=None
+          ] si
+          wi[35m:f32[10,512,1][39m = add wg wh
+          wj[35m:f32[10,512][39m = squeeze[dimensions=(2,)] wi
+          wk[35m:bool[][39m = lt -1:i32[] 0:i32[]
+          wl[35m:i32[][39m = add -1:i32[] 10:i32[]
+          wm[35m:i32[][39m = select_n wk -1:i32[] wl
+          wn[35m:f32[1,512,115][39m = dynamic_slice[slice_sizes=(1, 512, 115)] tt wm 0:i32[]
+            0:i32[]
+          wo[35m:f32[512,115][39m = squeeze[dimensions=(0,)] wn
+          wp[35m:bool[][39m = lt -1:i32[] 0:i32[]
+          wq[35m:i32[][39m = add -1:i32[] 10:i32[]
+          wr[35m:i32[][39m = select_n wp -1:i32[] wq
+          ws[35m:f32[1,512,115][39m = dynamic_slice[slice_sizes=(1, 512, 115)] tu wr 0:i32[]
+            0:i32[]
+          _[35m:f32[512,115][39m = squeeze[dimensions=(0,)] ws
+          wt[35m:f32[1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(1,)
+            shape=(1, 115)
+            sharding=None
+          ] pz
+          wu[35m:f32[512,115][39m = sub wo wt
+          wv[35m:f32[1,115][39m = broadcast_in_dim[
+            broadcast_dimensions=(1,)
+            shape=(1, 115)
+            sharding=None
+          ] qa
+          ww[35m:f32[512,115][39m = div wu wv
+          wx[35m:f32[512,512][39m = dot_general[
+            dimension_numbers=(([1], [0]), ([], []))
+          ] ww sb
+          wy[35m:f32[1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 512)
+            sharding=None
+          ] sa
+          wz[35m:f32[512,512][39m = add wx wy
+          xa[35m:f32[512,512][39m _[35m:f32[512,512][39m _[35m:f32[512,512][39m = jit[
+            name=silu
+            jaxpr=silu3
+          ] wz
+          xb[35m:f32[512,512][39m = dot_general[
+            dimension_numbers=(([1], [0]), ([], []))
+          ] xa sd
+          xc[35m:f32[1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 512)
+            sharding=None
+          ] sc
+          xd[35m:f32[512,512][39m = add xb xc
+          xe[35m:f32[512,512][39m _[35m:f32[512,512][39m _[35m:f32[512,512][39m = jit[
+            name=silu
+            jaxpr=silu3
+          ] xd
+          xf[35m:f32[512,256][39m = dot_general[
+            dimension_numbers=(([1], [0]), ([], []))
+          ] xe sf
+          xg[35m:f32[1,256][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 256)
+            sharding=None
+          ] se
+          xh[35m:f32[512,256][39m = add xf xg
+          xi[35m:f32[512,256][39m _[35m:f32[512,256][39m _[35m:f32[512,256][39m = jit[
+            name=silu
+            jaxpr={ [34;1mlambda [39;22m; xh[35m:f32[512,256][39m. [34;1mlet
+                [39;22m_[35m:f32[512,256][39m = logistic xh
+                xj[35m:f32[512,256][39m = sub 1.0:f32[] _
+                _[35m:f32[512,256][39m = mul _ xj
+                xi[35m:f32[512,256][39m = mul xh _
+              [34;1min [39;22m(xi, _, _) }
+          ] xh
+          xk[35m:f32[512,128][39m = dot_general[
+            dimension_numbers=(([1], [0]), ([], []))
+          ] xi sh
+          xl[35m:f32[1,128][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 128)
+            sharding=None
+          ] sg
+          xm[35m:f32[512,128][39m = add xk xl
+          xn[35m:f32[512,128][39m _[35m:f32[512,128][39m _[35m:f32[512,128][39m = jit[
+            name=silu
+            jaxpr={ [34;1mlambda [39;22m; xm[35m:f32[512,128][39m. [34;1mlet
+                [39;22m_[35m:f32[512,128][39m = logistic xm
+                xo[35m:f32[512,128][39m = sub 1.0:f32[] _
+                _[35m:f32[512,128][39m = mul _ xo
+                xn[35m:f32[512,128][39m = mul xm _
+              [34;1min [39;22m(xn, _, _) }
+          ] xm
+          xp[35m:f32[512,1][39m = dot_general[dimension_numbers=(([1], [0]), ([], []))] xn
+            sj
+          xq[35m:f32[1,1][39m = reshape[dimensions=None new_sizes=(1, 1) sharding=None] si
+          xr[35m:f32[512,1][39m = add xp xq
+          xs[35m:f32[512][39m = squeeze[dimensions=(1,)] xr
+          xt[35m:f32[10,512][39m = mul tr 0.10000000149011612:f32[]
+          xu[35m:f32[10,512][39m = sub 1.0:f32[] ts
+          xv[35m:f32[10,512][39m = sub 1.0:f32[] ty
+          xw[35m:f32[10,512][39m = mul xu xv
+          xx[35m:f32[10,512,4][39m xy[35m:f32[10,512,4][39m = split[
+            axis=2
+            sizes=(np.int64(4), np.int64(4))
+          ] vd
+          xz[35m:f32[10,512,4][39m ya[35m:f32[10,512,4][39m yb[35m:f32[10,512,4][39m = jit[
+            name=softplus
+            jaxpr=softplus
+          ] xy
+          yc[35m:f32[10,512,4][39m = add xz 0.0010000000474974513:f32[]
+          yd[35m:f32[10,512,4][39m = mul yc 1.0:f32[]
+          ye[35m:f32[10,512,4][39m = div tx yd
+          yf[35m:f32[10,512,4][39m = integer_pow[y=-2] yd
+          yg[35m:f32[10,512,4][39m = div xx yd
+          yh[35m:f32[10,512,4][39m = integer_pow[y=-2] yd
+          yi[35m:f32[10,512,4][39m = sub ye yg
+          yj[35m:f32[10,512,4][39m = square yi
+          yk[35m:f32[10,512,4][39m = mul 2.0:f32[] yi
+          yl[35m:f32[10,512,4][39m = mul -0.5:f32[] yj
+          ym[35m:f32[][39m = log 6.283185307179586:f32[]
+          yn[35m:f32[][39m = mul 0.5:f32[] ym
+          yo[35m:f32[10,512,4][39m = log yd
+          yp[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=False] yn
+          yq[35m:f32[10,512,4][39m = add yp yo
+          yr[35m:f32[10,512,4][39m = sub yl yq
+          ys[35m:f32[][39m = log 2.0:f32[]
+          yt[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=False] ys
+          yu[35m:f32[10,512,4][39m = sub yt tx
+          yv[35m:f32[10,512,4][39m = mul -2.0:f32[] tx
+          yw[35m:f32[10,512,4][39m = jit[name=softplus jaxpr=softplus1] yv
+          yx[35m:f32[10,512,4][39m = sub yu yw
+          yy[35m:f32[10,512,4][39m = mul 2.0:f32[] yx
+          yz[35m:f32[10,512,4][39m = sub yr yy
+          za[35m:f32[10,512][39m = reduce_sum[axes=(2,) out_sharding=None] yz
+          zb[35m:f32[10,512][39m = sub 1.0:f32[] ty
+          zc[35m:f32[9,512][39m = slice[
+            limit_indices=(10, 512)
+            start_indices=(1, 0)
+            strides=None
+          ] wj
+          zd[35m:f32[1,512][39m = broadcast_in_dim[
+            broadcast_dimensions=(1,)
+            shape=(1, 512)
+            sharding=None
+          ] xs
+          ze[35m:f32[10,512][39m = concatenate[dimension=0] zc zd
+          zf[35m:f32[10,512][39m = sub 1.0:f32[] xw
+          zg[35m:f32[10,512][39m = mul 0.9700000286102295:f32[] zf
+          zh[35m:f32[10,512][39m = mul zg ze
+          zi[35m:f32[10,512][39m = add xt zh
+          zj[35m:f32[10,512][39m = sub zi wj
+          zk[35m:f32[10,512][39m = mul zj zb
+          zl[35m:f32[512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(512,)
+            sharding=None
+          ] 0.0:f32[]
+          _[35m:f32[512][39m zm[35m:f32[10,512][39m _[35m:f32[10,512][39m = scan[
+            _split_transpose=False
+            jaxpr={ [34;1mlambda [39;22m; zn[35m:f32[][39m zo[35m:f32[512][39m zp[35m:f32[512][39m zq[35m:f32[512][39m zr[35m:f32[512][39m. [34;1mlet
+                [39;22mzs[35m:f32[512][39m = sub 1.0:f32[] zr
+                zt[35m:f32[512][39m = mul 0.9700000286102295:f32[] zs
+                zu[35m:f32[512][39m = mul zt zp
+                zv[35m:f32[512][39m = mul zu zn
+                zw[35m:f32[512][39m = mul zv zo
+                zx[35m:f32[512][39m = add zq zw
+              [34;1min [39;22m(zx, zx, zv) }
+            length=10
+            linear=(False, False, False, False, False)
+            num_carry=1
+            num_consts=1
+            reverse=True
+            unroll=1
+          ] 0.949999988079071:f32[] zl zb zk xw
+          zy[35m:f32[10,512][39m = add zm wj
+          zz[35m:f32[9,512][39m = slice[
+            limit_indices=(10, 512)
+            start_indices=(1, 0)
+            strides=None
+          ] zy
+          baa[35m:f32[1,512][39m = broadcast_in_dim[
+            broadcast_dimensions=(1,)
+            shape=(1, 512)
+            sharding=None
+          ] xs
+          bab[35m:f32[10,512][39m = concatenate[dimension=0] zz baa
+          bac[35m:f32[10,512][39m = sub 1.0:f32[] xw
+          bad[35m:f32[10,512][39m = mul 0.9700000286102295:f32[] bac
+          bae[35m:f32[10,512][39m = mul bad bab
+          baf[35m:f32[10,512][39m = add xt bae
+          bag[35m:f32[10,512][39m = sub baf wj
+          bah[35m:f32[10,512][39m = mul bag zb
+          bai[35m:f32[10,512][39m = stop_gradient zy
+          baj[35m:f32[10,512][39m = stop_gradient bah
+          bak[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] baj
+          bal[35m:f32[][39m = div bak 5120.0:f32[]
+          bam[35m:f32[10,512][39m = sub baj bal
+          ban[35m:f32[][39m = jit[
+            name=_std
+            jaxpr={ [34;1mlambda [39;22m; baj[35m:f32[10,512][39m bao[35m:i32[][39m. [34;1mlet
+                [39;22mbap[35m:f32[][39m = jit[
+                  name=_var
+                  jaxpr={ [34;1mlambda [39;22m; baj[35m:f32[10,512][39m bao[35m:i32[][39m. [34;1mlet
+                      [39;22mbaq[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] baj
+                      bar[35m:f32[1,1][39m = broadcast_in_dim[
+                        broadcast_dimensions=()
+                        shape=(1, 1)
+                        sharding=None
+                      ] baq
+                      bas[35m:f32[1,1][39m = div bar 5120.0:f32[]
+                      bat[35m:f32[10,512][39m = sub baj bas
+                      bau[35m:f32[10,512][39m = square bat
+                      bav[35m:f32[][39m = convert_element_type[
+                        new_dtype=float32
+                        weak_type=False
+                      ] bao
+                      baw[35m:f32[][39m = sub 5120.0:f32[] bav
+                      bax[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] bau
+                      bay[35m:f32[][39m = div bax baw
+                      baz[35m:bool[][39m = gt baw 0.0:f32[]
+                      bap[35m:f32[][39m = jit[
+                        name=_where
+                        jaxpr={ [34;1mlambda [39;22m; baz[35m:bool[][39m bay[35m:f32[][39m bba[35m:f32[][39m. [34;1mlet
+                            [39;22mbbb[35m:f32[][39m = convert_element_type[
+                              new_dtype=float32
+                              weak_type=False
+                            ] bba
+                            bap[35m:f32[][39m = select_n baz bbb bay
+                          [34;1min [39;22m(bap,) }
+                      ] baz bay nan:f32[]
+                    [34;1min [39;22m(bap,) }
+                ] baj bao
+                ban[35m:f32[][39m = sqrt bap
+              [34;1min [39;22m(ban,) }
+          ] baj 0:i32[]
+          bbc[35m:f32[][39m = add ban 9.99999993922529e-09:f32[]
+          bbd[35m:f32[10,512][39m = div bam bbc
+          bbe[35m:f32[10,512][39m = sub za tw
+          bbf[35m:f32[10,512][39m = exp bbe
+          bbg[35m:f32[10,512][39m = mul bbf bbd
+          bbh[35m:f32[10,512][39m bbi[35m:f32[10,512][39m bbj[35m:f32[10,512][39m = jit[
+            name=clip
+            jaxpr={ [34;1mlambda [39;22m; bbf[35m:f32[10,512][39m bbk[35m:f32[][39m bbl[35m:f32[][39m. [34;1mlet
+                [39;22mbbm[35m:f32[][39m = convert_element_type[
+                  new_dtype=float32
+                  weak_type=False
+                ] bbk
+                bbn[35m:f32[10,512][39m = max bbm bbf
+                bbo[35m:bool[10,512][39m = eq bbf bbn
+                bbp[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 1.0:f32[]
+                bbq[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 0.0:f32[]
+                bbr[35m:f32[10,512][39m = select_n bbo bbq bbp
+                bbs[35m:bool[10,512][39m = eq bbm bbn
+                bbt[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 2.0:f32[]
+                bbu[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 1.0:f32[]
+                bbv[35m:f32[10,512][39m = select_n bbs bbu bbt
+                bbi[35m:f32[10,512][39m = div bbr bbv
+                bbw[35m:f32[][39m = convert_element_type[
+                  new_dtype=float32
+                  weak_type=False
+                ] bbl
+                bbh[35m:f32[10,512][39m = min bbw bbn
+                bbx[35m:bool[10,512][39m = eq bbn bbh
+                bby[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 1.0:f32[]
+                bbz[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 0.0:f32[]
+                bca[35m:f32[10,512][39m = select_n bbx bbz bby
+                bcb[35m:bool[10,512][39m = eq bbw bbh
+                bcc[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 2.0:f32[]
+                bcd[35m:f32[10,512][39m = broadcast_in_dim[
+                  broadcast_dimensions=()
+                  shape=(10, 512)
+                  sharding=None
+                ] 1.0:f32[]
+                bce[35m:f32[10,512][39m = select_n bcb bcd bcc
+                bbj[35m:f32[10,512][39m = div bca bce
+              [34;1min [39;22m(bbh, bbi, bbj) }
+          ] bbf 0.7:f32[] 1.3:f32[]
+          bcf[35m:f32[10,512][39m = mul bbh bbd
+          bcg[35m:f32[10,512][39m = min bbg bcf
+          bch[35m:bool[10,512][39m = eq bbg bcg
+          bci[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 1.0:f32[]
+          bcj[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 0.0:f32[]
+          bck[35m:f32[10,512][39m = select_n bch bcj bci
+          bcl[35m:bool[10,512][39m = eq bcf bcg
+          bcm[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 2.0:f32[]
+          bcn[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 1.0:f32[]
+          bco[35m:f32[10,512][39m = select_n bcl bcn bcm
+          bcp[35m:f32[10,512][39m = div bck bco
+          bcq[35m:bool[10,512][39m = eq bcf bcg
+          bcr[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 1.0:f32[]
+          bcs[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 0.0:f32[]
+          bct[35m:f32[10,512][39m = select_n bcq bcs bcr
+          bcu[35m:bool[10,512][39m = eq bbg bcg
+          bcv[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 2.0:f32[]
+          bcw[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] 1.0:f32[]
+          bcx[35m:f32[10,512][39m = select_n bcu bcw bcv
+          bcy[35m:f32[10,512][39m = div bct bcx
+          bcz[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] bcg
+          bda[35m:f32[][39m = div bcz 5120.0:f32[]
+          bdb[35m:f32[][39m = neg bda
+          bdc[35m:f32[10,512][39m = sub bai wj
+          bdd[35m:f32[10,512][39m = mul bdc bdc
+          bde[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] bdd
+          bdf[35m:f32[][39m = div bde 5120.0:f32[]
+          bdg[35m:f32[][39m = mul bdf 0.5:f32[]
+          bdh[35m:f32[][39m = mul bdg 0.5:f32[]
+          bdi[35m:f32[10,512,4][39m bdj[35m:f32[10,512,4][39m = split[
+            axis=2
+            sizes=(np.int64(4), np.int64(4))
+          ] vd
+          bdk[35m:f32[10,512,4][39m bdl[35m:f32[10,512,4][39m bdm[35m:f32[10,512,4][39m = jit[
+            name=softplus
+            jaxpr=softplus
+          ] bdj
+          bdn[35m:f32[10,512,4][39m = add bdk 0.0010000000474974513:f32[]
+          bdo[35m:f32[10,512,4][39m = mul bdn 1.0:f32[]
+          bdp[35m:f32[][39m = log 6.283185307179586:f32[]
+          bdq[35m:f32[][39m = mul 0.5:f32[] bdp
+          bdr[35m:f32[10,512,4][39m = log bdo
+          bds[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=False] bdq
+          bdt[35m:f32[10,512,4][39m = add bds bdr
+          bdu[35m:f32[10,512,4][39m = add 0.5:f32[] bdt
+          bdv[35m:f32[10,512,4][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512, 4)
+            sharding=None
+          ] 1.0:f32[]
+          bdw[35m:f32[10,512,4][39m = mul bdu bdv
+          bdx[35m:key<fry>[][39m = random_wrap[impl=fry] to
+          bdy[35m:f32[10,512,4][39m = jit[
+            name=_normal
+            jaxpr={ [34;1mlambda [39;22m; bdx[35m:key<fry>[][39m. [34;1mlet
+                [39;22mbdy[35m:f32[10,512,4][39m = jit[
+                  name=_normal_real
+                  jaxpr={ [34;1mlambda [39;22m; bdx[35m:key<fry>[][39m. [34;1mlet
+                      [39;22mbdz[35m:f32[10,512,4][39m = jit[
+                        name=_uniform
+                        jaxpr={ [34;1mlambda [39;22m; bdx[35m:key<fry>[][39m bea[35m:f32[][39m beb[35m:f32[][39m. [34;1mlet
+                            [39;22mbec[35m:f32[1,1,1][39m = broadcast_in_dim[
+                              broadcast_dimensions=()
+                              shape=(1, 1, 1)
+                              sharding=None
+                            ] bea
+                            bed[35m:f32[1,1,1][39m = broadcast_in_dim[
+                              broadcast_dimensions=()
+                              shape=(1, 1, 1)
+                              sharding=None
+                            ] beb
+                            bee[35m:u32[10,512,4][39m = random_bits[
+                              bit_width=32
+                              shape=(10, 512, 4)
+                            ] bdx
+                            bef[35m:u32[10,512,4][39m = shift_right_logical bee 9:u32[]
+                            beg[35m:u32[10,512,4][39m = or bef 1065353216:u32[]
+                            beh[35m:f32[10,512,4][39m = bitcast_convert_type[
+                              new_dtype=float32
+                            ] beg
+                            bei[35m:f32[10,512,4][39m = sub beh 1.0:f32[]
+                            bej[35m:f32[1,1,1][39m = sub bed bec
+                            bek[35m:f32[10,512,4][39m = mul bei bej
+                            bel[35m:f32[10,512,4][39m = add bek bec
+                            bdz[35m:f32[10,512,4][39m = max bec bel
+                          [34;1min [39;22m(bdz,) }
+                      ] bdx -0.9999999403953552:f32[] 1.0:f32[]
+                      bem[35m:f32[10,512,4][39m = erf_inv bdz
+                      bdy[35m:f32[10,512,4][39m = mul 1.4142135381698608:f32[] bem
+                    [34;1min [39;22m(bdy,) }
+                ] bdx
+              [34;1min [39;22m(bdy,) }
+          ] bdx
+          ben[35m:f32[10,512,4][39m = mul bdy bdo
+          beo[35m:f32[10,512,4][39m = add ben bdi
+          bep[35m:f32[][39m = log 2.0:f32[]
+          beq[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=False] bep
+          ber[35m:f32[10,512,4][39m = sub beq beo
+          bes[35m:f32[10,512,4][39m = mul -2.0:f32[] beo
+          bet[35m:f32[10,512,4][39m beu[35m:f32[10,512,4][39m bev[35m:f32[10,512,4][39m = jit[
+            name=softplus
+            jaxpr=softplus
+          ] bes
+          bew[35m:f32[10,512,4][39m = sub ber bet
+          bex[35m:f32[10,512,4][39m = mul 2.0:f32[] bew
+          bey[35m:f32[10,512,4][39m = add bdw bex
+          bez[35m:f32[10,512][39m = reduce_sum[axes=(2,) out_sharding=None] bey
+          bfa[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] bez
+          bfb[35m:f32[][39m = div bfa 5120.0:f32[]
+          bfc[35m:f32[][39m = neg bfb
+          bfd[35m:f32[][39m = mul 0.0010000000474974513:f32[] bfc
+          bfe[35m:f32[][39m = add bdb bdh
+          bff[35m:f32[][39m = add bfe bfd
+          bfg[35m:f32[10,512,4][39m bfh[35m:f32[10,512,4][39m = split[
+            axis=2
+            sizes=(np.int64(4), np.int64(4))
+          ] vd
+          bfi[35m:f32[10,512,4][39m _[35m:f32[10,512,4][39m _[35m:f32[10,512,4][39m = jit[
+            name=softplus
+            jaxpr=softplus
+          ] bfh
+          bfj[35m:f32[10,512,4][39m = add bfi 0.0010000000474974513:f32[]
+          bfk[35m:f32[10,512,4][39m = mul bfj 1.0:f32[]
+          bfl[35m:f32[10,512,4][39m bfm[35m:f32[10,512,4][39m = split[
+            axis=2
+            sizes=(np.int64(4), np.int64(4))
+          ] tv
+          bfn[35m:f32[10,512,4][39m = jit[name=softplus jaxpr=softplus1] bfm
+          bfo[35m:f32[10,512,4][39m = add bfn 0.0010000000474974513:f32[]
+          bfp[35m:f32[10,512,4][39m = mul bfo 1.0:f32[]
+          bfq[35m:f32[10,512,4][39m = div bfk bfp
+          bfr[35m:f32[10,512,4][39m = add bfq 9.999999747378752e-06:f32[]
+          bfs[35m:f32[10,512,4][39m = log bfr
+          bft[35m:f32[10,512,4][39m = square bfp
+          bfu[35m:f32[10,512,4][39m = sub bfl bfg
+          bfv[35m:f32[10,512,4][39m = square bfu
+          _[35m:f32[10,512,4][39m = mul 2.0:f32[] bfu
+          bfw[35m:f32[10,512,4][39m = add bft bfv
+          bfx[35m:f32[10,512,4][39m = square bfk
+          _[35m:f32[10,512,4][39m = mul 2.0:f32[] bfk
+          bfy[35m:f32[10,512,4][39m = mul 2.0:f32[] bfx
+          bfz[35m:f32[10,512,4][39m = div bfw bfy
+          _[35m:f32[10,512,4][39m = integer_pow[y=-2] bfy
+          bga[35m:f32[10,512,4][39m = add bfs bfz
+          bgb[35m:f32[10,512,4][39m = sub bga 0.5:f32[]
+          bgc[35m:f32[10,512][39m = reduce_sum[axes=(2,) out_sharding=None] bgb
+          bgd[35m:f32[][39m = reduce_sum[axes=(0, 1) out_sharding=None] bgc
+          bge[35m:f32[][39m = div bgd 5120.0:f32[]
+          bgf[35m:f32[][39m = reduce_sum[axes=(0, 1, 2) out_sharding=None] bfk
+          bgg[35m:f32[][39m = div bgf 20480.0:f32[]
+          bgh[35m:f32[][39m = mul 0.0010000000474974513:f32[] 1.0:f32[]
+          bgi[35m:f32[][39m = neg bgh
+          bgj[35m:f32[][39m = div bgi 5120.0:f32[]
+          bgk[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] bgj
+          bgl[35m:f32[10,512,4][39m = broadcast_in_dim[
+            broadcast_dimensions=(np.int64(0), np.int64(1))
+            shape=(10, 512, 4)
+            sharding=None
+          ] bgk
+          bgm[35m:f32[10,512,4][39m = mul 2.0:f32[] bgl
+          bgn[35m:f32[10,512,4][39m = neg bgm
+          bgo[35m:f32[10,512,4][39m = jit[name=softplus jaxpr=softplus2] beu bev bgn
+          bgp[35m:f32[10,512,4][39m = mul -2.0:f32[] bgo
+          bgq[35m:f32[10,512,4][39m = neg bgm
+          bgr[35m:f32[10,512,4][39m = add_any bgp bgq
+          bgs[35m:f32[10,512,4][39m = mul bdy bgr
+          bgt[35m:f32[10,512,4][39m = mul bgl bdv
+          bgu[35m:f32[10,512,4][39m = div bgt bdo
+          bgv[35m:f32[10,512,4][39m = add_any bgs bgu
+          bgw[35m:f32[10,512,4][39m = mul bgv 1.0:f32[]
+          bgx[35m:f32[10,512,4][39m = jit[name=softplus jaxpr=softplus2] bdl bdm bgw
+          bgy[35m:f32[10,512,8][39m = concatenate[dimension=2] bgr bgx
+          bgz[35m:f32[][39m = mul 1.0:f32[] 0.5:f32[]
+          bha[35m:f32[][39m = mul bgz 0.5:f32[]
+          bhb[35m:f32[][39m = div bha 5120.0:f32[]
+          bhc[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] bhb
+          bhd[35m:f32[10,512][39m = mul bdc bhc
+          bhe[35m:f32[10,512][39m = mul bhc bdc
+          bhf[35m:f32[10,512][39m = add_any bhd bhe
+          bhg[35m:f32[10,512][39m = neg bhf
+          bhh[35m:f32[][39m = neg 1.0:f32[]
+          bhi[35m:f32[][39m = div bhh 5120.0:f32[]
+          bhj[35m:f32[10,512][39m = broadcast_in_dim[
+            broadcast_dimensions=()
+            shape=(10, 512)
+            sharding=None
+          ] bhi
+          bhk[35m:f32[10,512][39m = mul bhj bcy
+          bhl[35m:f32[10,512][39m = mul bhj bcp
+          bhm[35m:f32[10,512][39m = mul bhk bbd
+          bhn[35m:f32[10,512][39m = jit[
+            name=clip
+            jaxpr={ [34;1mlambda [39;22m; bbi[35m:f32[10,512][39m bbj[35m:f32[10,512][39m bhm[35m:f32[10,512][39m. [34;1mlet
+                [39;22mbho[35m:f32[10,512][39m = mul bhm bbj
+                bhn[35m:f32[10,512][39m = mul bho bbi
+              [34;1min [39;22m(bhn,) }
+          ] bbi bbj bhm
+          bhp[35m:f32[10,512][39m = mul bhl bbd
+          bhq[35m:f32[10,512][39m = add_any bhn bhp
+          bhr[35m:f32[10,512][39m = mul bhq bbf
+          bhs[35m:f32[10,512,4][39m = broadcast_in_dim[
+            broadcast_dimensions=(np.int64(0), np.int64(1))
+            shape=(10, 512, 4)
+            sharding=None
+          ] bhr
+          bht[35m:f32[10,512,4][39m = neg bhs
+          bhu[35m:f32[10,512,4][39m = div bht yd
+          bhv[35m:f32[10,512,4][39m = mul -0.5:f32[] bhs
+          bhw[35m:f32[10,512,4][39m = mul bhv yk
+          bhx[35m:f32[10,512,4][39m = neg bhw
+          bhy[35m:f32[10,512,4][39m = mul bhx yh
+          bhz[35m:f32[10,512,4][39m = mul bhy xx
+          bia[35m:f32[10,512,4][39m = neg bhz
+          bib[35m:f32[10,512,4][39m = add_any bhu bia
+          bic[35m:f32[10,512,4][39m = div bhx yd
+          bid[35m:f32[10,512,4][39m = mul bhw yf
+          bie[35m:f32[10,512,4][39m = mul bid tx
+          bif[35m:f32[10,512,4][39m = neg bie
+          big[35m:f32[10,512,4][39m = add_any bib bif
+          bih[35m:f32[10,512,4][39m = mul big 1.0:f32[]
+          bii[35m:f32[10,512,4][39m = jit[name=softplus jaxpr=softplus2] ya yb bih
+          bij[35m:f32[10,512,8][39m = concatenate[dimension=2] bic bii
+          bik[35m:f32[10,512,8][39m = add_any bgy bij
+          bil[35m:f32[10,512,1][39m = broadcast_in_dim[
+            broadcast_dimensions=(0, 1)
+            shape=(10, 512, 1)
+            sharding=None
+          ] bhg
+          bim[35m:f32[1][39m = reduce_sum[axes=(0, 1) out_sharding=None] bil
+          bin[35m:f32[1,1,1][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 1)
+            sharding=None
+          ] bim
+          bio[35m:f32[1][39m = reshape[dimensions=None new_sizes=(1,) sharding=None] bin
+          bip[35m:f32[1,128][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bil wd
+          biq[35m:f32[128,1][39m = transpose[permutation=(1, 0)] bip
+          bir[35m:f32[10,512,128][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bil sj
+          bis[35m:f32[10,512,128][39m = jit[name=silu jaxpr=silu4] we wf wc bir
+          bit[35m:f32[128][39m = reduce_sum[axes=(0, 1) out_sharding=None] bis
+          biu[35m:f32[1,1,128][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 128)
+            sharding=None
+          ] bit
+          biv[35m:f32[128][39m = reshape[dimensions=None new_sizes=(128,) sharding=None] biu
+          biw[35m:f32[128,256][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bis vx
+          bix[35m:f32[256,128][39m = transpose[permutation=(1, 0)] biw
+          biy[35m:f32[10,512,256][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bis sh
+          biz[35m:f32[10,512,256][39m = jit[name=silu jaxpr=silu5] vy vz vw biy
+          bja[35m:f32[256][39m = reduce_sum[axes=(0, 1) out_sharding=None] biz
+          bjb[35m:f32[1,1,256][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 256)
+            sharding=None
+          ] bja
+          bjc[35m:f32[256][39m = reshape[dimensions=None new_sizes=(256,) sharding=None] bjb
+          bjd[35m:f32[256,512][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] biz vr
+          bje[35m:f32[512,256][39m = transpose[permutation=(1, 0)] bjd
+          bjf[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] biz sf
+          bjg[35m:f32[10,512,512][39m = jit[name=silu jaxpr=silu6] vs vt vq bjf
+          bjh[35m:f32[512][39m = reduce_sum[axes=(0, 1) out_sharding=None] bjg
+          bji[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] bjh
+          bjj[35m:f32[512][39m = reshape[dimensions=None new_sizes=(512,) sharding=None] bji
+          bjk[35m:f32[512,512][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bjg vl
+          bjl[35m:f32[512,512][39m = transpose[permutation=(1, 0)] bjk
+          bjm[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bjg sd
+          bjn[35m:f32[10,512,512][39m = jit[name=silu jaxpr=silu6] vm vn vk bjm
+          bjo[35m:f32[512][39m = reduce_sum[axes=(0, 1) out_sharding=None] bjn
+          bjp[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] bjo
+          bjq[35m:f32[512][39m = reshape[dimensions=None new_sizes=(512,) sharding=None] bjp
+          bjr[35m:f32[512,115][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bjn vh
+          bjs[35m:f32[115,512][39m = transpose[permutation=(1, 0)] bjr
+          bjt[35m:f32[8][39m = reduce_sum[axes=(0, 1) out_sharding=None] bik
+          bju[35m:f32[1,1,8][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 8)
+            sharding=None
+          ] bjt
+          bjv[35m:f32[8][39m = reshape[dimensions=None new_sizes=(8,) sharding=None] bju
+          bjw[35m:f32[8,128][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bik uy
+          bjx[35m:f32[128,8][39m = transpose[permutation=(1, 0)] bjw
+          bjy[35m:f32[10,512,128][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bik rz
+          bjz[35m:f32[10,512,128][39m = jit[name=silu jaxpr=silu4] uz va ux bjy
+          bka[35m:f32[128][39m = reduce_sum[axes=(0, 1) out_sharding=None] bjz
+          bkb[35m:f32[1,1,128][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 128)
+            sharding=None
+          ] bka
+          bkc[35m:f32[128][39m = reshape[dimensions=None new_sizes=(128,) sharding=None] bkb
+          bkd[35m:f32[128,256][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bjz us
+          bke[35m:f32[256,128][39m = transpose[permutation=(1, 0)] bkd
+          bkf[35m:f32[10,512,256][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bjz rx
+          bkg[35m:f32[10,512,256][39m = jit[name=silu jaxpr=silu5] ut uu ur bkf
+          bkh[35m:f32[256][39m = reduce_sum[axes=(0, 1) out_sharding=None] bkg
+          bki[35m:f32[1,1,256][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 256)
+            sharding=None
+          ] bkh
+          bkj[35m:f32[256][39m = reshape[dimensions=None new_sizes=(256,) sharding=None] bki
+          bkk[35m:f32[256,512][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bkg um
+          bkl[35m:f32[512,256][39m = transpose[permutation=(1, 0)] bkk
+          bkm[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bkg rv
+          bkn[35m:f32[10,512,512][39m = jit[name=silu jaxpr=silu6] un uo ul bkm
+          bko[35m:f32[512][39m = reduce_sum[axes=(0, 1) out_sharding=None] bkn
+          bkp[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] bko
+          bkq[35m:f32[512][39m = reshape[dimensions=None new_sizes=(512,) sharding=None] bkp
+          bkr[35m:f32[512,512][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bkn ug
+          bks[35m:f32[512,512][39m = transpose[permutation=(1, 0)] bkr
+          bkt[35m:f32[10,512,512][39m = dot_general[
+            dimension_numbers=(([2], [1]), ([], []))
+          ] bkn rt
+          bku[35m:f32[10,512,512][39m = jit[name=silu jaxpr=silu6] uh ui uf bkt
+          bkv[35m:f32[512][39m = reduce_sum[axes=(0, 1) out_sharding=None] bku
+          bkw[35m:f32[1,1,512][39m = reshape[
+            dimensions=None
+            new_sizes=(1, 1, 512)
+            sharding=None
+          ] bkv
+          bkx[35m:f32[512][39m = reshape[dimensions=None new_sizes=(512,) sharding=None] bkw
+          bky[35m:f32[512,115][39m = dot_general[
+            dimension_numbers=(([0, 1], [0, 1]), ([], []))
+          ] bku uc
+          bkz[35m:f32[115,512][39m = transpose[permutation=(1, 0)] bky
+          bla[35m:f32[512][39m = psum[axes=('i',) axis_index_groups=None] bkx
+          blb[35m:f32[115,512][39m = psum[axes=('i',) axis_index_groups=None] bkz
+          blc[35m:f32[512][39m = psum[axes=('i',) axis_index_groups=None] bkq
+          bld[35m:f32[512,512][39m = psum[axes=('i',) axis_index_groups=None] bks
+          ble[35m:f32[256][39m = psum[axes=('i',) axis_index_groups=None] bkj
+          blf[35m:f32[512,256][39m = psum[axes=('i',) axis_index_groups=None] bkl
+          blg[35m:f32[128][39m = psum[axes=('i',) axis_index_groups=None] bkc
+          blh[35m:f32[256,128][39m = psum[axes=('i',) axis_index_groups=None] bke
+          bli[35m:f32[8][39m = psum[axes=('i',) axis_index_groups=None] bjv
+          blj[35m:f32[128,8][39m = psum[axes=('i',) axis_index_groups=None] bjx
+          blk[35m:f32[512][39m = psum[axes=('i',) axis_index_groups=None] bjq
+          bll[35m:f32[115,512][39m = psum[axes=('i',) axis_index_groups=None] bjs
+          blm[35m:f32[512][39m = psum[axes=('i',) axis_index_groups=None] bjj
+          bln[35m:f32[512,512][39m = psum[axes=('i',) axis_index_groups=None] bjl
+          blo[35m:f32[256][39m = psum[axes=('i',) axis_index_groups=None] bjc
+          blp[35m:f32[512,256][39m = psum[axes=('i',) axis_index_groups=None] bje
+          blq[35m:f32[128][39m = psum[axes=('i',) axis_index_groups=None] biv
+          blr[35m:f32[256,128][39m = psum[axes=('i',) axis_index_groups=None] bix
+          bls[35m:f32[1][39m = psum[axes=('i',) axis_index_groups=None] bio
+          blt[35m:f32[128,1][39m = psum[axes=('i',) axis_index_groups=None] biq
+          blu[35m:f32[512][39m = div bla 1.0:f32[]
+          blv[35m:f32[115,512][39m = div blb 1.0:f32[]
+          blw[35m:f32[512][39m = div blc 1.0:f32[]
+          blx[35m:f32[512,512][39m = div bld 1.0:f32[]
+          bly[35m:f32[256][39m = div ble 1.0:f32[]
+          blz[35m:f32[512,256][39m = div blf 1.0:f32[]
+          bma[35m:f32[128][39m = div blg 1.0:f32[]
+          bmb[35m:f32[256,128][39m = div blh 1.0:f32[]
+          bmc[35m:f32[8][39m = div bli 1.0:f32[]
+          bmd[35m:f32[128,8][39m = div blj 1.0:f32[]
+          bme[35m:f32[512][39m = div blk 1.0:f32[]
+          bmf[35m:f32[115,512][39m = div bll 1.0:f32[]
+          bmg[35m:f32[512][39m = div blm 1.0:f32[]
+          bmh[35m:f32[512,512][39m = div bln 1.0:f32[]
+          bmi[35m:f32[256][39m = div blo 1.0:f32[]
+          bmj[35m:f32[512,256][39m = div blp 1.0:f32[]
+          bmk[35m:f32[128][39m = div blq 1.0:f32[]
+          bml[35m:f32[256,128][39m = div blr 1.0:f32[]
+          bmm[35m:f32[1][39m = div bls 1.0:f32[]
+          bmn[35m:f32[128,1][39m = div blt 1.0:f32[]
+          bmo[35m:f32[512][39m = integer_pow[y=1] blu
+          bmp[35m:f32[512][39m = mul 0.10000000149011612:f32[] bmo
+          bmq[35m:f32[512][39m = mul 0.8999999761581421:f32[] qc
+          bmr[35m:f32[512][39m = add bmp bmq
+          bms[35m:f32[115,512][39m = integer_pow[y=1] blv
+          bmt[35m:f32[115,512][39m = mul 0.10000000149011612:f32[] bms
+          bmu[35m:f32[115,512][39m = mul 0.8999999761581421:f32[] qd
+          bmv[35m:f32[115,512][39m = add bmt bmu
+          bmw[35m:f32[512][39m = integer_pow[y=1] blw
+          bmx[35m:f32[512][39m = mul 0.10000000149011612:f32[] bmw
+          bmy[35m:f32[512][39m = mul 0.8999999761581421:f32[] qe
+          bmz[35m:f32[512][39m = add bmx bmy
+          bna[35m:f32[512,512][39m = integer_pow[y=1] blx
+          bnb[35m:f32[512,512][39m = mul 0.10000000149011612:f32[] bna
+          bnc[35m:f32[512,512][39m = mul 0.8999999761581421:f32[] qf
+          bnd[35m:f32[512,512][39m = add bnb bnc
+          bne[35m:f32[256][39m = integer_pow[y=1] bly
+          bnf[35m:f32[256][39m = mul 0.10000000149011612:f32[] bne
+          bng[35m:f32[256][39m = mul 0.8999999761581421:f32[] qg
+          bnh[35m:f32[256][39m = add bnf bng
+          bni[35m:f32[512,256][39m = integer_pow[y=1] blz
+          bnj[35m:f32[512,256][39m = mul 0.10000000149011612:f32[] bni
+          bnk[35m:f32[512,256][39m = mul 0.8999999761581421:f32[] qh
+          bnl[35m:f32[512,256][39m = add bnj bnk
+          bnm[35m:f32[128][39m = integer_pow[y=1] bma
+          bnn[35m:f32[128][39m = mul 0.10000000149011612:f32[] bnm
+          bno[35m:f32[128][39m = mul 0.8999999761581421:f32[] qi
+          bnp[35m:f32[128][39m = add bnn bno
+          bnq[35m:f32[256,128][39m = integer_pow[y=1] bmb
+          bnr[35m:f32[256,128][39m = mul 0.10000000149011612:f32[] bnq
+          bns[35m:f32[256,128][39m = mul 0.8999999761581421:f32[] qj
+          bnt[35m:f32[256,128][39m = add bnr bns
+          bnu[35m:f32[8][39m = integer_pow[y=1] bmc
+          bnv[35m:f32[8][39m = mul 0.10000000149011612:f32[] bnu
+          bnw[35m:f32[8][39m = mul 0.8999999761581421:f32[] qk
+          bnx[35m:f32[8][39m = add bnv bnw
+          bny[35m:f32[128,8][39m = integer_pow[y=1] bmd
+          bnz[35m:f32[128,8][39m = mul 0.10000000149011612:f32[] bny
+          boa[35m:f32[128,8][39m = mul 0.8999999761581421:f32[] ql
+          bob[35m:f32[128,8][39m = add bnz boa
+          boc[35m:f32[512][39m = integer_pow[y=1] bme
+          bod[35m:f32[512][39m = mul 0.10000000149011612:f32[] boc
+          boe[35m:f32[512][39m = mul 0.8999999761581421:f32[] qm
+          bof[35m:f32[512][39m = add bod boe
+          bog[35m:f32[115,512][39m = integer_pow[y=1] bmf
+          boh[35m:f32[115,512][39m = mul 0.10000000149011612:f32[] bog
+          boi[35m:f32[115,512][39m = mul 0.8999999761581421:f32[] qn
+          boj[35m:f32[115,512][39m = add boh boi
+          bok[35m:f32[512][39m = integer_pow[y=1] bmg
+          bol[35m:f32[512][39m = mul 0.10000000149011612:f32[] bok
+          bom[35m:f32[512][39m = mul 0.8999999761581421:f32[] qo
+          bon[35m:f32[512][39m = add bol bom
+          boo[35m:f32[512,512][39m = integer_pow[y=1] bmh
+          bop[35m:f32[512,512][39m = mul 0.10000000149011612:f32[] boo
+          boq[35m:f32[512,512][39m = mul 0.8999999761581421:f32[] qp
+          bor[35m:f32[512,512][39m = add bop boq
+          bos[35m:f32[256][39m = integer_pow[y=1] bmi
+          bot[35m:f32[256][39m = mul 0.10000000149011612:f32[] bos
+          bou[35m:f32[256][39m = mul 0.8999999761581421:f32[] qq
+          bov[35m:f32[256][39m = add bot bou
+          bow[35m:f32[512,256][39m = integer_pow[y=1] bmj
+          box[35m:f32[512,256][39m = mul 0.10000000149011612:f32[] bow
+          boy[35m:f32[512,256][39m = mul 0.8999999761581421:f32[] qr
+          boz[35m:f32[512,256][39m = add box boy
+          bpa[35m:f32[128][39m = integer_pow[y=1] bmk
+          bpb[35m:f32[128][39m = mul 0.10000000149011612:f32[] bpa
+          bpc[35m:f32[128][39m = mul 0.8999999761581421:f32[] qs
+          bpd[35m:f32[128][39m = add bpb bpc
+          bpe[35m:f32[256,128][39m = integer_pow[y=1] bml
+          bpf[35m:f32[256,128][39m = mul 0.10000000149011612:f32[] bpe
+          bpg[35m:f32[256,128][39m = mul 0.8999999761581421:f32[] qt
+          bph[35m:f32[256,128][39m = add bpf bpg
+          bpi[35m:f32[1][39m = integer_pow[y=1] bmm
+          bpj[35m:f32[1][39m = mul 0.10000000149011612:f32[] bpi
+          bpk[35m:f32[1][39m = mul 0.8999999761581421:f32[] qu
+          bpl[35m:f32[1][39m = add bpj bpk
+          bpm[35m:f32[128,1][39m = integer_pow[y=1] bmn
+          bpn[35m:f32[128,1][39m = mul 0.10000000149011612:f32[] bpm
+          bpo[35m:f32[128,1][39m = mul 0.8999999761581421:f32[] qv
+          bpp[35m:f32[128,1][39m = add bpn bpo
+          bpq[35m:f32[512][39m = integer_pow[y=2] blu
+          bpr[35m:f32[512][39m = mul 0.0010000000474974513:f32[] bpq
+          bps[35m:f32[512][39m = mul 0.9990000128746033:f32[] qw
+          bpt[35m:f32[512][39m = add bpr bps
+          bpu[35m:f32[115,512][39m = integer_pow[y=2] blv
+          bpv[35m:f32[115,512][39m = mul 0.0010000000474974513:f32[] bpu
+          bpw[35m:f32[115,512][39m = mul 0.9990000128746033:f32[] qx
+          bpx[35m:f32[115,512][39m = add bpv bpw
+          bpy[35m:f32[512][39m = integer_pow[y=2] blw
+          bpz[35m:f32[512][39m = mul 0.0010000000474974513:f32[] bpy
+          bqa[35m:f32[512][39m = mul 0.9990000128746033:f32[] qy
+          bqb[35m:f32[512][39m = add bpz bqa
+          bqc[35m:f32[512,512][39m = integer_pow[y=2] blx
+          bqd[35m:f32[512,512][39m = mul 0.0010000000474974513:f32[] bqc
+          bqe[35m:f32[512,512][39m = mul 0.9990000128746033:f32[] qz
+          bqf[35m:f32[512,512][39m = add bqd bqe
+          bqg[35m:f32[256][39m = integer_pow[y=2] bly
+          bqh[35m:f32[256][39m = mul 0.0010000000474974513:f32[] bqg
+          bqi[35m:f32[256][39m = mul 0.9990000128746033:f32[] ra
+          bqj[35m:f32[256][39m = add bqh bqi
+          bqk[35m:f32[512,256][39m = integer_pow[y=2] blz
+          bql[35m:f32[512,256][39m = mul 0.0010000000474974513:f32[] bqk
+          bqm[35m:f32[512,256][39m = mul 0.9990000128746033:f32[] rb
+          bqn[35m:f32[512,256][39m = add bql bqm
+          bqo[35m:f32[128][39m = integer_pow[y=2] bma
+          bqp[35m:f32[128][39m = mul 0.0010000000474974513:f32[] bqo
+          bqq[35m:f32[128][39m = mul 0.9990000128746033:f32[] rc
+          bqr[35m:f32[128][39m = add bqp bqq
+          bqs[35m:f32[256,128][39m = integer_pow[y=2] bmb
+          bqt[35m:f32[256,128][39m = mul 0.0010000000474974513:f32[] bqs
+          bqu[35m:f32[256,128][39m = mul 0.9990000128746033:f32[] rd
+          bqv[35m:f32[256,128][39m = add bqt bqu
+          bqw[35m:f32[8][39m = integer_pow[y=2] bmc
+          bqx[35m:f32[8][39m = mul 0.0010000000474974513:f32[] bqw
+          bqy[35m:f32[8][39m = mul 0.9990000128746033:f32[] re
+          bqz[35m:f32[8][39m = add bqx bqy
+          bra[35m:f32[128,8][39m = integer_pow[y=2] bmd
+          brb[35m:f32[128,8][39m = mul 0.0010000000474974513:f32[] bra
+          brc[35m:f32[128,8][39m = mul 0.9990000128746033:f32[] rf
+          brd[35m:f32[128,8][39m = add brb brc
+          bre[35m:f32[512][39m = integer_pow[y=2] bme
+          brf[35m:f32[512][39m = mul 0.0010000000474974513:f32[] bre
+          brg[35m:f32[512][39m = mul 0.9990000128746033:f32[] rg
+          brh[35m:f32[512][39m = add brf brg
+          bri[35m:f32[115,512][39m = integer_pow[y=2] bmf
+          brj[35m:f32[115,512][39m = mul 0.0010000000474974513:f32[] bri
+          brk[35m:f32[115,512][39m = mul 0.9990000128746033:f32[] rh
+          brl[35m:f32[115,512][39m = add brj brk
+          brm[35m:f32[512][39m = integer_pow[y=2] bmg
+          brn[35m:f32[512][39m = mul 0.0010000000474974513:f32[] brm
+          bro[35m:f32[512][39m = mul 0.9990000128746033:f32[] ri
+          brp[35m:f32[512][39m = add brn bro
+          brq[35m:f32[512,512][39m = integer_pow[y=2] bmh
+          brr[35m:f32[512,512][39m = mul 0.0010000000474974513:f32[] brq
+          brs[35m:f32[512,512][39m = mul 0.9990000128746033:f32[] rj
+          brt[35m:f32[512,512][39m = add brr brs
+          bru[35m:f32[256][39m = integer_pow[y=2] bmi
+          brv[35m:f32[256][39m = mul 0.0010000000474974513:f32[] bru
+          brw[35m:f32[256][39m = mul 0.9990000128746033:f32[] rk
+          brx[35m:f32[256][39m = add brv brw
+          bry[35m:f32[512,256][39m = integer_pow[y=2] bmj
+          brz[35m:f32[512,256][39m = mul 0.0010000000474974513:f32[] bry
+          bsa[35m:f32[512,256][39m = mul 0.9990000128746033:f32[] rl
+          bsb[35m:f32[512,256][39m = add brz bsa
+          bsc[35m:f32[128][39m = integer_pow[y=2] bmk
+          bsd[35m:f32[128][39m = mul 0.0010000000474974513:f32[] bsc
+          bse[35m:f32[128][39m = mul 0.9990000128746033:f32[] rm
+          bsf[35m:f32[128][39m = add bsd bse
+          bsg[35m:f32[256,128][39m = integer_pow[y=2] bml
+          bsh[35m:f32[256,128][39m = mul 0.0010000000474974513:f32[] bsg
+          bsi[35m:f32[256,128][39m = mul 0.9990000128746033:f32[] rn
+          bsj[35m:f32[256,128][39m = add bsh bsi
+          bsk[35m:f32[1][39m = integer_pow[y=2] bmm
+          bsl[35m:f32[1][39m = mul 0.0010000000474974513:f32[] bsk
+          bsm[35m:f32[1][39m = mul 0.9990000128746033:f32[] ro
+          bsn[35m:f32[1][39m = add bsl bsm
+          bso[35m:f32[128,1][39m = integer_pow[y=2] bmn
+          bsp[35m:f32[128,1][39m = mul 0.0010000000474974513:f32[] bso
+          bsq[35m:f32[128,1][39m = mul 0.9990000128746033:f32[] rp
+          bsr[35m:f32[128,1][39m = add bsp bsq
+          bss[35m:bool[][39m = lt qb 2147483647:i32[]
+          bst[35m:i32[][39m = add qb 1:i32[]
+          bsu[35m:i32[][39m = jit[
+            name=_where
+            jaxpr={ [34;1mlambda [39;22m; bss[35m:bool[][39m bst[35m:i32[][39m bsv[35m:i32[][39m. [34;1mlet
+                [39;22mbsu[35m:i32[][39m = select_n bss bsv bst
+              [34;1min [39;22m(bsu,) }
+          ] bss bst 2147483647:i32[]
+          _[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=True] bsu
+          bsw[35m:f32[][39m = pow 0.9:f32[] bsu
+          bsx[35m:f32[][39m = sub 1.0:f32[] bsw
+          bsy[35m:f32[512][39m = div bmr bsx
+          bsz[35m:f32[115,512][39m = div bmv bsx
+          bta[35m:f32[512][39m = div bmz bsx
+          btb[35m:f32[512,512][39m = div bnd bsx
+          btc[35m:f32[256][39m = div bnh bsx
+          btd[35m:f32[512,256][39m = div bnl bsx
+          bte[35m:f32[128][39m = div bnp bsx
+          btf[35m:f32[256,128][39m = div bnt bsx
+          btg[35m:f32[8][39m = div bnx bsx
+          bth[35m:f32[128,8][39m = div bob bsx
+          bti[35m:f32[512][39m = div bof bsx
+          btj[35m:f32[115,512][39m = div boj bsx
+          btk[35m:f32[512][39m = div bon bsx
+          btl[35m:f32[512,512][39m = div bor bsx
+          btm[35m:f32[256][39m = div bov bsx
+          btn[35m:f32[512,256][39m = div boz bsx
+          bto[35m:f32[128][39m = div bpd bsx
+          btp[35m:f32[256,128][39m = div bph bsx
+          btq[35m:f32[1][39m = div bpl bsx
+          btr[35m:f32[128,1][39m = div bpp bsx
+          _[35m:f32[][39m = convert_element_type[new_dtype=float32 weak_type=True] bsu
+          bts[35m:f32[][39m = pow 0.999:f32[] bsu
+          btt[35m:f32[][39m = sub 1.0:f32[] bts
+          btu[35m:f32[512][39m = div bpt btt
+          btv[35m:f32[115,512][39m = div bpx btt
+          btw[35m:f32[512][39m = div bqb btt
+          btx[35m:f32[512,512][39m = div bqf btt
+          bty[35m:f32[256][39m = div bqj btt
+          btz[35m:f32[512,256][39m = div bqn btt
+          bua[35m:f32[128][39m = div bqr btt
+          bub[35m:f32[256,128][39m = div bqv btt
+          buc[35m:f32[8][39m = div bqz btt
+          bud[35m:f32[128,8][39m = div brd btt
+          bue[35m:f32[512][39m = div brh btt
+          buf[35m:f32[115,512][39m = div brl btt
+          bug[35m:f32[512][39m = div brp btt
+          buh[35m:f32[512,512][39m = div brt btt
+          bui[35m:f32[256][39m = div brx btt
+          buj[35m:f32[512,256][39m = div bsb btt
+          buk[35m:f32[128][39m = div bsf btt
+          bul[35m:f32[256,128][39m = div bsj btt
+          bum[35m:f32[1][39m = div bsn btt
+          bun[35m:f32[128,1][39m = div bsr btt
+          buo[35m:f32[512][39m = add btu 0.0:f32[]
+          bup[35m:f32[512][39m = sqrt buo
+          buq[35m:f32[512][39m = add bup 9.99999993922529e-09:f32[]
+          bur[35m:f32[512][39m = div bsy buq
+          bus[35m:f32[115,512][39m = add btv 0.0:f32[]
+          but[35m:f32[115,512][39m = sqrt bus
+          buu[35m:f32[115,512][39m = add but 9.99999993922529e-09:f32[]
+          buv[35m:f32[115,512][39m = div bsz buu
+          buw[35m:f32[512][39m = add btw 0.0:f32[]
+          bux[35m:f32[512][39m = sqrt buw
+          buy[35m:f32[512][39m = add bux 9.99999993922529e-09:f32[]
+          buz[35m:f32[512][39m = div bta buy
+          bva[35m:f32[512,512][39m = add btx 0.0:f32[]
+          bvb[35m:f32[512,512][39m = sqrt bva
+          bvc[35m:f32[512,512][39m = add bvb 9.99999993922529e-09:f32[]
+          bvd[35m:f32[512,512][39m = div btb bvc
+          bve[35m:f32[256][39m = add bty 0.0:f32[]
+          bvf[35m:f32[256][39m = sqrt bve
+          bvg[35m:f32[256][39m = add bvf 9.99999993922529e-09:f32[]
+          bvh[35m:f32[256][39m = div btc bvg
+          bvi[35m:f32[512,256][39m = add btz 0.0:f32[]
+          bvj[35m:f32[512,256][39m = sqrt bvi
+          bvk[35m:f32[512,256][39m = add bvj 9.99999993922529e-09:f32[]
+          bvl[35m:f32[512,256][39m = div btd bvk
+          bvm[35m:f32[128][39m = add bua 0.0:f32[]
+          bvn[35m:f32[128][39m = sqrt bvm
+          bvo[35m:f32[128][39m = add bvn 9.99999993922529e-09:f32[]
+          bvp[35m:f32[128][39m = div bte bvo
+          bvq[35m:f32[256,128][39m = add bub 0.0:f32[]
+          bvr[35m:f32[256,128][39m = sqrt bvq
+          bvs[35m:f32[256,128][39m = add bvr 9.99999993922529e-09:f32[]
+          bvt[35m:f32[256,128][39m = div btf bvs
+          bvu[35m:f32[8][39m = add buc 0.0:f32[]
+          bvv[35m:f32[8][39m = sqrt bvu
+          bvw[35m:f32[8][39m = add bvv 9.99999993922529e-09:f32[]
+          bvx[35m:f32[8][39m = div btg bvw
+          bvy[35m:f32[128,8][39m = add bud 0.0:f32[]
+          bvz[35m:f32[128,8][39m = sqrt bvy
+          bwa[35m:f32[128,8][39m = add bvz 9.99999993922529e-09:f32[]
+          bwb[35m:f32[128,8][39m = div bth bwa
+          bwc[35m:f32[512][39m = add bue 0.0:f32[]
+          bwd[35m:f32[512][39m = sqrt bwc
+          bwe[35m:f32[512][39m = add bwd 9.99999993922529e-09:f32[]
+          bwf[35m:f32[512][39m = div bti bwe
+          bwg[35m:f32[115,512][39m = add buf 0.0:f32[]
+          bwh[35m:f32[115,512][39m = sqrt bwg
+          bwi[35m:f32[115,512][39m = add bwh 9.99999993922529e-09:f32[]
+          bwj[35m:f32[115,512][39m = div btj bwi
+          bwk[35m:f32[512][39m = add bug 0.0:f32[]
+          bwl[35m:f32[512][39m = sqrt bwk
+          bwm[35m:f32[512][39m = add bwl 9.99999993922529e-09:f32[]
+          bwn[35m:f32[512][39m = div btk bwm
+          bwo[35m:f32[512,512][39m = add buh 0.0:f32[]
+          bwp[35m:f32[512,512][39m = sqrt bwo
+          bwq[35m:f32[512,512][39m = add bwp 9.99999993922529e-09:f32[]
+          bwr[35m:f32[512,512][39m = div btl bwq
+          bws[35m:f32[256][39m = add bui 0.0:f32[]
+          bwt[35m:f32[256][39m = sqrt bws
+          bwu[35m:f32[256][39m = add bwt 9.99999993922529e-09:f32[]
+          bwv[35m:f32[256][39m = div btm bwu
+          bww[35m:f32[512,256][39m = add buj 0.0:f32[]
+          bwx[35m:f32[512,256][39m = sqrt bww
+          bwy[35m:f32[512,256][39m = add bwx 9.99999993922529e-09:f32[]
+          bwz[35m:f32[512,256][39m = div btn bwy
+          bxa[35m:f32[128][39m = add buk 0.0:f32[]
+          bxb[35m:f32[128][39m = sqrt bxa
+          bxc[35m:f32[128][39m = add bxb 9.99999993922529e-09:f32[]
+          bxd[35m:f32[128][39m = div bto bxc
+          bxe[35m:f32[256,128][39m = add bul 0.0:f32[]
+          bxf[35m:f32[256,128][39m = sqrt bxe
+          bxg[35m:f32[256,128][39m = add bxf 9.99999993922529e-09:f32[]
+          bxh[35m:f32[256,128][39m = div btp bxg
+          bxi[35m:f32[1][39m = add bum 0.0:f32[]
+          bxj[35m:f32[1][39m = sqrt bxi
+          bxk[35m:f32[1][39m = add bxj 9.99999993922529e-09:f32[]
+          bxl[35m:f32[1][39m = div btq bxk
+          bxm[35m:f32[128,1][39m = add bun 0.0:f32[]
+          bxn[35m:f32[128,1][39m = sqrt bxm
+          bxo[35m:f32[128,1][39m = add bxn 9.99999993922529e-09:f32[]
+          bxp[35m:f32[128,1][39m = div btr bxo
+          bxq[35m:f32[512][39m = mul -0.0003000000142492354:f32[] bur
+          bxr[35m:f32[115,512][39m = mul -0.0003000000142492354:f32[] buv
+          bxs[35m:f32[512][39m = mul -0.0003000000142492354:f32[] buz
+          bxt[35m:f32[512,512][39m = mul -0.0003000000142492354:f32[] bvd
+          bxu[35m:f32[256][39m = mul -0.0003000000142492354:f32[] bvh
+          bxv[35m:f32[512,256][39m = mul -0.0003000000142492354:f32[] bvl
+          bxw[35m:f32[128][39m = mul -0.0003000000142492354:f32[] bvp
+          bxx[35m:f32[256,128][39m = mul -0.0003000000142492354:f32[] bvt
+          bxy[35m:f32[8][39m = mul -0.0003000000142492354:f32[] bvx
+          bxz[35m:f32[128,8][39m = mul -0.0003000000142492354:f32[] bwb
+          bya[35m:f32[512][39m = mul -0.0003000000142492354:f32[] bwf
+          byb[35m:f32[115,512][39m = mul -0.0003000000142492354:f32[] bwj
+          byc[35m:f32[512][39m = mul -0.0003000000142492354:f32[] bwn
+          byd[35m:f32[512,512][39m = mul -0.0003000000142492354:f32[] bwr
+          bye[35m:f32[256][39m = mul -0.0003000000142492354:f32[] bwv
+          byf[35m:f32[512,256][39m = mul -0.0003000000142492354:f32[] bwz
+          byg[35m:f32[128][39m = mul -0.0003000000142492354:f32[] bxd
+          byh[35m:f32[256,128][39m = mul -0.0003000000142492354:f32[] bxh
+          byi[35m:f32[1][39m = mul -0.0003000000142492354:f32[] bxl
+          byj[35m:f32[128,1][39m = mul -0.0003000000142492354:f32[] bxp
+          byk[35m:f32[512][39m = add rq bxq
+          byl[35m:f32[115,512][39m = add rr bxr
+          bym[35m:f32[512][39m = add rs bxs
+          byn[35m:f32[512,512][39m = add rt bxt
+          byo[35m:f32[256][39m = add ru bxu
+          byp[35m:f32[512,256][39m = add rv bxv
+          byq[35m:f32[128][39m = add rw bxw
+          byr[35m:f32[256,128][39m = add rx bxx
+          bys[35m:f32[8][39m = add ry bxy
+          byt[35m:f32[128,8][39m = add rz bxz
+          byu[35m:f32[512][39m = add sa bya
+          byv[35m:f32[115,512][39m = add sb byb
+          byw[35m:f32[512][39m = add sc byc
+          byx[35m:f32[512,512][39m = add sd byd
+          byy[35m:f32[256][39m = add se bye
+          byz[35m:f32[512,256][39m = add sf byf
+          bza[35m:f32[128][39m = add sg byg
+          bzb[35m:f32[256,128][39m = add sh byh
+          bzc[35m:f32[1][39m = add si byi
+          bzd[35m:f32[128,1][39m = add sj byj
+        [34;1min [39;22m(bsu, bmr, bmv, bmz, bnd, bnh, bnl, bnp, bnt, bnx, bob, bof, boj, bon,
+          bor, bov, boz, bpd, bph, bpl, bpp, bpt, bpx, bqb, bqf, bqj, bqn, bqr, bqv,
+          bqz, brd, brh, brl, brp, brt, brx, bsb, bsf, bsj, bsn, bsr, byk, byl, bym,
+          byn, byo, byp, byq, byr, bys, byt, byu, byv, byw, byx, byy, byz, bza, bzb,
+          bzc, bzd, tm, bfd, bge, 0.0003000000142492354:f32[], bgg, bdb, bff, bdh) }
+      length=24
+      linear=(False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False, False)
+      num_carry=62
+      num_consts=4
+      reverse=False
+      unroll=1
+    ] fv fw fx fy fz ga gb gc gd ge gf gg gh gi gj gk gl gm gn go gp gq gr gs gt
+      gu gv gw gx gy gz ha hb hc hd he hf hg hh hi hj hk hl hm hn ho hp hq hr hs
+      ht hu hv hw hx hy hz ia ib ic id ie if ig ih ir iw jb jg jl jq jv ka kj ko
+      kt ky ld li ln ls lx mc mh mm mr mw nb ng
+  [34;1min [39;22m(nh, ni, nj, nk, nl, nm, nn, no, np, nq, nr, ns, nt, nu, nv, nw, nx, ny, nz,
+    oa, ob, oc, od, oe, of, og, oh, oi, oj, ok, ol, om, on, oo, op, oq, or, os, ot,
+    ou, ov, ow, ox, oy, oz, pa, pb, pc, pd, pe, pf, pg, ph, pi, pj, pk, pl, pm, pn,
+    po, pp, in, pq, pr, ps, pt, pu, pv, pw) }, ())
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/bin/arcdrone-train", line 6, in <module>
+    sys.exit(main())
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/scripts/train.py", line 162, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 804, in train
+    training_epoch_with_timing(training_state, env_state, epoch_keys)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 675, in training_epoch_with_timing
+    result = training_epoch(training_state, env_state, key)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 650, in training_epoch
+    (training_state, state, _), loss_metrics = jax.lax.scan(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 612, in training_step
+    (optimizer_state, params, _), metrics = jax.lax.scan(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 540, in sgd_step
+    shuffled_data = jax.tree_util.tree_map(convert_data, data)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 536, in convert_data
+    x = jax.random.permutation(key_perm, x)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/random.py", line 689, in permutation
+    return maybe_auto_axes(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/random.py", line 695, in _permutation
+    ind = _shuffle(key, jnp.arange(x.shape[axis]), 0)  # type: ignore[union-attr]
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/random.py", line 725, in _shuffle
+    sort_keys = _random_bits(subkey, 32, x.shape)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/random.py", line 118, in _random_bits
+    return prng.random_bits(key, bit_width=bit_width, shape=shape)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/prng.py", line 676, in random_bits
+    return random_bits_p.bind(keys, bit_width=bit_width, shape=shape)
+jax._src.source_info_util.JaxStackTraceBeforeTransformation: KeyboardInterrupt
+
+The preceding stack trace is the source of the JAX operation that, once transformed by JAX, triggered the following exception.
+
+--------------------
+
+The above exception was the direct cause of the following exception:
+
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/bin/arcdrone-train", line 6, in <module>
+    sys.exit(main())
+             ^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/rl/scripts/train.py", line 162, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 804, in train
+    training_epoch_with_timing(training_state, env_state, epoch_keys)
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/agents/ppo/train.py", line 675, in training_epoch_with_timing
+    result = training_epoch(training_state, env_state, key)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/api.py", line 1790, in cache_miss
+    execute, const_args = pxla.xla_pmap_impl_lazy(p.flat_fun, *p.flat_args, **params)
+                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 355, in xla_pmap_impl_lazy
+    compiled_fun, fingerprint, const_args = parallel_callable(
+                                            ^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/linear_util.py", line 460, in memoized_fun
+    ans = call(fun, *args)
+          ^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 639, in parallel_callable
+    pmap_computation = lower_parallel_callable(
+                       ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/profiler.py", line 359, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 925, in lower_parallel_callable
+    lowering_result = mlir.lower_jaxpr_to_module(
+                      ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 1312, in lower_jaxpr_to_module
+    lower_jaxpr_to_fun(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 1889, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(
+                           ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2475, in f_lowered
+    out, tokens = jaxpr_subcomp(
+                  ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/lax/control_flow/loops.py", line 2018, in _while_lowering
+    new_z, tokens_out = mlir.jaxpr_subcomp(
+                        ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2083, in jaxpr_subcomp
+    out_nodes, _inline = _uncached_lowering(
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2591, in core_call_lowering
+    out_nodes, tokens = call_lowering(
+                        ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2568, in call_lowering
+    func_op, output_types, effects = lower_called_computation(
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2545, in lower_called_computation
+    func_op = _lower_jaxpr_to_fun_cached(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2498, in _lower_jaxpr_to_fun_cached
+    func_op = lower_jaxpr_to_fun(
+              ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 1889, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(
+                           ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2475, in f_lowered
+    out, tokens = jaxpr_subcomp(
+                  ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/lax/control_flow/loops.py", line 2018, in _while_lowering
+    new_z, tokens_out = mlir.jaxpr_subcomp(
+                        ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2083, in jaxpr_subcomp
+    out_nodes, _inline = _uncached_lowering(
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2591, in core_call_lowering
+    out_nodes, tokens = call_lowering(
+                        ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2568, in call_lowering
+    func_op, output_types, effects = lower_called_computation(
+                                     ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2545, in lower_called_computation
+    func_op = _lower_jaxpr_to_fun_cached(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2498, in _lower_jaxpr_to_fun_cached
+    func_op = lower_jaxpr_to_fun(
+              ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 1889, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(
+                           ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2083, in jaxpr_subcomp
+    out_nodes, _inline = _uncached_lowering(
+                         ^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/pjit.py", line 1426, in _pjit_lowering
+    func = _pjit_cached_lower_jaxpr_to_fun(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/pjit.py", line 1393, in _pjit_cached_lower_jaxpr_to_fun
+    func = mlir.lower_jaxpr_to_fun(
+           ^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 1889, in lower_jaxpr_to_fun
+    out_vals, tokens_out = jaxpr_subcomp(
+                           ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/prng.py", line 712, in random_bits_lowering
+    out = bits_lowering(ctx_new, keys)
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2475, in f_lowered
+    out, tokens = jaxpr_subcomp(
+                  ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/prng.py", line 948, in _threefry2x32_gpu_lowering_rule
+    return _threefry2x32_lowering_rule(ctx, k1, k2, x1, x2)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2475, in f_lowered
+    out, tokens = jaxpr_subcomp(
+                  ^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2067, in jaxpr_subcomp
+    out_nodes, tokens_out = _cached_lowering(
+                            ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2126, in _cached_lowering
+    cache_entry = _emit_lowering_rule_as_fun(
+                  ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2205, in _emit_lowering_rule_as_fun
+    outs, inline = lowering_rule(sub_ctx, *unflattened_args, **params)
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2256, in _uncached_lowering
+    ans = lower_per_platform(ctx, str(primitive), platform_rules, default_rule,
+          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2374, in lower_per_platform
+    output = kept_rules[0](ctx, *rule_args, **rule_kwargs)
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/lax/lax.py", line 4139, in _nary_lower_hlo
+    args = mlir.multi_broadcast_in_dim(ctx, args, avals_in, aval_out.shape,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/mlir.py", line 2685, in multi_broadcast_in_dim
+    out_aval = core.ShapedArray(
+               ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/core.py", line 2189, in __init__
+    self.shape = canonicalize_shape(shape)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/core.py", line 1977, in canonicalize_shape
+    return tuple(unsafe_map(_canonicalize_dimension, shape))
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

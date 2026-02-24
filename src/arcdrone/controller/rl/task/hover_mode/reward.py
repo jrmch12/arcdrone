@@ -68,8 +68,8 @@ def _get_reward_impl(self, state, action):
 
     # Heavily penalize being near or at ground level to prevent falling
     z_position = state.pipeline_state.qpos[2]  # z-coordinate of drone position
-    ground_violation = jp.maximum(0.0, self.cfg.ground_threshold - z_position)
-    r_ground = -self.cfg.ground_penalty_weight * jp.square(ground_violation / self.cfg.ground_threshold)
+    ground_violation = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
+    r_ground = -self.cfg.ground_penalty_weight * jp.square(ground_violation / self.cfg.ground_threshold_penalty)
     
     # ==== Goal success bonus ====
 

@@ -1,6 +1,8 @@
 # @package _global_
-name: arcdrone_landing
-file_path: task/landing_mode/arcdrone.py
+task_name: landing
+# name: arcdrone
+# file_path: task/arcdrone.py
+
 
 
 env:
