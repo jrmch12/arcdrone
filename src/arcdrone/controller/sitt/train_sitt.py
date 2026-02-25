@@ -48,6 +48,7 @@ Metrics = types.Metrics
 
 _PMAP_AXIS_NAME = 'i'
 
+# region ========================= JAX INMUTABLE DATACLASS =========================
 
 @flax.struct.dataclass
 class TrainingState:
@@ -61,6 +62,8 @@ class TrainingState:
   student_params: Any = None  
   proj_params: Any = None
   align_opt_state: Any = None
+
+# endregion =====================================================
 
 def _unpmap(v):
   return jax.tree_util.tree_map(lambda x: x[0], v)
@@ -192,6 +195,7 @@ def _remove_pixels(
     return obs
   return {k: v for k, v in obs.items() if not k.startswith('pixels/')}
 
+# region ========================= RUNTIME VARIABLES SETUP =========================
 
 def train(
     environment: envs.Env,
@@ -398,6 +402,10 @@ def train(
 
   assert num_envs % device_count == 0
 
+# endregion ===================================================================
+
+# region ========================= ENVIRONMENT SETUP =========================
+
   env = _maybe_wrap_env(
       environment,
       wrap_env,
@@ -432,12 +440,21 @@ def train(
         reset_fn_donated_env_state, donate_argnums=(0,), keep_unused=True
     )
 
+# endregion =============================================================
+
+# region ========================= NORMALIZER SETUP =========================
+
   # Discard the batch axes over devices and envs.
   obs_shape = jax.tree_util.tree_map(lambda x: x.shape[2:], env_state.obs)
 
   normalize = lambda x, y: x
   if normalize_observations:
     normalize = running_statistics.normalize
+
+# endregion =============================================================
+
+# region ========================= NETWORKS SETUP =========================
+
   ppo_network = network_factory(
       obs_shape, env.action_size, preprocess_observations_fn=normalize
   )
@@ -470,6 +487,10 @@ def train(
 
       proj_network = ProjNet()
 
+# endregion =============================================================
+
+# region ========================= OPTIMIZER SETUP =========================
+
   # Optimizer.
   base_optimizer = optax.adam(learning_rate=learning_rate)
   lr_schedule = learning_rate_schedule or ppo_optimizer.LRSchedule.NONE
@@ -495,6 +516,9 @@ def train(
           (student_params, proj_params)
       )
 
+# endregion =============================================================
+# region ========================= LOSS SETUP =========================
+
   loss_fn = functools.partial(
       ppo_losses.compute_ppo_loss,
       ppo_network=ppo_network,
@@ -512,11 +536,15 @@ def train(
       loss_fn, pmap_axis_name=_PMAP_AXIS_NAME, has_aux=True
   )
 
+# endregion =============================================================
+# region ========================= METRICS SETUP =========================
+
   steps_between_logging = training_metrics_steps or env_step_per_training_step
   metrics_aggregator = metric_logger.EpisodeMetricsLogger(
       steps_between_logging=steps_between_logging,
       progress_fn=progress_fn,
   )
+# endregion =============================================================
 
   def minibatch_step(
       carry,
@@ -757,25 +785,12 @@ def train(
     }
     return training_state, env_state, metrics  # pytype: disable=bad-return-type  # py311-upgrade
 
+# region ========================= JAX INMUTABLE DATACLASS SETUP ---> INIT PARAMS INIT for networks, normalizer and optimizer =========================
+
   # Initialize model params and training state.
   init_params = ppo_losses.PPONetworkParams(
       policy=ppo_network.policy_network.init(key_policy),
       value=ppo_network.value_network.init(key_value),
-  )
-
-  if use_student:
-    key_student, key_proj = jax.random.split(key_policy)
-
-    student_params = student_policy_network.init(
-        key_student, dummy_obs
-    )
-
-    proj_params = proj_network.init(
-        key_proj, dummy_obs
-    )
-
-  obs_shape = jax.tree_util.tree_map(
-      lambda x: specs.Array(x.shape[-1:], jnp.dtype('float32')), env_state.obs
   )
   if use_student:
 
@@ -797,6 +812,11 @@ def train(
       student_params = None
       proj_params = None
       align_optimizer_state = None
+
+  obs_shape = jax.tree_util.tree_map(
+      lambda x: specs.Array(x.shape[-1:], jnp.dtype('float32')), env_state.obs
+  )
+
   training_state = TrainingState(  # pytype: disable=wrong-arg-types  # jax-ndarray
       optimizer_state=optimizer.init(init_params),  # pytype: disable=wrong-arg-types  # numpy-scalars
       params=init_params,
@@ -832,6 +852,9 @@ def train(
             policy=restore_params[1], value=value_params
         ),
     )
+
+# endregion =====================================================================
+
 
   if num_timesteps == 0:
     return (
@@ -894,6 +917,8 @@ def train(
   ))
   policy_params_fn(current_step, make_policy, params)
 
+  # region ========================= MAIN LOOP =========================
+
   for it in range(num_evals_after_init):
     logging.info('starting iteration %s %s', it, time.time() - xt)
 
@@ -945,6 +970,8 @@ def train(
         )
       logging.info(metrics)
       progress_fn(current_step, metrics)
+      
+# endregion ==============================================================
 
   total_steps = current_step
   if not total_steps >= num_timesteps:
@@ -964,3 +991,6 @@ def train(
   logging.info('total steps: %s', total_steps)
   pmap.synchronize_hosts()
   return (make_policy, params, metrics)
+
+
+
