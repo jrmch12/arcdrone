@@ -785,7 +785,7 @@ def train(
     }
     return training_state, env_state, metrics  # pytype: disable=bad-return-type  # py311-upgrade
 
-# region ========================= JAX INMUTABLE DATACLASS SETUP ---> INIT PARAMS INIT for networks, normalizer and optimizer =========================
+# region ========================= JAX INMUTABLE DATACLASS SETUP ---> INIT PARAMS for networks, normalizer and optimizer =========================
 
   # Initialize model params and training state.
   init_params = ppo_losses.PPONetworkParams(
