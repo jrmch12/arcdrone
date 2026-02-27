@@ -114,7 +114,7 @@ def main(cfg: DictConfig):
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,)
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory, use_sitt=cfg.use_sitt,)
 
     # =========== Define custom progress function ===========
 

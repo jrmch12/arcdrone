@@ -32,7 +32,8 @@ from brax.training import types
 from brax.training.acme import running_statistics
 from brax.training.acme import specs
 from brax.training.agents.ppo import checkpoint
-from brax.training.agents.ppo import losses as ppo_losses
+# from brax.training.agents.ppo import losses as ppo_losses
+from . import losses as sitt_losses
 # from brax.training.agents.ppo import networks as ppo_networks
 from . import networks as sitt_networks
 from brax.training.agents.ppo import optimizer as ppo_optimizer
@@ -43,6 +44,7 @@ import jax
 import jax.numpy as jnp
 import numpy as np
 import optax
+from .align import align
 
 InferenceParams = Tuple[running_statistics.NestedMeanStd, Params]
 Metrics = types.Metrics
@@ -56,12 +58,12 @@ class TrainingState:
   """Contains training state for the learner."""
 
   optimizer_state: optax.OptState
-  params: ppo_losses.PPONetworkParams
+  params: sitt_losses.PPONetworkParams
   normalizer_params: running_statistics.RunningStatisticsState
   env_steps: types.UInt64
-  # if use_student:
-  student_params: Any = None  
-  proj_params: Any = None
+  # if use_sitt: student/proxy decoders and align optimizer state
+  student_dec_params: Any = None
+  proxy_dec_params: Any = None
   align_opt_state: Any = None
 
 # endregion =====================================================
@@ -239,8 +241,8 @@ def train(
         Union[str, ppo_optimizer.LRSchedule]
     ] = None,
     network_factory: types.NetworkFactory[
-        ppo_networks.PPONetworks
-    ] = ppo_networks.make_ppo_networks,
+        sitt_networks.PPONetworks
+    ] = sitt_networks.make_ppo_networks,
     seed: int = 0,
     use_pmap_on_reset: bool = True,
     # eval
@@ -261,6 +263,15 @@ def train(
     restore_value_fn: bool = True,
     run_evals: bool = True,
     use_sitt: bool = False,
+    # SITT alignment params
+    align_steps_per_trigger: int = 1,
+    align_updates_per_trigger: int = 1,
+    align_freq: int = 1,
+    align_batch_per_device: int = 1,
+    # SITT reward shaping coefficient for proxy KL term
+    proxy_kl_coef: float = 1.9,
+    # SITT auxiliary alignment loss coefficient (matches losses.compute_ppo_loss)
+    sitt_align_coef: float = 0.01,
 ):
   """PPO training.
 
@@ -457,30 +468,30 @@ def train(
 
 # region ========================= NETWORKS SETUP =========================
 
-  ppo_network = network_factory(
+  sitt_network = network_factory(
       obs_shape, env.action_size, preprocess_observations_fn=normalize
   )
   make_policy = sitt_networks.make_inference_fn(
-      ppo_network,
+      sitt_network,
       role="policy",
       compute_value=bootstrap_on_timeout or clipping_epsilon_value is not None,
   )
 
 
-  if use_sitt:
-        # student
-    make_student_policy = sitt_networks.make_inference_fn(
-        sitt_networks,
-        role="student",
-        compute_value=False, # HACK: keep always on false
-    )
+  # if use_sitt:
+  #       # student
+  #   make_student_policy = sitt_networks.make_inference_fn(
+  #       sitt_networks,
+  #       role="student",
+  #       compute_value=False, # HACK: keep always on false
+  #   )
 
-    # proxy 
-    make_proxy_policy = sitt_networks.make_inference_fn(
-        sitt_networks,
-        role="proxy",
-        compute_value=False, # HACK: keep always on false
-    )
+  #   # proxy 
+  #   make_proxy_policy = sitt_networks.make_inference_fn(
+  #       sitt_networks,
+  #       role="proxy",
+  #       compute_value=False, # HACK: keep always on false
+  #   )
 
 
 
@@ -506,19 +517,15 @@ def train(
   else:
     optimizer = base_optimizer
 
-  if use_student:
-      align_optimizer = optax.adam(1e-4)
-
-      align_opt_state = align_optimizer.init(
-          (student_params, proj_params)
-      )
+  if use_sitt:
+    align_optimizer = optax.adam(1e-4)
 
 # endregion =============================================================
 # region ========================= LOSS SETUP =========================
 
   loss_fn = functools.partial(
-      ppo_losses.compute_ppo_loss,
-      ppo_network=ppo_network,
+      sitt_losses.compute_ppo_loss,
+      ppo_network=sitt_network,
       entropy_cost=entropy_cost,
       discounting=discounting,
       reward_scaling=reward_scaling,
@@ -527,10 +534,20 @@ def train(
       normalize_advantage=normalize_advantage,
       vf_coefficient=vf_loss_coefficient,
       clipping_epsilon_value=clipping_epsilon_value,
+      use_sitt=use_sitt,
+      sitt_align_coef=sitt_align_coef,
   )
 
   loss_and_pgrad_fn = gradients.loss_and_pgrad(
       loss_fn, pmap_axis_name=_PMAP_AXIS_NAME, has_aux=True
+  )
+
+  align_fn = functools.partial(
+      align,
+      sitt_network=sitt_network,
+      optimizer=align_optimizer,
+      align_steps_per_trigger=align_steps_per_trigger,
+      align_updates_per_trigger=align_updates_per_trigger,
   )
 
 # endregion =============================================================
@@ -647,32 +664,32 @@ def train(
     )
     assert data.discount.shape[1:] == (unroll_length,)
 
-    if use_student:
-
-      teacher_logits = ppo_network.policy_network.apply(
-          training_state.params.policy,
-          data.observation
+    if use_sitt:
+      # teacher logits from the policy network (normalizer, policy params)
+      teacher_logits = sitt_network.policy_network.apply(
+        training_state.normalizer_params, training_state.params.policy, data.observation
       )
 
-      proxy_logits = proxy_network.apply(
-          proj_params,
-          data.observation
+      # proxy: compute proxy features via proxy decoder then convert to logits
+      proxy_feats = sitt_network.proxy_decoder.apply(
+        training_state.normalizer_params, training_state.proxy_dec_params, data.observation
+      )
+      proxy_logits = sitt_network.action_head.apply(
+        training_state.normalizer_params, training_state.params.action_head_params, proxy_feats
       )
 
       teacher_probs = jax.nn.softmax(teacher_logits)
       proxy_probs = jax.nn.softmax(proxy_logits)
 
       kl = jnp.sum(
-          teacher_probs * (
-              jnp.log(teacher_probs + 1e-8)
-              - jnp.log(proxy_probs + 1e-8)
-          ),
-          axis=-1
+        teacher_probs * (
+          jnp.log(teacher_probs + 1e-8)
+          - jnp.log(proxy_probs + 1e-8)
+        ),
+        axis=-1,
       )
 
-      data = data.replace(
-          reward = data.reward + 1.9 * kl
-      )
+      data = data.replace(reward=data.reward + proxy_kl_coef * kl)
 
     if bootstrap_on_timeout:  # bootstrap reward on timeout
       time_out = data.extras['state_extras']['time_out']
@@ -713,15 +730,65 @@ def train(
           pmap_axis_name=_PMAP_AXIS_NAME,
       )
 
+    # --------------------------------------------
+    # My logic
+    # --------------------------------------------
+    if use_sitt:
+      prev_updates = training_state.env_steps // env_step_per_training_step
+      new_env_steps = training_state.env_steps + env_step_per_training_step
+      new_updates = new_env_steps // env_step_per_training_step
+
+      do_align = (new_updates % align_freq == 0) & (new_updates > prev_updates)
+
+      if do_align:
+        # derive an alignment key from `new_key` only when needed
+        key_align, new_key = jax.random.split(new_key, 2)
+        obs = data.observation
+        idx = jax.random.choice(
+          key_align, obs.shape[0], (align_batch_per_device,), replace=False
+        )
+
+        (policy_dec, student_dec, proxy_dec, action_head, norm_params) = (
+          training_state.params.policy_dec_params,
+          training_state.student_dec_params,
+          training_state.proxy_dec_params,
+          training_state.params.action_head_params,
+          training_state.normalizer_params,
+        )
+
+        (policy_dec, student_dec, proxy_dec, action_head, norm_params), align_opt_state = align_fn(
+          (policy_dec, student_dec, proxy_dec, action_head, norm_params),
+          training_state.align_opt_state,
+          obs[idx],
+          obs[idx],
+        )
+        student_dec_params = student_dec
+        proxy_dec_params = proxy_dec
+      else:
+        student_dec_params = training_state.student_dec_params
+        proxy_dec_params = training_state.proxy_dec_params
+        align_opt_state = training_state.align_opt_state
+
+      params = params.replace(
+          student_dec_params=student_dec_params,
+          proxy_dec_params=proxy_dec_params,
+      )
+
+  
+
+    # --------------------------------------------
+    # End my logic
+    # --------------------------------------------
+
+
     new_training_state = TrainingState(
-        optimizer_state=optimizer_state,
-        params=params,
-        normalizer_params=normalizer_params,
-        env_steps=training_state.env_steps + env_step_per_training_step,
-        # If use_student is false, these fields are None.
-        student_params=student_params if use_student else None,
-        proj_params=proj_params if use_student else None,
-        align_opt_state=align_opt_state if use_student else None,
+      optimizer_state=optimizer_state,
+      params=params,
+      normalizer_params=normalizer_params,
+      env_steps=training_state.env_steps + env_step_per_training_step,
+      student_dec_params=student_dec_params if use_sitt else None,
+      proxy_dec_params=proxy_dec_params if use_sitt else None,
+      align_opt_state=align_opt_state if use_sitt else None,
     )
 
     if log_training_metrics:  # log unroll metrics
@@ -785,30 +852,36 @@ def train(
 # region ========================= JAX INMUTABLE DATACLASS SETUP ---> INIT PARAMS for networks, normalizer and optimizer =========================
 
   # Initialize model params and training state.
-  init_params = ppo_losses.PPONetworkParams(
-      policy=ppo_network.policy_network.init(key_policy),
-      value=ppo_network.value_network.init(key_value),
-  )
-  if use_student:
+  policy_params = sitt_network.policy_network.init(key_policy)
+  value_params = sitt_network.value_network.init(key_value)
 
+  if use_sitt:
     key_student, key_proj = jax.random.split(key)
 
-    student_params = student_policy_network.init(
-        key_student, dummy_obs
-    )
+    # student and proxy decoder params (FeedForwardNetwork.init wraps dummy obs)
+    student_dec_params = sitt_network.student_decoder.init(key_student)
+    proxy_dec_params = sitt_network.proxy_decoder.init(key_proj)
 
-    proj_params = proj_network.init(
-        key_proj, dummy_obs
-    )
+    align_opt_state = align_optimizer.init((student_dec_params, proxy_dec_params))
 
-    align_optimizer = optax.adam(1e-4)
-    align_optimizer_state = align_optimizer.init(
-        (student_params, proj_params)
-    )
+    # convenience named references to decoder / head coming from policy init
+    policy_dec_params = policy_params[0]
+    action_head_params = policy_params[1]
   else:
-      student_params = None
-      proj_params = None
-      align_optimizer_state = None
+    student_dec_params = None
+    proxy_dec_params = None
+    align_opt_state = None
+    policy_dec_params = None
+    action_head_params = None
+
+  init_params = sitt_losses.PPONetworkParams(
+      policy=policy_params,
+      value=value_params,
+      policy_dec_params=policy_dec_params,
+      action_head_params=action_head_params,
+      student_dec_params=student_dec_params if use_sitt else None,
+      proxy_dec_params=proxy_dec_params if use_sitt else None,
+  )
 
   obs_shape = jax.tree_util.tree_map(
       lambda x: specs.Array(x.shape[-1:], jnp.dtype('float32')), env_state.obs
@@ -824,10 +897,10 @@ def train(
       ),
       env_steps=types.UInt64(hi=0, lo=0),
 
-      # Student fields ---> if use_student is false this are none
-      student_params=student_params,
-      proj_params=proj_params,
-      align_optimizer_state=align_optimizer_state,
+        # Student fields ---> if use_sitt is false these are none
+      student_dec_params=student_dec_params,
+      proxy_dec_params=proxy_dec_params,
+        align_opt_state=align_opt_state,
   )
 
   if restore_checkpoint_path is not None:

@@ -293,30 +293,30 @@ def make_inference_fn(sitt_networks: SITTNetworks, compute_value: bool = False):
   return make_policy
 
 
-def make_decoder_inference(decoder_network: FeedForwardNetwork):
-  """
-  Returns a pure inference function for a decoder.
-  """
+# def make_decoder_inference(decoder_network: FeedForwardNetwork):
+#   """
+#   Returns a pure inference function for a decoder.
+#   """
 
-  def infer(
-      norm_params,
-      decoder_params,
-      observations,
-  ):
-    return decoder_network.apply(
-        norm_params,
-        decoder_params,
-        observations,
-    )
+#   def infer(
+#       norm_params,
+#       decoder_params,
+#       observations,
+#   ):
+#     return decoder_network.apply(
+#         norm_params,
+#         decoder_params,
+#         observations,
+#     )
 
-  return infer
+#   return infer
 
-def make_action_head_inference(action_head: FeedForwardNetwork):
-  """
-  Returns a pure inference function for the action head.
-  """
+# def make_action_head_inference(action_head: FeedForwardNetwork):
+#   """
+#   Returns a pure inference function for the action head.
+#   """
 
-  def infer(action_head_params, features):
-    return action_head.apply(None, action_head_params, features)
+#   def infer(action_head_params, features):
+#     return action_head.apply(None, action_head_params, features)
 
-  return infer
+#   return infer
