@@ -5,6 +5,11 @@ default:
 
 train: 
 
+  use_sitt: true
+  # align_optimizer is adam and lr is 1e-4, but its hardcoded
+
+
+
   # Network Architecture
   proxy_hidden_layers: [512, 512, 256, 128]
   student_hidden_layers: [512, 512, 256, 128]
