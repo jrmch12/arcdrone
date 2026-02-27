@@ -33,7 +33,8 @@ from brax.training.acme import running_statistics
 from brax.training.acme import specs
 from brax.training.agents.ppo import checkpoint
 from brax.training.agents.ppo import losses as ppo_losses
-from brax.training.agents.ppo import networks as ppo_networks
+# from brax.training.agents.ppo import networks as ppo_networks
+from . import networks as sitt_networks
 from brax.training.agents.ppo import optimizer as ppo_optimizer
 from brax.training.types import Params
 from brax.training.types import PRNGKey
@@ -259,6 +260,7 @@ def train(
     restore_params: Optional[Any] = None,
     restore_value_fn: bool = True,
     run_evals: bool = True,
+    use_sitt: bool = False,
 ):
   """PPO training.
 
@@ -458,34 +460,29 @@ def train(
   ppo_network = network_factory(
       obs_shape, env.action_size, preprocess_observations_fn=normalize
   )
-  make_policy = ppo_networks.make_inference_fn(
+  make_policy = sitt_networks.make_inference_fn(
       ppo_network,
+      role="policy",
       compute_value=bootstrap_on_timeout or clipping_epsilon_value is not None,
   )
 
-  use_student = True
 
-  if use_student:
-      import flax.linen as nn
-      import optax
-      import copy
+  if use_sitt:
+        # student
+    make_student_policy = sitt_networks.make_inference_fn(
+        sitt_networks,
+        role="student",
+        compute_value=False, # HACK: keep always on false
+    )
 
-      # Student = Kopie der Policy
-      student_policy_network = copy.deepcopy(
-          ppo_network.policy_network
-      )
+    # proxy 
+    make_proxy_policy = sitt_networks.make_inference_fn(
+        sitt_networks,
+        role="proxy",
+        compute_value=False, # HACK: keep always on false
+    )
 
-      # Proxy Network
-      class ProjNet(nn.Module):
-          @nn.compact
-          def __call__(self, x):
-              x = nn.Dense(64)(x)
-              x = nn.relu(x)
-              x = nn.Dense(64)(x)
-              x = nn.tanh(x)
-              return x
 
-      proj_network = ProjNet()
 
 # endregion =============================================================
 
