@@ -1,10 +1,13 @@
 import jax
 from jax import numpy as jp
 import mujoco
-from brax.envs.base import PipelineEnv, State
-from brax.io import mjcf
-from omegaconf import DictConfig,OmegaConf
+from mujoco import mjx
+from ml_collections import config_dict
+from omegaconf import DictConfig, OmegaConf
 from flax import struct
+
+# MjxEnv base
+from mujoco_playground._src import mjx_env
 
 # RL helper functions
 from .obs import _get_obs_impl
@@ -13,128 +16,122 @@ from .target import _get_target_impl
 
 
 
-@struct.dataclass
-class CustomState(State):
-    #     Quick solution to still leverage on the Brax PipelineEnv Class.
-    #     Every extra  mutable object that is not define in Brax State parent class, should be added here.
-    #     State Parent Class attributes:
-    #     pipeline_state: Optional[base.State]
-    #     obs: Observation
-    #     reward: jax.Array
-    #     done: jax.Array
-    #     metrics: Dict[str, jax.Array] = struct.field(default_factory=dict)
-    #     info: Dict[str, Any] = struct.field(default_factory=dict)
-    
-    state_vars: dict = struct.field(default_factory=dict)  
+# @struct.dataclass
+# class CustomState:
+#     # Compatibility placeholder: we will store extra mutable variables inside state.info
+#     pass
 
 
 
 #======== Main class ================
 
-class ARCDroneRL_Hover(PipelineEnv):
+class ARCDroneRL_Hover(mjx_env.MjxEnv):
 
-    """ARC Drone Hover Level Controller RL Environment."""
+    """ARC Drone Controller RL Environment."""
 
-    def __init__(self, *, cfg: DictConfig = None, **kwargs):
-
-
-        # TODO: make environment initialization faster!
-
-
-        # ======== Constants ========
+    def __init__(self, *, cfg: DictConfig = None, config_overrides=None, **kwargs):
+        # Accept OmegaConf DictConfig or plain dict and convert to ml_collections.ConfigDict
+        if isinstance(cfg, DictConfig):
+            cfg = OmegaConf.to_container(cfg, resolve=True)
         if isinstance(cfg, dict):
-            cfg = OmegaConf.create(cfg)
-        self.cfg = cfg
+            cfg = config_dict.ConfigDict(cfg)
 
-        # ======== Super Init ========
-        mj_model = mujoco.MjModel.from_xml_path(cfg.xml_path_rel)
-        mj_model.opt.solver = mujoco.mjtSolver.mjSOL_CG  # Conjugate gradient for large systems this is faster than Newton
-        mj_model.opt.iterations = 6
-        mj_model.opt.ls_iterations = 6
-        sys = mjcf.load_model(mj_model)
-        sys = sys.tree_replace({'opt.timestep': self.cfg.get('mj_timestep', 0.004)})
-        super().__init__(sys, self.cfg.backend, self.cfg.n_frames, **kwargs)
+        # Nested env-specific settings under `env`; extract if present.
+        env_cfg = cfg.env if hasattr(cfg, "env") else cfg
 
-        # ======== Constant Variables ========
+        # Call parent initializer (MjxEnv expects the env ConfigDict)
+        super().__init__(env_cfg, config_overrides=config_overrides)
 
-        # Constant variables can be define here, and not interferred with jax jit.
-        # Most are define in the yaml config file.
+        # store environment config for convenience (keys like max_episode_steps, buffer_size)
+        self.cfg = env_cfg # TODO: use self._config comming from super.init instead?
 
-        self.ctrl_min = jp.array(mj_model.actuator_ctrlrange[:, 0])
-        self.ctrl_max = jp.array(mj_model.actuator_ctrlrange[:, 1])
+        # Build MJ model and put mjx model
+        self._mj_model = mujoco.MjModel.from_xml_path(self.cfg.xml_path_rel)
+        self._mj_model.opt.solver = mujoco.mjtSolver.mjSOL_CG
+        self._mj_model.opt.iterations = int(self.cfg.get('mj_iterations', 6))
+        self._mj_model.opt.ls_iterations = int(self.cfg.get('mj_ls_iterations', 6))
+        # Create mjx model for fast simulation
+        self._mjx_model = mjx.put_model(self._mj_model, impl=self._config.impl)
 
-
-        # ======= Dynamic Variables ========
-
-        # Jax need stateless functions, so we assign this dynamic variables to an external dataclass.
-        # All dynamic variables are initialize in reset() and update in step().
-        # see above CustomState class.
+        # Control ranges
+        self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
+        self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
 
 
     # Main methods =================================================================
 
-    def reset(self, rng: jp.ndarray) -> CustomState:
+    def reset(self, rng: jp.ndarray) -> mjx_env.State:
         """Resets the environment to an initial state and samples a new goal."""
 
         rng, key = jax.random.split(rng)
-        qpos, qvel = self._sample_initial_state(key) 
-        data = self.pipeline_init(qpos, qvel) 
-        state_vars = self._initialize_state_vars(data, rng)
+        qpos, qvel = self._sample_initial_state(key)
 
-        state = CustomState(
-            pipeline_state=data,
-            obs= jp.array(0.0),   # overwritten to the right shape bellow
+        data = mjx_env.make_data(
+            self._mj_model,
+            qpos=qpos,
+            qvel=qvel,
+            impl=self._mjx_model.impl.value,
+            nconmax=self._config.nconmax,
+            njmax=self._config.njmax,
+        )
+        data = mjx.forward(self._mjx_model, data)
+
+        info = self._initialize_state_vars(data, rng)
+
+        state = mjx_env.State(
+            data=data,
+            obs=jp.array(0.0),
             reward=jp.array(0.0),
             done=jp.array(0.0),
-            state_vars=state_vars,
-            metrics=self._initialize_metrics()
+            metrics=self._initialize_metrics(),
+            info=info,
         )
 
         state = self._get_target(state)
-        zero_action = jp.zeros(self.sys.nu)         # initialize with zero action
+        zero_action = jp.zeros(self._mjx_model.nu)
         state = self._get_obs(state, zero_action)
 
         return state
     
 
-    def step(self, state: CustomState, action: jp.ndarray) -> CustomState:
+    def step(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:
         """Runs one timestep of the environment's dynamics."""
-        
-        # 0. Scale the action
+
+        # 0. Scale the action   # TODO: check if mjxenvs does not handle this already?
         action_normalized = action
         action = self.scale_action(action)
-        
+
         # 1. Update physics with scaled action
-        data = self.pipeline_step(state.pipeline_state, action)
-        state = state.replace(pipeline_state=data)
-        
+        data = mjx_env.step(self._mjx_model, state.data, action, self.n_substeps)
+        state = state.replace(data=data)
+
         # 2. Update target
         state = self._get_target(state)
-        
+
         # 3. Compute observations
         state = self._get_obs(state, action)
-        
+
         # 4. Compute reward
         state = self._get_reward(state, action_normalized)
-        
+
         # 5. Check termination
         state = self._check_termination(state)
-        
+
         return state
 
     # Helper functions =============================================================
 
-    def _check_termination(self, state: CustomState) -> CustomState:
+    def _check_termination(self, state: mjx_env.State) -> mjx_env.State:
         """Check if episode should terminate."""
         
         # Get z position
-        z_position = state.pipeline_state.qpos[2]
+        z_position = state.data.qpos[2]
         
         # Check termination conditions
         done = jp.logical_or(
-            state.state_vars['steps_within_success'] >= self.cfg.success_steps_required,
-            state.info.get('step', 0) >= self.cfg.max_episode_steps
+            state.info['steps_within_success'] >= self.cfg.success_steps_required,
+            state.info.get('step', 0) >= self.cfg.max_episode_steps,
         )
         
         # Add ground collision termination (z <= threshold means drone is too close to ground)
@@ -174,15 +171,15 @@ class ARCDroneRL_Hover(PipelineEnv):
 
 
     def _initialize_state_vars(self, data, rng):
-        """Initialize state variables """
+        """Initialize state variables and info dictionary"""
 
         # TODO: maybe is better not to train while the buffer is not valid? 
         # or do some soft masking adding one observation to let know the buffer is not full yet?
 
-        quat_init = data.sensordata[0:4]     
-        angvel_init = data.sensordata[4:7]  
-        linacc_init = data.sensordata[7:10] 
-        linvel_init = data.sensordata[10:13]  
+        quat_init = data.sensordata[0:4]
+        angvel_init = data.sensordata[4:7]
+        linacc_init = data.sensordata[7:10]
+        linvel_init = data.sensordata[10:13]
         pos_init = data.qpos[0:3]
         
         return {
@@ -192,7 +189,7 @@ class ARCDroneRL_Hover(PipelineEnv):
             'steps_within_success': jp.array(0),
             
             # Buffers - initialized with current state repeated
-            'action_buffer': jp.tile(jp.zeros(self.sys.nu), (self.cfg.buffer_size, 1)),
+            'action_buffer': jp.tile(jp.zeros(self._mjx_model.nu), (self.cfg.buffer_size, 1)),
             'target_vel_buffer': jp.tile(jp.zeros(3), (self.cfg.buffer_size, 1)),
             'linacc_buffer': jp.tile(linacc_init, (self.cfg.buffer_size, 1)),
             'quat_buffer': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
@@ -219,14 +216,14 @@ class ARCDroneRL_Hover(PipelineEnv):
             'reward_total': jp.float32(0.0),
         }
 
-    def _get_obs(self, state: CustomState, action: jp.ndarray) -> CustomState:
+    def _get_obs(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:
         return _get_obs_impl(self, state, action)
         
-    def _get_reward(self, state: CustomState, action: jp.ndarray) -> CustomState:
+    def _get_reward(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:
         """Calculate reward from current state."""
         return _get_reward_impl(self, state, action)
     
-    def _get_target(self, state: CustomState) -> CustomState:
+    def _get_target(self, state: mjx_env.State) -> mjx_env.State:
         """Update target velocity."""
         return _get_target_impl(self, state)
     

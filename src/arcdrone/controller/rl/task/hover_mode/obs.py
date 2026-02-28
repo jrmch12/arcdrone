@@ -5,14 +5,15 @@ def _get_obs_impl(self, state, action):
     """Compute observations from current physics state."""
     
     # ========== Extract data from MuJoCo and state ==========
-    quat = state.pipeline_state.sensordata[0:4]    # body_quat (4D)
-    angvel = state.pipeline_state.sensordata[4:7]  # body_angvel (3D) - angular velocity
-    linacc = state.pipeline_state.sensordata[7:10] # body_linacc (3D) - already without gravity
-    linvel = state.pipeline_state.sensordata[10:13] # body_linvel (3D) - linear velocity
-    pos = state.pipeline_state.qpos[0:3]     # body_pos (3D) - position
+    data = state.data
+    quat = data.sensordata[0:4]    # body_quat (4D)
+    angvel = data.sensordata[4:7]  # body_angvel (3D) - angular velocity
+    linacc = data.sensordata[7:10] # body_linacc (3D) - already without gravity
+    linvel = data.sensordata[10:13] # body_linvel (3D) - linear velocity
+    pos = data.qpos[0:3]     # body_pos (3D) - position
     
     # Get target attitude from state_vars (roll, pitch, yaw_rate)
-    target_attitude = state.state_vars.get('target_attitude', jp.zeros(3))
+    target_attitude = state.info.get('target_attitude', jp.zeros(3))
 
 
     
@@ -35,60 +36,60 @@ def _get_obs_impl(self, state, action):
     # Update action buffer
     action_buffer = jp.concatenate([
         action[jp.newaxis, :],
-        state.state_vars["action_buffer"][:-1, :]
+        state.info["action_buffer"][:-1, :]
     ], axis=0)
     
     # Update target attitude buffer (roll, pitch, yaw_rate)
     target_vel_buffer = jp.concatenate([
         target_attitude[jp.newaxis, :],
-        state.state_vars["target_vel_buffer"][:-1, :]
+        state.info["target_vel_buffer"][:-1, :]
     ], axis=0)
     
     # Update noisy sensor buffers (for actor)
     linacc_buffer_noisy = jp.concatenate([
         linacc_noisy[jp.newaxis, :],
-        state.state_vars["linacc_buffer_noisy"][:-1, :]
+        state.info["linacc_buffer_noisy"][:-1, :]
     ], axis=0)
     
     quat_buffer_noisy = jp.concatenate([
         quat_noisy[jp.newaxis, :],
-        state.state_vars["quat_buffer_noisy"][:-1, :]
+        state.info["quat_buffer_noisy"][:-1, :]
     ], axis=0)
     
     angvel_buffer_noisy = jp.concatenate([
         angvel_noisy[jp.newaxis, :],
-        state.state_vars["angvel_buffer_noisy"][:-1, :]
+        state.info["angvel_buffer_noisy"][:-1, :]
     ], axis=0)
     
     linvel_buffer_noisy = jp.concatenate([
         linvel_noisy[jp.newaxis, :],
-        state.state_vars["linvel_buffer_noisy"][:-1, :]
+        state.info["linvel_buffer_noisy"][:-1, :]
     ], axis=0)
     
     # Update clean sensor buffers (for critic)
     linacc_buffer = jp.concatenate([
         linacc[jp.newaxis, :],
-        state.state_vars["linacc_buffer"][:-1, :]
+        state.info["linacc_buffer"][:-1, :]
     ], axis=0)
     
     quat_buffer = jp.concatenate([
         quat[jp.newaxis, :],
-        state.state_vars["quat_buffer"][:-1, :]
+        state.info["quat_buffer"][:-1, :]
     ], axis=0)
     
     angvel_buffer = jp.concatenate([
         angvel[jp.newaxis, :],
-        state.state_vars["angvel_buffer"][:-1, :]
+        state.info["angvel_buffer"][:-1, :]
     ], axis=0)
     
     linvel_buffer = jp.concatenate([
         linvel[jp.newaxis, :],
-        state.state_vars["linvel_buffer"][:-1, :]
+        state.info["linvel_buffer"][:-1, :]
     ], axis=0)
 
     pos_buffer = jp.concatenate([
         pos[jp.newaxis, :],
-        state.state_vars["pos_buffer"][:-1, :]
+        state.info["pos_buffer"][:-1, :]
     ], axis=0)
     
 
@@ -132,8 +133,8 @@ def _get_obs_impl(self, state, action):
     }
     
     # ========== Update state variables ==========
-    state_vars = state.state_vars.copy()
-    state_vars.update({
+    state_info = state.info.copy()
+    state_info.update({
         'action_buffer': action_buffer,
         'target_vel_buffer': target_vel_buffer,
         'linacc_buffer_noisy': linacc_buffer_noisy,
@@ -146,10 +147,10 @@ def _get_obs_impl(self, state, action):
         'linvel_buffer': linvel_buffer,
         'pos_buffer': pos_buffer,
     })
-    
+
     return state.replace(
         obs=obs,
-        state_vars=state_vars
+        info=state_info
     )
 
     

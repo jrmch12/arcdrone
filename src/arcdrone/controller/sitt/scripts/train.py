@@ -17,7 +17,7 @@ from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 
-@hydra.main(config_name="config", config_path="../cfg", version_base=None)
+@hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
     # =========== Handle auto-restore from previous checkpoint ===========
     from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))

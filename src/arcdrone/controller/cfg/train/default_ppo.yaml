@@ -4,7 +4,7 @@ train:
   num_timesteps: 100 # 20_000_000
   num_evals: 5
   reward_scaling: 0.1
-  episode_length: ${env.max_episode_steps}
+  episode_length: 200
   normalize_observations: true
   action_repeat: 1
   unroll_length: 10
@@ -14,7 +14,8 @@ train:
   discounting: 0.97
   learning_rate: 3e-4
   entropy_cost: 1e-3
-  num_envs: ${env.numEnvs}
+  # Default number of parallel environments. Task configs can override.
+  num_envs: 2
   batch_size: 512
   seed: 0
 
