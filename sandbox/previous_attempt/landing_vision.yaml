@@ -1,23 +1,52 @@
 # @package _global_
-task_name: velocity
-# name: arcdrone
-# file_path: task/arcdrone.py
-
+name: landing_vision
+file_path: task/landing_vision.py
 
 
 env:
   
-  # ==== General setup ====
-  numEnvs: 2
-  mj_timestep: 0.004  # 250Hz simulation timestep
-  n_frames: 5         # 250/5 = 50Hz controller
-  backend: "mjx"
-  xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
-  eval_mode: False
   
-  
-  # ==== Task specific ====
+  # ==== Mjc Playground Pipeline ====
 
+
+
+  sim_dt: 0.004  
+  ctrl_dt: 0.02
+  episode_length: ${int(4 / env.ctrl_dt)} # x seconds
+  num_envs: 2
+  action_repeat: 1 # check
+  impl: "jax"  
+  # nconmax= None  I think this two variables are only neccesary for warp.
+  # njmax= None
+  vision: False
+
+  # Mjc XML override
+
+  opt:
+    timestep: ${env.sim_dt}
+    mj_solver: "cg" # newton, etc
+    mj_iterations: 6
+    mj_ls_iterations: 6
+
+
+  vision_config:
+
+    gpu_id: 0
+    render_batch_size: ${env.num_envs}
+    render_width: 64
+    render_height: 64
+    enabled_geom_groups: [0, 1, 2] # check what gets render!
+    use_rasterizer: False
+    history: 5 # this is a high level flag. Could be in Own flags as vision_buffer
+    # There are more flags to check in the renderer method.
+
+  
+  
+  # ==== Own Flags ====
+
+  eval_mode: False
+
+  #
   buffer_size: 5
 
   # Episode control
@@ -44,15 +73,11 @@ env:
   linvel_noise: 0.01  # m/s
   
 
-  
-
-
-  
-
 
 
 train:
 
+# ==== Brax Training Pipeline ====
 
   # PPO Hyperparameters
   num_timesteps: 100 # 20_000_000
@@ -64,7 +89,6 @@ train:
   unroll_length: 10
   num_minibatches: 24
   num_updates_per_batch: 8
-  log_training_metrics: false
   discounting: 0.97
   learning_rate: 3e-4
   entropy_cost: 1e-3

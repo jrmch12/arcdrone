@@ -7,8 +7,8 @@ def _get_reward_impl(self, state, action):
     # ==== Extract data from MuJoCo and state ====
     
     # Current and target velocities
-    target_vel = state.state_vars['target_vel_buffer'][0]  # [vx, vy, vz] target velocity
-    current_vel = state.state_vars['pos_buffer'][0]     # [vx, vy, vz] current velocity
+    target_vel = state.info['target_vel_buffer'][0]  # HACK: to do position control. This is actually the pos target.
+    current_vel = state.info['pos_buffer'][0]     # HACK: to do position control
     
     # ==== Distance reward (velocity tracking) ====
     # Compute velocity error (Euclidean distance)
@@ -17,10 +17,10 @@ def _get_reward_impl(self, state, action):
 
     # ==== Oscillation penalty (velocity component sign flip detection) ====
     # Detect oscillations in each velocity component
-    linvel_buffer = state.state_vars['pos_buffer']
-    linvel_t = linvel_buffer[0]  
-    linvel_t_minus_1 = linvel_buffer[1]  
-    linvel_t_minus_2 = linvel_buffer[2]  
+    linvel_buffer = state.info['pos_buffer']
+    linvel_t = linvel_buffer[0]
+    linvel_t_minus_1 = linvel_buffer[1]
+    linvel_t_minus_2 = linvel_buffer[2]
     
     # Check if velocity changed sign between t-2 and t-1 (oscillation indicator)
     vx_osc = (linvel_t_minus_1[0] * linvel_t_minus_2[0]) < 0
@@ -32,7 +32,7 @@ def _get_reward_impl(self, state, action):
 
     # ==== Overshoot penalty ====
     # Detect if velocity error changed sign (crossed target)
-    target_vel_prev = state.state_vars['target_vel_buffer'][1]
+    target_vel_prev = state.info['target_vel_buffer'][1]
     linvel_prev = linvel_buffer[1]
     
     # Velocity errors
@@ -49,7 +49,7 @@ def _get_reward_impl(self, state, action):
          
     # # ==== Action chattering penalty ====
 
-    action_buffer = state.state_vars.get('action_buffer', jp.zeros((5, action.shape[0])))
+    action_buffer = state.info.get('action_buffer', jp.zeros((5, action.shape[0])))
     current_action = action_buffer[0]  # Most recent action (from previous step)
     previous_action = action_buffer[1]  # Action before that
     action_change = jp.linalg.norm(current_action - previous_action)
@@ -57,7 +57,7 @@ def _get_reward_impl(self, state, action):
     
     # # ==== Action penalty ====
 
-    actuator_forces = state.pipeline_state.actuator_force
+    actuator_forces = state.data.actuator_force
     r_action_penalty = -self.cfg.action_penalty_weight * jp.mean(jp.square(actuator_forces))
     
     # ==== Time penalty ====
@@ -67,7 +67,7 @@ def _get_reward_impl(self, state, action):
     # ==== Ground penalty ====
 
     # Heavily penalize being near or at ground level to prevent falling
-    z_position = state.pipeline_state.qpos[2]  # z-coordinate of drone position
+    z_position = state.data.qpos[2]  # z-coordinate of drone position
     ground_violation = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
     r_ground = -self.cfg.ground_penalty_weight * jp.square(ground_violation / self.cfg.ground_threshold_penalty)
     
@@ -76,8 +76,8 @@ def _get_reward_impl(self, state, action):
     goal_achieved = vel_error < self.cfg.success_threshold
     steps_within_success = jp.where(
         goal_achieved,
-        state.state_vars['steps_within_success'] + 1,
-        0
+        state.info['steps_within_success'] + 1,
+        0,
     )
     success_bonus = jp.where(
         steps_within_success >= self.cfg.success_steps_required,
@@ -94,8 +94,8 @@ def _get_reward_impl(self, state, action):
     # ==== Update variables ====
 
     # Update dynamic vars with reward-related state
-    state_vars = state.state_vars.copy()
-    state_vars.update({
+    state_info = state.info.copy()
+    state_info.update({
         'goal_achieved': goal_achieved.astype(jp.float32),
         'steps_within_success': steps_within_success,
     })
@@ -117,6 +117,6 @@ def _get_reward_impl(self, state, action):
 
     return state.replace(
         reward=total_reward,
-        metrics=metrics,    
-        state_vars=state_vars
+        metrics=metrics,
+        info=state_info,
     )

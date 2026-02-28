@@ -17,7 +17,7 @@ from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 
-@hydra.main(config_name="config", config_path="../cfg", version_base=None)
+@hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
     # =========== Handle auto-restore from previous checkpoint ===========
     from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))
@@ -50,6 +50,11 @@ def main(cfg: DictConfig):
     # Import JAX-related modules after setting environment variables
     from brax.training.agents.ppo import train as ppo
     from brax.training.agents.ppo import networks as ppo_networks
+    # vision networks (optional)
+    try:
+        from brax.training.agents.ppo import networks_vision as ppo_networks_vision
+    except Exception:
+        ppo_networks_vision = None
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
     from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
@@ -62,11 +67,28 @@ def main(cfg: DictConfig):
     }
 
     task_name = cfg.task_name
+    env_cfg = cfg.env
     print(f"Instantiating environment for task: '{task_name}'")
     if task_name not in ENV_CLASSES:
         raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
     env_class = ENV_CLASSES[task_name]
     env = env_class(cfg=cfg.env)
+
+    # Wrap environment for Brax training (vectorization + vision support)
+    try:
+        from mujoco_playground import wrapper
+    except Exception:
+        wrapper = None
+
+    if wrapper is not None:
+        env = wrapper.wrap_for_brax_training(
+            env,
+            vision=bool(env_cfg.get('vision', False)),
+            num_vision_envs=int(cfg.train.get('num_envs', env_cfg.get('numEnvs', 1))),
+            action_repeat=int(cfg.train.get('action_repeat', 1)),
+            episode_length=int(cfg.train.get('episode_length', env_cfg.get('max_episode_steps', 200))),
+        )
+
     print(f"env '{task_name}' instantiated successfully")
 
     # =========== Load config and Logger ===========
@@ -85,12 +107,22 @@ def main(cfg: DictConfig):
 
     # =========== Load main training function ===========
 
-    network_factory = functools.partial(
-        ppo_networks.make_ppo_networks,
-        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
-        value_hidden_layer_sizes=cfg.value_hidden_layers,
-        policy_obs_key=cfg.policy_obs_key,
-        value_obs_key=cfg.value_obs_key,
+    # Select network factory (vision vs non-vision)
+    if env_cfg.get('vision', False) and ppo_networks_vision is not None:
+        network_factory = functools.partial(
+            ppo_networks_vision.make_ppo_networks_vision,
+            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+            value_hidden_layer_sizes=cfg.value_hidden_layers,
+            policy_obs_key=cfg.policy_obs_key,
+            value_obs_key=cfg.value_obs_key,
+        )
+    else:
+        network_factory = functools.partial(
+            ppo_networks.make_ppo_networks,
+            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+            value_hidden_layer_sizes=cfg.value_hidden_layers,
+            policy_obs_key=cfg.policy_obs_key,
+            value_obs_key=cfg.value_obs_key,
         )
 
     # Handle model restoration
