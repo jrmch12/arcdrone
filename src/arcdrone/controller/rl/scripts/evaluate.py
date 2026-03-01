@@ -1,18 +1,18 @@
 """
 Minimal evaluation script for trained ARCDrone velocity controller.
 """
+import sys
 import jax
 from jax import numpy as jp
 from brax.training.agents.ppo import networks as ppo_networks
 from brax.training.acme import running_statistics
 from brax.io import model
-from omegaconf import OmegaConf
+from hydra import initialize_config_dir, compose
 from pathlib import Path
 import functools
 import mujoco
 from mujoco import mjx
 import mujoco.viewer
-import arcdrone
 from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
 
 
@@ -35,9 +35,8 @@ def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
 
 
 # ========== Configuration ==========
-# Get project root from arcdrone package installation location
-_arcdrone_pkg = Path(arcdrone.__file__).resolve().parent
-_project_root = _arcdrone_pkg.parent.parent  # arcdrone -> src -> project_root
+CFG_DIR = Path(__file__).resolve().parent.parent.parent / "cfg"
+_project_root = CFG_DIR.parent.parent.parent.parent
 MUJOCO_PATH = str(_project_root / "assets" / "skydio_x2" / "scene.xml")
 CHECKPOINT_PATH = find_latest_checkpoint(str(_project_root / "outputs"))
 print(f"Latest checkpoint found: {CHECKPOINT_PATH}")
@@ -61,15 +60,10 @@ def evaluate(
     """
     
     # ====== Load Config ======
-    scripts_dir = Path(__file__).resolve().parent
-    rl_dir = scripts_dir.parent
-    yaml_file = rl_dir / 'cfg' / 'task' / f'{task_name}.yaml'
-    cfg = OmegaConf.load(yaml_file)
-
-    
+    initialize_config_dir(config_dir=str(CFG_DIR), job_name="evaluate", version_base=None)
+    cfg = compose(config_name="config", overrides=[f"task={task_name}"])
     cfg_env = cfg.env
     cfg_train = cfg.train
-    cfg_env.eval_mode = True
     
     print("=" * 60)
     print("ARCDrone Velocity Controller - Evaluation")
@@ -91,7 +85,7 @@ def evaluate(
     if task_name not in ENV_CLASSES:
         raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
     env_class = ENV_CLASSES[task_name]
-    env = env_class(cfg=cfg.env)
+    env = env_class(cfg=cfg_env)
     print(f"env '{task_name}' instantiated successfully")      
 
     
@@ -111,7 +105,7 @@ def evaluate(
         "state": state.obs["state"].shape[0],
         "privileged_state": state.obs["privileged_state"].shape[0]
     }
-    action_size = env.sys.nu
+    action_size = env._mj_model.nu
     network_factory = functools.partial(
         ppo_networks.make_ppo_networks,
         policy_hidden_layer_sizes=cfg_train.policy_hidden_layers,
@@ -167,7 +161,7 @@ def evaluate(
         state = jit_reset(reset_key)
 
         # Reset viewer state
-        mjx.get_data_into(d, m, state.pipeline_state)
+        mjx.get_data_into(d, m, state.data)
         
         for step in range(max_steps):
             rng, action_key = jax.random.split(rng)
@@ -179,7 +173,7 @@ def evaluate(
             state = jit_step(state, action)
             
             # Sync viewer
-            mjx.get_data_into(d, m, state.pipeline_state)
+            mjx.get_data_into(d, m, state.data)
             viewer.sync()
             
             if state.done:
@@ -206,7 +200,7 @@ def main():
                         help='Number of episodes to evaluate')
     parser.add_argument('--steps', type=int, default=200,
                         help='Maximum steps per episode')
-    parser.add_argument('--task', type=str, default='velocity', choices=['hover', 'landing', 'velocity'],
+    parser.add_argument('--task', type=str, default='hover', choices=['hover', 'landing', 'velocity'],
                         help='Task/environment to evaluate (hover, landing, velocity)')
     args = parser.parse_args()
     evaluate(

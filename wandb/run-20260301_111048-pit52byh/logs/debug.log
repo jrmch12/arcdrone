@@ -1,0 +1,21 @@
+2026-03-01 11:10:48,919 INFO    MainThread:29398 [wandb_setup.py:_flush():81] Current SDK version is 0.24.2
+2026-03-01 11:10:48,919 INFO    MainThread:29398 [wandb_setup.py:_flush():81] Configure stats pid to 29398
+2026-03-01 11:10:48,919 INFO    MainThread:29398 [wandb_setup.py:_flush():81] Loading settings from environment variables
+2026-03-01 11:10:48,920 INFO    MainThread:29398 [wandb_init.py:setup_run_log_directory():717] Logging user logs to /home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone/wandb/run-20260301_111048-pit52byh/logs/debug.log
+2026-03-01 11:10:48,920 INFO    MainThread:29398 [wandb_init.py:setup_run_log_directory():718] Logging internal logs to /home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone/wandb/run-20260301_111048-pit52byh/logs/debug-internal.log
+2026-03-01 11:10:48,920 INFO    MainThread:29398 [wandb_init.py:init():844] calling init triggers
+2026-03-01 11:10:48,920 INFO    MainThread:29398 [wandb_init.py:init():849] wandb.init called with sweep_config: {}
+config: {'env': {'hola': 123, 'xml_path_rel': 'assets/skydio_x2/scene.xml', 'impl': 'jax', 'sim_dt': 0.004, 'ctrl_dt': 0.02, 'action_repeat': 1, 'nconmax': 0, 'njmax': 2, 'vision': False, 'vision_config': {'gpu_id': 0, 'render_batch_size': 1, 'render_width': 64, 'render_height': 64, 'enabled_geom_groups': [0], 'use_rasterizer': False, 'history': 3}, 'buffer_size': 5, 'max_episode_steps': 200, 'success_threshold': 0.02, 'success_steps_required': 10, 'distance_weight': 1, 'distance_scale': 0.3, 'overshoot_penalty': 5, 'oscillation_penalty': 2, 'action_chattering_weight': 0.001, 'action_penalty_weight': 0.0001, 'time_penalty': 0.01, 'success_bonus': 50.0, 'ground_penalty_weight': 10.0, 'ground_threshold_event': 0.15, 'ground_threshold_penalty': 0.5, 'linacc_noise': 0.02, 'quat_noise': 0.001, 'angvel_noise': 0.01, 'linvel_noise': 0.01}, 'task_name': 'hover', 'train': {'num_timesteps': 6000000, 'num_evals': 5, 'reward_scaling': 0.1, 'episode_length': 200, 'normalize_observations': True, 'action_repeat': 1, 'unroll_length': 5, 'num_minibatches': 4, 'num_updates_per_batch': 4, 'log_training_metrics': False, 'discounting': 0.97, 'learning_rate': 0.0003, 'entropy_cost': 0.001, 'num_envs': 1024, 'batch_size': 1024, 'seed': 0, 'restore_params_path': None, 'restore_value_fn': True, 'frompreviouscheckpoint': 0, 'use_sitt': False, 'policy_hidden_layers': [512, 512, 256, 128], 'value_hidden_layers': [512, 512, 256, 128], 'policy_obs_key': 'state', 'value_obs_key': 'privileged_state', 'use_wandb': True, 'wandb_project': 'brax-training', 'wandb_run_name': 'arcdrone_hover_ppo_run'}, 'debug_cpu': False, '_wandb': {}}
+2026-03-01 11:10:48,920 INFO    MainThread:29398 [wandb_init.py:init():892] starting backend
+2026-03-01 11:10:49,200 INFO    MainThread:29398 [wandb_init.py:init():895] sending inform_init request
+2026-03-01 11:10:49,211 INFO    MainThread:29398 [wandb_init.py:init():903] backend started and connected
+2026-03-01 11:10:49,215 INFO    MainThread:29398 [wandb_init.py:init():973] updated telemetry
+2026-03-01 11:10:49,229 INFO    MainThread:29398 [wandb_init.py:init():997] communicating run to backend with 90.0 second timeout
+2026-03-01 11:10:50,656 INFO    MainThread:29398 [wandb_init.py:init():1042] starting run threads in backend
+2026-03-01 11:10:50,790 INFO    MainThread:29398 [wandb_run.py:_console_start():2529] atexit reg
+2026-03-01 11:10:50,790 INFO    MainThread:29398 [wandb_run.py:_redirect():2377] redirect: wrap_raw
+2026-03-01 11:10:50,790 INFO    MainThread:29398 [wandb_run.py:_redirect():2446] Wrapping output streams.
+2026-03-01 11:10:50,790 INFO    MainThread:29398 [wandb_run.py:_redirect():2469] Redirects installed.
+2026-03-01 11:10:50,793 INFO    MainThread:29398 [wandb_init.py:init():1082] run started, returning control to user process
+2026-03-01 11:16:42,763 INFO    wandb-AsyncioManager-main:29398 [service_client.py:_forward_responses():94] Reached EOF.
+2026-03-01 11:16:42,763 INFO    wandb-AsyncioManager-main:29398 [mailbox.py:close():154] Closing mailbox, abandoning 1 handles.

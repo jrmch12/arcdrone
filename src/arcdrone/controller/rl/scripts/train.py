@@ -16,30 +16,11 @@ from hydra.utils import to_absolute_path
 from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
+from mujoco_playground import wrapper
+
 
 @hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
-    # =========== Handle auto-restore from previous checkpoint ===========
-    from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))
-    restore_path = getattr(cfg.train, 'restore_params_path', None)
-    # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
-    if from_prev and (not restore_path or restore_path == ""):
-        outputs_path = Path("outputs")
-        # Find all trained_model.pkl files recursively
-        pkl_files = list(outputs_path.rglob("trained_model.pkl"))
-        if pkl_files:
-            # Sort by modification time, most recent last
-            pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
-            if len(pkl_files) >= from_prev:
-                chosen_pkl = pkl_files[-from_prev]
-                cfg.train.restore_params_path = str(chosen_pkl)
-                cfg.train.restore_value_fn = True
-                print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
-            else:
-                print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
-        else:
-            print(f"[Auto-restore] No trained_model.pkl files found in outputs/")
-
     # =========== Handle CPU debugging mode ===========
     if cfg.get('debug_cpu', False):
         print("DEBUG: Running in CPU mode")
@@ -75,19 +56,15 @@ def main(cfg: DictConfig):
     env = env_class(cfg=cfg.env)
 
     # Wrap environment for Brax training (vectorization + vision support)
-    try:
-        from mujoco_playground import wrapper
-    except Exception:
-        wrapper = None
-
-    if wrapper is not None:
-        env = wrapper.wrap_for_brax_training(
-            env,
-            vision=bool(env_cfg.get('vision', False)),
-            num_vision_envs=int(cfg.train.get('num_envs', env_cfg.get('numEnvs', 1))),
-            action_repeat=int(cfg.train.get('action_repeat', 1)),
-            episode_length=int(cfg.train.get('episode_length', env_cfg.get('max_episode_steps', 200))),
-        )
+    # NOTE: We use mujoco_playground's wrapper AND set wrap_env=False in ppo.train
+    # to avoid double-wrapping (which causes "invalid PRNG key data: ndim=0" error)
+    env = wrapper.wrap_for_brax_training(
+        env,
+        vision=env_cfg.get('vision', False),
+        num_vision_envs=cfg.train.num_envs,
+        action_repeat=cfg.train.action_repeat,
+        episode_length=cfg.train.episode_length,
+    )
 
     print(f"env '{task_name}' instantiated successfully")
 
@@ -125,7 +102,27 @@ def main(cfg: DictConfig):
             value_obs_key=cfg.value_obs_key,
         )
 
-    # Handle model restoration
+    # =========== Handle auto-restore from previous checkpoint ===========
+    from_prev = int(getattr(cfg, 'frompreviouscheckpoint', 0))
+    restore_path = getattr(cfg, 'restore_params_path', None)
+    # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
+    if from_prev and (not restore_path or restore_path == ""):
+        outputs_path = Path("outputs")
+        # Find all trained_model.pkl files recursively
+        pkl_files = list(outputs_path.rglob("trained_model.pkl"))
+        if pkl_files:
+            # Sort by modification time, most recent last
+            pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
+            if len(pkl_files) >= from_prev:
+                chosen_pkl = pkl_files[-from_prev]
+                cfg.restore_params_path = str(chosen_pkl)
+                cfg.restore_value_fn = True
+                print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
+            else:
+                print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
+        else:
+            print(f"[Auto-restore] No trained_model.pkl files found in outputs/")
+
     restore_params = None
     restore_path = getattr(cfg, 'restore_params_path', None)
     if restore_path:
@@ -133,13 +130,17 @@ def main(cfg: DictConfig):
         restore_params = model.load_params(restore_path)
         print("Parameters loaded successfully!")
 
+
+
     train_fn = functools.partial(
         ppo.train, num_timesteps=cfg.num_timesteps, num_evals=cfg.num_evals, reward_scaling=cfg.reward_scaling,
         episode_length=cfg.episode_length, normalize_observations=cfg.normalize_observations, action_repeat=cfg.action_repeat,
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,)
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,
+        wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
+    )
 
     # =========== Define custom progress function ===========
 

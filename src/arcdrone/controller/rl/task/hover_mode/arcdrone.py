@@ -50,6 +50,7 @@ class ARCDroneRL_Hover(mjx_env.MjxEnv):
         self._mj_model.opt.solver = mujoco.mjtSolver.mjSOL_CG
         self._mj_model.opt.iterations = int(self.cfg.get('mj_iterations', 6))
         self._mj_model.opt.ls_iterations = int(self.cfg.get('mj_ls_iterations', 6))
+        self._mj_model.opt.timestep = self.sim_dt
         # Create mjx model for fast simulation
         self._mjx_model = mjx.put_model(self._mj_model, impl=self._config.impl)
 
@@ -232,3 +233,20 @@ class ARCDroneRL_Hover(mjx_env.MjxEnv):
         action_normalized = jp.array(action_normalized)
         action_normalized = jp.clip(action_normalized, -1.0, 1.0)
         return (action_normalized + 1.0) / 2.0 * (self.ctrl_max - self.ctrl_min) + self.ctrl_min
+    
+
+    @property
+    def xml_path(self) -> str:
+        return self._xml_path
+
+    @property
+    def action_size(self) -> int:
+        return self.mjx_model.nu
+
+    @property
+    def mj_model(self) -> mujoco.MjModel:
+        return self._mj_model
+
+    @property
+    def mjx_model(self) -> mjx.Model:
+        return self._mjx_model

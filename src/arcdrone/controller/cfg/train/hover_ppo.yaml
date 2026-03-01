@@ -1,0 +1,28 @@
+# @package _global_
+
+
+# ^^^
+# |||   Tell Hydra to place everything in this YAML file at the root 
+#       of the config instead of under a nested key:
+
+
+train:
+
+  use_sitt: false
+
+  # Network Architecture
+  policy_hidden_layers: [512, 512, 256, 128]
+  value_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "state"
+  value_obs_key: "privileged_state"
+
+  
+  # WandB Configuration
+  use_wandb: true
+  wandb_project: "brax-training"
+  wandb_run_name: "arcdrone_hover_ppo_run"
+
+defaults:
+
+  - default_ppo
+
