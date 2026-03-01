@@ -1,0 +1,46 @@
+{
+  "os": "Linux-6.8.0-101-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.10.0",
+  "startedAt": "2026-03-01T16:22:19.673938Z",
+  "args": [
+    "task=hover",
+    "train.num_envs=512",
+    "train.unroll_length=32",
+    "train.batch_size=512",
+    "train.num_minibatches=8",
+    "train.num_updates_per_batch=16"
+  ],
+  "program": "/home/jrmch12/miniconda3/envs/h3f/bin/arcdrone-train",
+  "git": {
+    "remote": "https://github.com/jrmch12/borrador_braxenvs.git",
+    "commit": "fd54d9d6eb24e7684f9f6149a5993461de54f5c6"
+  },
+  "email": "jraimundo.mares.12@gmail.com",
+  "root": "/home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone",
+  "host": "jrmch12",
+  "executable": "/home/jrmch12/miniconda3/envs/h3f/bin/python3.10",
+  "cpu_count": 6,
+  "cpu_count_logical": 12,
+  "gpu": "NVIDIA GeForce GTX 1050 Ti",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "250375106560",
+      "used": "106262904832"
+    }
+  },
+  "memory": {
+    "total": "16454492160"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce GTX 1050 Ti",
+      "memoryTotal": "4294967296",
+      "cudaCores": 768,
+      "architecture": "Pascal",
+      "uuid": "GPU-68058ce9-21ec-e3a2-e906-5315549efaf3"
+    }
+  ],
+  "cudaVersion": "13.0",
+  "writerId": "fjbf7tdo159fm1wyxinjv75g2ftd4mlb"
+}

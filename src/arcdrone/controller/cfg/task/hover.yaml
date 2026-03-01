@@ -1,7 +1,18 @@
 # @package _global_
+
+
+# ^^^
+# |||   Tell Hydra to place everything in this YAML file at the root 
+#       of the config instead of under a nested key:
+
+
 task_name: hover
 # name: arcdrone
 # file_path: task/arcdrone.py
+
+
+defaults:
+  - default_task
 
 
 env:
@@ -32,7 +43,7 @@ env:
   buffer_size: 5
 
   # Episode control
-  max_episode_steps: ${train.episode_length}
+  max_episode_steps: ${..train.episode_length}
   success_threshold: 0.02
   success_steps_required: 10
   

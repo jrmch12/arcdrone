@@ -1,0 +1,8 @@
+- train.train.num_envs=2
+- train.train.unroll_length=4
+- train.train.batch_size=128
+- train.train.num_minibatches=2
+- train.train.num_updates_per_batch=2
+- train.train.num_timesteps=100
+- train.train.num_evals=2
+- train.train.use_wandb=false

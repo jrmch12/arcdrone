@@ -1,0 +1,7 @@
+- task=hover
+- train.train.num_envs=256
+- train.train.unroll_length=16
+- train.train.batch_size=2048
+- train.train.num_minibatches=2
+- train.train.num_updates_per_batch=4
+- train.train.num_timesteps=15000000
