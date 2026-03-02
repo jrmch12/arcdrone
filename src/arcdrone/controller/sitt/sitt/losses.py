@@ -33,9 +33,7 @@ class PPONetworkParams:
 
   policy: Params
   value: Params
-  # optional SITT subtrees (named consistently)
-  policy_dec_params: Any = None
-  action_head_params: Any = None
+  # optional SITT subtrees
   student_dec_params: Any = None
   proxy_dec_params: Any = None
 
@@ -205,7 +203,8 @@ def compute_ppo_loss(
   entropy = jnp.mean(parametric_action_distribution.entropy(policy_logits, rng))
   entropy_loss = entropy_cost * -entropy
 
-  total_loss = policy_loss + v_loss + entropy_loss
+  rl_loss = policy_loss + v_loss + entropy_loss
+  total_loss = rl_loss
 
   new_dist = parametric_action_distribution.create_dist(policy_logits)
   if hasattr(new_dist, 'kl_divergence'):
@@ -217,11 +216,11 @@ def compute_ppo_loss(
     kl, policy_dist_mean_std = jnp.array(0.0), jnp.array(0.0)
 
 
-  sitt_align_loss = jnp.array(0.0)
+  rl_align_loss = jnp.array(0.0)
   if use_sitt:
     # teacher features from the policy decoder
     teacher_feat = ppo_network.policy_decoder.apply(
-        normalizer_params, params.policy_dec_params, data.observation
+        normalizer_params, params.policy[0], data.observation
     )
     # projected teacher / proxy features
     proxy_feat = ppo_network.proxy_decoder.apply(
@@ -229,15 +228,17 @@ def compute_ppo_loss(
     )
     # don't propagate gradients into proxy when computing this auxiliary loss
     proxy_feat_detached = jax.lax.stop_gradient(proxy_feat)
-    sitt_align_loss = jnp.mean(jnp.abs(teacher_feat - proxy_feat_detached))
-    total_loss = total_loss + sitt_align_coef * sitt_align_loss
+    rl_align_loss = jnp.mean(jnp.abs(teacher_feat - proxy_feat_detached))
+    rl_align_loss = rl_align_loss * sitt_align_coef
+    total_loss = total_loss + rl_align_loss
 
   return total_loss, {
       'total_loss': total_loss,
+      'rl_loss': rl_loss,
       'policy_loss': policy_loss,
       'v_loss': v_loss,
       'entropy_loss': entropy_loss,
-      'sitt_align_loss': sitt_align_loss,
+      'rl_align_loss': rl_align_loss,
       'kl_mean': kl,
       'policy_dist_mean_std': policy_dist_mean_std,
   }

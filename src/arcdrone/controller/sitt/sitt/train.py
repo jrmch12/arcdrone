@@ -46,7 +46,7 @@ import numpy as np
 import optax
 from .align import align
 
-InferenceParams = Tuple[running_statistics.NestedMeanStd, Params]
+InferenceParams = Any
 Metrics = types.Metrics
 
 _PMAP_AXIS_NAME = 'i'
@@ -61,15 +61,25 @@ class TrainingState:
   params: sitt_losses.PPONetworkParams
   normalizer_params: running_statistics.RunningStatisticsState
   env_steps: types.UInt64
-  # if use_sitt: student/proxy decoders and align optimizer state
-  student_dec_params: Any = None
-  proxy_dec_params: Any = None
+  # if use_sitt: align optimizer state
   align_opt_state: Any = None
 
 # endregion =====================================================
 
 def _unpmap(v):
-  return jax.tree_util.tree_map(lambda x: x[0], v)
+  return jax.tree_util.tree_map(
+      lambda x: x[0] if x is not None else None, v
+  )
+
+
+def _pack_inference_params(training_state: TrainingState) -> InferenceParams:
+  return (
+      training_state.normalizer_params,
+      training_state.params.policy,
+      training_state.params.value,
+      training_state.params.student_dec_params,
+      training_state.params.proxy_dec_params,
+  )
 
 
 def _strip_weak_type(tree):
@@ -241,8 +251,8 @@ def train(
         Union[str, ppo_optimizer.LRSchedule]
     ] = None,
     network_factory: types.NetworkFactory[
-        sitt_networks.PPONetworks
-    ] = sitt_networks.make_ppo_networks,
+        sitt_networks.SITTNetworks
+    ] = sitt_networks.make_sitt_networks,
     seed: int = 0,
     use_pmap_on_reset: bool = True,
     # eval
@@ -264,9 +274,9 @@ def train(
     run_evals: bool = True,
     use_sitt: bool = False,
     # SITT alignment params
+    align_update_every_env_steps: int = 1,
+    align_batch_env_steps: int = 1,
     align_updates_per_trigger: int = 1,
-    align_freq: int = 1,
-    align_batch_ratio_per_device: float = 0.1,
     # SITT reward shaping coefficient for proxy KL term
     proxy_kl_coef: float = 1.9,
     # SITT auxiliary alignment loss coefficient (matches losses.compute_ppo_loss)
@@ -349,7 +359,9 @@ def train(
     restore_checkpoint_path: the path used to restore previous model params
     restore_params: raw network parameters to restore the TrainingState from.
       These override `restore_checkpoint_path`. These paramaters can be obtained
-      from the return values of ppo.train().
+      from previous train() return values. Supports both legacy 3-item format
+      `(normalizer, policy, value)` and extended SITT format
+      `(normalizer, policy, value, student_dec, proxy_dec)`.
     restore_value_fn: whether to restore the value function from the checkpoint
       or use a random initialization
     run_evals: if True, use the evaluator num_eval times to collect distinct
@@ -357,9 +369,17 @@ def train(
       progress_fn is then expected to use training_metrics.
     use_pmap_on_reset: default to True. if True, use pmap instead of vmap for
       env.reset across devices.
+    align_update_every_env_steps: env-step interval (global, in
+      `training_state.env_steps` units) at which SITT alignment is triggered.
+    align_batch_env_steps: number of env-steps (global) to sample for each
+      alignment trigger.
+    align_updates_per_trigger: number of optimizer updates performed each time
+      alignment is triggered.
 
   Returns:
-    Tuple of (make_policy function, network params, metrics)
+    Tuple of (make_policy function, network params, metrics), where network
+    params are saved as
+    `(normalizer, policy, value, student_dec, proxy_dec)`.
   """
   assert batch_size * num_minibatches % num_envs == 0
   _validate_madrona_args(
@@ -389,10 +409,7 @@ def train(
   env_step_per_training_step = (
       batch_size * unroll_length * num_minibatches * action_repeat
   )
-  rollout_env_steps_per_device = max(env_step_per_training_step // device_count, 1)
-  align_batch_size_per_device = max(
-      int(rollout_env_steps_per_device * align_batch_ratio_per_device), 1
-  )
+
   num_evals_after_init = max(num_evals - 1, 1)
   # The number of training_step calls per training_epoch call.
   # equals to ceil(num_timesteps / (num_evals * env_step_per_training_step *
@@ -406,6 +423,19 @@ def train(
       )
   ).astype(int)
 
+  # SITT runtime constants
+  if align_batch_env_steps > env_step_per_training_step:
+    raise ValueError(
+        'align_batch_env_steps must be <= env_step_per_training_step = batch_size * unroll_length * num_minibatches * action_repeat '
+        f'({env_step_per_training_step}), got {align_batch_env_steps}'
+    )
+  align_batch_size_per_device = max(
+      int(np.ceil(align_batch_env_steps / device_count)), 1
+  )
+  # Cast to uint32 so comparisons stay in plain JAX types (UInt64.lo is uint32).
+  _align_interval_u32 = jnp.uint32(align_update_every_env_steps)
+
+
   key = jax.random.PRNGKey(seed)
   global_key, local_key = jax.random.split(key)
   del key
@@ -413,7 +443,7 @@ def train(
   local_key, key_env, eval_key = jax.random.split(local_key, 3)
   # key_networks should be global, so that networks are initialized the same
   # way for different processes.
-  key_policy, key_value = jax.random.split(global_key)
+  key_policy, key_value, key_sitt = jax.random.split(global_key, 3)
   del global_key
 
   assert num_envs % device_count == 0
@@ -666,6 +696,8 @@ def train(
     )
     assert data.discount.shape[1:] == (unroll_length,)
 
+    reward_align = jnp.array(0.0)
+
     if use_sitt:
       # teacher logits from the policy network (normalizer, policy params)
       teacher_logits = sitt_network.policy_network.apply(
@@ -674,10 +706,10 @@ def train(
 
       # proxy: compute proxy features via proxy decoder then convert to logits
       proxy_feats = sitt_network.proxy_decoder.apply(
-        training_state.normalizer_params, training_state.proxy_dec_params, data.observation
+        training_state.normalizer_params, training_state.params.proxy_dec_params, data.observation
       )
       proxy_logits = sitt_network.action_head.apply(
-        training_state.normalizer_params, training_state.params.action_head_params, proxy_feats
+        training_state.normalizer_params, training_state.params.policy[1], proxy_feats
       )
 
       teacher_probs = jax.nn.softmax(teacher_logits)
@@ -691,7 +723,15 @@ def train(
         axis=-1,
       )
 
-      data = data.replace(reward=data.reward + proxy_kl_coef * kl)
+      reward_align = jnp.mean(proxy_kl_coef * kl)
+      data = types.Transition(
+          observation=data.observation,
+          action=data.action,
+          reward=data.reward + proxy_kl_coef * kl,
+          discount=data.discount,
+          next_observation=data.next_observation,
+          extras=data.extras,
+      )
 
     if bootstrap_on_timeout:  # bootstrap reward on timeout
       time_out = data.extras['state_extras']['time_out']
@@ -732,34 +772,14 @@ def train(
           pmap_axis_name=_PMAP_AXIS_NAME,
       )
 
-    # ============================================================================
-    # STUDENT-IN-THE-TEACHER (SITT) ALIGNMENT: Synchronize student with teacher
-    # ============================================================================
-    #
-    # OPTIMIZATION UPDATE RATIO:
-    #   - Teacher updates per alignment trigger: align_freq * num_updates_per_batch
-    #   - Student updates per alignment trigger: align_updates_per_trigger
-    #   - Ratio: (align_freq * num_updates_per_batch) / align_updates_per_trigger
-    #
-    # ALIGN BATCH RATIO:
-    #   - rollout_env_steps_per_device = env_step_per_training_step / device_count
-    #   - align_batch_size_per_device =
-    #       align_batch_ratio_per_device * rollout_env_steps_per_device
-    #
-    # ============================================================================
+    align_loss = jnp.array(0.0)
     
     if use_sitt:
-      # Compute teacher training step counts: before and after this training_step
-      prev_teacher_training_steps = training_state.env_steps // env_step_per_training_step
-      new_env_steps = training_state.env_steps + env_step_per_training_step
-      new_teacher_training_steps = new_env_steps // env_step_per_training_step
-
-      # Trigger alignment when teacher reaches a multiple of align_freq steps
-      # (and this is a fresh step, not initialization)
-      do_align = (
-          (new_teacher_training_steps % align_freq == 0)
-          & (new_teacher_training_steps > prev_teacher_training_steps)
-      )
+      # Trigger alignment based on actual env steps.
+      # UInt64.lo is a plain JAX uint32 — safe for runs < 4B env steps.
+      prev_lo = training_state.env_steps.lo
+      new_lo = prev_lo + jnp.uint32(env_step_per_training_step)
+      do_align = (new_lo // _align_interval_u32) > (prev_lo // _align_interval_u32)
       
       obs = data.observation
 
@@ -774,34 +794,36 @@ def train(
         obs_batch = jax.tree_util.tree_map(lambda x: x[idx], obs)
 
         (policy_dec, student_dec, proxy_dec, action_head, norm_params) = (
-            training_state.params.policy_dec_params,
-            training_state.student_dec_params,
-            training_state.proxy_dec_params,
-            training_state.params.action_head_params,
-            training_state.normalizer_params,
+            params.policy[0],
+            params.student_dec_params,
+            params.proxy_dec_params,
+            params.policy[1],
+            normalizer_params,
         )
 
         (
             (_, student_dec, proxy_dec, _, _),
             align_opt_state,
+          align_loss,
         ) = align_fn(
             (policy_dec, student_dec, proxy_dec, action_head, norm_params),
             training_state.align_opt_state,
             obs_batch,
             obs_batch,
         )
-        return student_dec, proxy_dec, align_opt_state, next_key
+        return student_dec, proxy_dec, align_opt_state, next_key, align_loss
 
       def _skip_align(_):
         """Skip alignment: maintain current student/proxy parameters."""
         return (
-            training_state.student_dec_params,
-            training_state.proxy_dec_params,
+            params.student_dec_params,
+            params.proxy_dec_params,
             training_state.align_opt_state,
             new_key,
+            jnp.array(0.0),
         )
 
-      student_dec_params, proxy_dec_params, align_opt_state, new_key = jax.lax.cond(
+      student_dec_params, proxy_dec_params, align_opt_state, new_key, align_loss = jax.lax.cond(
           do_align,
           _align_step,
           _skip_align,
@@ -812,6 +834,11 @@ def train(
           student_dec_params=student_dec_params,
           proxy_dec_params=proxy_dec_params,
       )
+    metrics = {
+      **metrics,
+      'align_loss': align_loss,
+      'reward_align': reward_align,
+    }
     # ============================================================================
 
 
@@ -820,8 +847,6 @@ def train(
       params=params,
       normalizer_params=normalizer_params,
       env_steps=training_state.env_steps + env_step_per_training_step,
-      student_dec_params=student_dec_params if use_sitt else None,
-      proxy_dec_params=proxy_dec_params if use_sitt else None,
       align_opt_state=align_opt_state if use_sitt else None,
     )
 
@@ -890,29 +915,21 @@ def train(
   value_params = sitt_network.value_network.init(key_value)
 
   if use_sitt:
-    key_student, key_proj = jax.random.split(key)
+    key_student, key_proj = jax.random.split(key_sitt)
 
     # student and proxy decoder params (FeedForwardNetwork.init wraps dummy obs)
     student_dec_params = sitt_network.student_decoder.init(key_student)
     proxy_dec_params = sitt_network.proxy_decoder.init(key_proj)
 
     align_opt_state = align_optimizer.init((student_dec_params, proxy_dec_params))
-
-    # convenience named references to decoder / head coming from policy init
-    policy_dec_params = policy_params[0]
-    action_head_params = policy_params[1]
   else:
     student_dec_params = None
     proxy_dec_params = None
     align_opt_state = None
-    policy_dec_params = None
-    action_head_params = None
 
   init_params = sitt_losses.PPONetworkParams(
       policy=policy_params,
       value=value_params,
-      policy_dec_params=policy_dec_params,
-      action_head_params=action_head_params,
       student_dec_params=student_dec_params if use_sitt else None,
       proxy_dec_params=proxy_dec_params if use_sitt else None,
   )
@@ -930,30 +947,52 @@ def train(
           mode=normalize_observations_mode,
       ),
       env_steps=types.UInt64(hi=0, lo=0),
-
-        # Student fields ---> if use_sitt is false these are none
-      student_dec_params=student_dec_params,
-      proxy_dec_params=proxy_dec_params,
-        align_opt_state=align_opt_state,
+      align_opt_state=align_opt_state,
   )
 
   if restore_checkpoint_path is not None:
     params = checkpoint.load(restore_checkpoint_path)
     value_params = params[2] if restore_value_fn else init_params.value
+    student_dec_params = (
+      params[3]
+      if use_sitt and len(params) > 3
+      else training_state.params.student_dec_params
+    )
+    proxy_dec_params = (
+      params[4]
+      if use_sitt and len(params) > 4
+      else training_state.params.proxy_dec_params
+    )
     training_state = training_state.replace(
         normalizer_params=params[0],
         params=training_state.params.replace(
-            policy=params[1], value=value_params
+        policy=params[1],
+        value=value_params,
+        student_dec_params=student_dec_params,
+        proxy_dec_params=proxy_dec_params,
         ),
     )
 
   if restore_params is not None:
     logging.info('Restoring TrainingState from `restore_params`.')
     value_params = restore_params[2] if restore_value_fn else init_params.value
+    student_dec_params = (
+      restore_params[3]
+      if use_sitt and len(restore_params) > 3
+      else training_state.params.student_dec_params
+    )
+    proxy_dec_params = (
+      restore_params[4]
+      if use_sitt and len(restore_params) > 4
+      else training_state.params.proxy_dec_params
+    )
     training_state = training_state.replace(
         normalizer_params=restore_params[0],
         params=training_state.params.replace(
-            policy=restore_params[1], value=value_params
+        policy=restore_params[1],
+        value=value_params,
+        student_dec_params=student_dec_params,
+        proxy_dec_params=proxy_dec_params,
         ),
     )
 
@@ -963,11 +1002,7 @@ def train(
   if num_timesteps == 0:
     return (
         make_policy,
-        (
-            training_state.normalizer_params,
-            training_state.params.policy,
-            training_state.params.value,
-        ),
+      _pack_inference_params(training_state),
         {},
     )
 
@@ -1003,22 +1038,14 @@ def train(
   metrics = {}
   if process_id == 0 and num_evals > 1 and run_evals:
     metrics = evaluator.run_evaluation(
-        _unpmap((
-            training_state.normalizer_params,
-            training_state.params.policy,
-            training_state.params.value,
-        )),
+      _unpmap(_pack_inference_params(training_state)),
         training_metrics={},
     )
     logging.info(metrics)
     progress_fn(0, metrics)
 
   # Run initial policy_params_fn.
-  params = _unpmap((
-      training_state.normalizer_params,
-      training_state.params.policy,
-      training_state.params.value,
-  ))
+  params = _unpmap(_pack_inference_params(training_state))
   policy_params_fn(current_step, make_policy, params)
 
   # region ========================= MAIN LOOP =========================
@@ -1046,11 +1073,7 @@ def train(
       continue
 
     # Process id == 0.
-    params = _unpmap((
-        training_state.normalizer_params,
-        training_state.params.policy,
-        training_state.params.value,
-    ))
+    params = _unpmap(_pack_inference_params(training_state))
 
     policy_params_fn(current_step, make_policy, params)
 
@@ -1087,11 +1110,7 @@ def train(
   # If there was no mistakes the training_state should still be identical on all
   # devices.
   pmap.assert_is_replicated(training_state)
-  params = _unpmap((
-      training_state.normalizer_params,
-      training_state.params.policy,
-      training_state.params.value,
-  ))
+  params = _unpmap(_pack_inference_params(training_state))
   logging.info('total steps: %s', total_steps)
   pmap.synchronize_hosts()
   return (make_policy, params, metrics)

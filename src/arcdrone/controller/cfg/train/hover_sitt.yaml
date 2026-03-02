@@ -11,9 +11,9 @@ train:
   use_sitt: true
   # HARDCODED: align_optimizer is adam and lr is 1e-4
   # HARDCODED: wrap_env
-  align_updates_per_trigger: 1 # Number of optimization steps to take when triggered
-  align_freq: 1 # opt updates of teacher vs student. E.g align_freq=10 means 10 teacher opt updates per student
-  align_batch_ratio_per_device: 0.1 # Fraction of per-device rollout sampled for each alignment trigger
+  align_update_every_env_steps: 100000 # Trigger alignment every N env-steps (global timer)
+  align_batch_env_steps: 20000 # Env-steps sampled per alignment trigger (global)
+  align_updates_per_trigger: 4 # Number of optimization steps to take when align is triggered
   proxy_kl_coef: 1.9
   sitt_align_coef: 0.01
 
