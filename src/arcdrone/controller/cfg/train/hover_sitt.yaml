@@ -1,12 +1,21 @@
-default:
+# @package _global_
 
-  - default_ppo
+
+# ^^^
+# |||   Tell Hydra to place everything in this YAML file at the root 
+#       of the config instead of under a nested key:
 
 
 train: 
 
   use_sitt: true
-  # align_optimizer is adam and lr is 1e-4, but its hardcoded
+  # HARDCODED: align_optimizer is adam and lr is 1e-4
+  # HARDCODED: wrap_env
+  align_updates_per_trigger: 1 # Number of optimization steps to take when triggered
+  align_freq: 1 # opt updates of teacher vs student. E.g align_freq=10 means 10 teacher opt updates per student
+  align_batch_ratio_per_device: 0.1 # Fraction of per-device rollout sampled for each alignment trigger
+  proxy_kl_coef: 1.9
+  sitt_align_coef: 0.01
 
 
 
@@ -23,5 +32,12 @@ train:
   use_wandb: true
   wandb_project: "brax-training"
   wandb_run_name: "arcdrone_hover_sitt_run"
+
+
+defaults:
+
+  - default_ppo
+
+
 
   

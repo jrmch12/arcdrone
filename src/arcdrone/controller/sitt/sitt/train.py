@@ -264,10 +264,9 @@ def train(
     run_evals: bool = True,
     use_sitt: bool = False,
     # SITT alignment params
-    align_steps_per_trigger: int = 1,
     align_updates_per_trigger: int = 1,
     align_freq: int = 1,
-    align_batch_per_device: int = 1,
+    align_batch_ratio_per_device: float = 0.1,
     # SITT reward shaping coefficient for proxy KL term
     proxy_kl_coef: float = 1.9,
     # SITT auxiliary alignment loss coefficient (matches losses.compute_ppo_loss)
@@ -390,6 +389,10 @@ def train(
   env_step_per_training_step = (
       batch_size * unroll_length * num_minibatches * action_repeat
   )
+  rollout_env_steps_per_device = max(env_step_per_training_step // device_count, 1)
+  align_batch_size_per_device = max(
+      int(rollout_env_steps_per_device * align_batch_ratio_per_device), 1
+  )
   num_evals_after_init = max(num_evals - 1, 1)
   # The number of training_step calls per training_epoch call.
   # equals to ceil(num_timesteps / (num_evals * env_step_per_training_step *
@@ -473,7 +476,6 @@ def train(
   )
   make_policy = sitt_networks.make_inference_fn(
       sitt_network,
-      role="policy",
       compute_value=bootstrap_on_timeout or clipping_epsilon_value is not None,
   )
 
@@ -542,13 +544,13 @@ def train(
       loss_fn, pmap_axis_name=_PMAP_AXIS_NAME, has_aux=True
   )
 
-  align_fn = functools.partial(
-      align,
-      sitt_network=sitt_network,
-      optimizer=align_optimizer,
-      align_steps_per_trigger=align_steps_per_trigger,
-      align_updates_per_trigger=align_updates_per_trigger,
-  )
+  if use_sitt:
+    align_fn = functools.partial(
+        align,
+        sitt_network=sitt_network,
+        optimizer=align_optimizer,
+        align_updates_per_trigger=align_updates_per_trigger,
+    )
 
 # endregion =============================================================
 # region ========================= METRICS SETUP =========================
@@ -730,55 +732,87 @@ def train(
           pmap_axis_name=_PMAP_AXIS_NAME,
       )
 
-    # --------------------------------------------
-    # My logic
-    # --------------------------------------------
+    # ============================================================================
+    # STUDENT-IN-THE-TEACHER (SITT) ALIGNMENT: Synchronize student with teacher
+    # ============================================================================
+    #
+    # OPTIMIZATION UPDATE RATIO:
+    #   - Teacher updates per alignment trigger: align_freq * num_updates_per_batch
+    #   - Student updates per alignment trigger: align_updates_per_trigger
+    #   - Ratio: (align_freq * num_updates_per_batch) / align_updates_per_trigger
+    #
+    # ALIGN BATCH RATIO:
+    #   - rollout_env_steps_per_device = env_step_per_training_step / device_count
+    #   - align_batch_size_per_device =
+    #       align_batch_ratio_per_device * rollout_env_steps_per_device
+    #
+    # ============================================================================
+    
     if use_sitt:
-      prev_updates = training_state.env_steps // env_step_per_training_step
+      # Compute teacher training step counts: before and after this training_step
+      prev_teacher_training_steps = training_state.env_steps // env_step_per_training_step
       new_env_steps = training_state.env_steps + env_step_per_training_step
-      new_updates = new_env_steps // env_step_per_training_step
+      new_teacher_training_steps = new_env_steps // env_step_per_training_step
 
-      do_align = (new_updates % align_freq == 0) & (new_updates > prev_updates)
+      # Trigger alignment when teacher reaches a multiple of align_freq steps
+      # (and this is a fresh step, not initialization)
+      do_align = (
+          (new_teacher_training_steps % align_freq == 0)
+          & (new_teacher_training_steps > prev_teacher_training_steps)
+      )
+      
+      obs = data.observation
 
-      if do_align:
-        # derive an alignment key from `new_key` only when needed
-        key_align, new_key = jax.random.split(new_key, 2)
-        obs = data.observation
+      def _align_step(_):
+        """Perform align_updates_per_trigger gradient updates on student/proxy decoders."""
+        key_align, next_key = jax.random.split(new_key, 2)
+        obs_batch_size = jax.tree_util.tree_leaves(obs)[0].shape[0]
+        sample_size = min(align_batch_size_per_device, obs_batch_size)
         idx = jax.random.choice(
-          key_align, obs.shape[0], (align_batch_per_device,), replace=False
+          key_align, obs_batch_size, (sample_size,), replace=False
         )
+        obs_batch = jax.tree_util.tree_map(lambda x: x[idx], obs)
 
         (policy_dec, student_dec, proxy_dec, action_head, norm_params) = (
-          training_state.params.policy_dec_params,
-          training_state.student_dec_params,
-          training_state.proxy_dec_params,
-          training_state.params.action_head_params,
-          training_state.normalizer_params,
+            training_state.params.policy_dec_params,
+            training_state.student_dec_params,
+            training_state.proxy_dec_params,
+            training_state.params.action_head_params,
+            training_state.normalizer_params,
         )
 
-        (policy_dec, student_dec, proxy_dec, action_head, norm_params), align_opt_state = align_fn(
-          (policy_dec, student_dec, proxy_dec, action_head, norm_params),
-          training_state.align_opt_state,
-          obs[idx],
-          obs[idx],
+        (
+            (_, student_dec, proxy_dec, _, _),
+            align_opt_state,
+        ) = align_fn(
+            (policy_dec, student_dec, proxy_dec, action_head, norm_params),
+            training_state.align_opt_state,
+            obs_batch,
+            obs_batch,
         )
-        student_dec_params = student_dec
-        proxy_dec_params = proxy_dec
-      else:
-        student_dec_params = training_state.student_dec_params
-        proxy_dec_params = training_state.proxy_dec_params
-        align_opt_state = training_state.align_opt_state
+        return student_dec, proxy_dec, align_opt_state, next_key
+
+      def _skip_align(_):
+        """Skip alignment: maintain current student/proxy parameters."""
+        return (
+            training_state.student_dec_params,
+            training_state.proxy_dec_params,
+            training_state.align_opt_state,
+            new_key,
+        )
+
+      student_dec_params, proxy_dec_params, align_opt_state, new_key = jax.lax.cond(
+          do_align,
+          _align_step,
+          _skip_align,
+          operand=None,
+      )
 
       params = params.replace(
           student_dec_params=student_dec_params,
           proxy_dec_params=proxy_dec_params,
       )
-
-  
-
-    # --------------------------------------------
-    # End my logic
-    # --------------------------------------------
+    # ============================================================================
 
 
     new_training_state = TrainingState(

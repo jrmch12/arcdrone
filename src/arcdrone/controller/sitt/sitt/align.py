@@ -19,7 +19,7 @@ def align(
     *,
     sitt_network,
     optimizer,
-    align_steps_per_trigger,
+    align_updates_per_trigger,
 ):
     (
         policy_dec_params,
@@ -81,7 +81,7 @@ def align(
         step,
         (student_dec_params, proxy_dec_params, opt_state),
         None,
-        length=align_steps_per_trigger,
+        length=align_updates_per_trigger,
     )
 
     new_params = (
