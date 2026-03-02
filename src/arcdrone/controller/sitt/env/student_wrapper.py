@@ -1,55 +1,105 @@
-"""
-Purpose:
+from collections.abc import Mapping
+from typing import Any, Callable
 
-when call
+from jax import numpy as jp
 
-env = StudentWrapper(teacher_env, student_obs_fn)
-
-It generate a env with modified step and reset function!
-I will bring student_obs_fn an script that its use in a real RL env. Because I will train the teacher with RL. 
-Then teach the student with IL or distillation and finally do finetuning of the student RL env. So there exist a student RL env!
-
-The goal is to get the student observations. This could be rendered images, so with get_student_obs flag we can decide if we want to compute the student obs or not.
-But observations allways have the same shape nonetheless. Therefore we need a boolean valid_student_obs to know if the student obs are valid or not
+from arcdrone.controller.rl.task.vision_mode.obs import _get_obs_impl as _default_student_obs_fn
 
 
-Pseudo code:
+class StudentWrapper:
+    """Wraps a teacher env and appends student observations.
 
-dataclass:
-StateforStudent(state):
-    obs_student:
-    info_student: (like obs_history or like get_student_obs flag. Also valid_student_obs)
+    The wrapper keeps student-only recurrent buffers in ``state.info[student_info_key]``
+    so teacher buffers are never modified by student observation computation.
+    """
 
-StudentWrapper(inherit from teacher_env):
+    def __init__(
+        self,
+        teacher_env,
+        student_obs_fn: Callable[[Any, Any, jp.ndarray], Any] = _default_student_obs_fn,
+        *,
+        get_student_obs: bool = True,
+        student_obs_key: str = "state",
+        student_obs_name: str = "student_state",
+        student_info_key: str = "student_info",
+        valid_student_obs_key: str = "valid_student_obs",
+    ):
+        self.teacher_env = teacher_env
+        self.student_obs_fn = student_obs_fn
+        self.get_student_obs = get_student_obs
+        self.student_obs_key = student_obs_key
+        self.student_obs_name = student_obs_name
+        self.student_info_key = student_info_key
+        self.valid_student_obs_key = valid_student_obs_key
 
+    def __getattr__(self, name):
+        return getattr(self.teacher_env, name)
 
-    def __init__(...):
-        # initialize the parent
-        # inite some constants needed for this script logic
+    def _extract_student_obs(self, obs: Any):
+        if isinstance(obs, Mapping):
+            if self.student_obs_key not in obs:
+                raise KeyError(
+                    f"student_obs_key='{self.student_obs_key}' not found in student obs keys: {list(obs.keys())}"
+                )
+            return obs[self.student_obs_key]
+        return obs
 
-    def step(...)-> StateforStudent:
-        state = super().step(...)
-        if get_student_obs:
-            state_broken = student_obs_fn(state) # This update 
-            state = state._replace(obs_student=state_broken.obs_student, info_student=state_broken.info_student)
-            info_student = get_info_student(state)
-            return state
+    def _compute_student_obs(self, state, action):
+        student_info = state.info.get(self.student_info_key, state.info)
+        student_state_in = state.replace(info=student_info)
+        student_state_out = self.student_obs_fn(self.teacher_env, student_state_in, action)
+        student_obs = self._extract_student_obs(student_state_out.obs)
+        return student_obs, student_state_out.info
 
-    def reset(...)-> StateforStudent:
-        state = super().reset(...)
-        if get_student_obs:
-            reset of this variables: obs_student, info_student 
-            
+    def _attach_student_fields(self, state, action, *, compute_student_obs: bool):
+        if not isinstance(state.obs, Mapping):
+            raise TypeError("StudentWrapper expects env observations to be a mapping/dict.")
 
+        obs_out = dict(state.obs)
+        info_out = dict(state.info)
 
+        if compute_student_obs:
+            student_obs, student_info = self._compute_student_obs(state, action)
+            valid_student_obs = jp.array(True)
+        else:
+            if self.student_obs_name in obs_out:
+                student_obs = jp.zeros_like(obs_out[self.student_obs_name])
+            else:
+                student_obs = jp.zeros_like(obs_out[self.student_obs_key])
+            student_info = info_out.get(self.student_info_key, info_out)
+            valid_student_obs = jp.array(False)
 
+        obs_out[self.student_obs_name] = student_obs
+        info_out[self.student_info_key] = student_info
+        info_out[self.valid_student_obs_key] = valid_student_obs
 
+        return state.replace(obs=obs_out, info=info_out)
 
+    def reset(self, rng):
+        state = self.teacher_env.reset(rng)
 
+        zero_action = jp.zeros(self.teacher_env.action_size)
+        student_obs, student_info = self._compute_student_obs(state, zero_action)
 
+        obs_out = dict(state.obs)
+        info_out = dict(state.info)
 
+        if self.get_student_obs:
+            obs_out[self.student_obs_name] = student_obs
+            valid_student_obs = jp.array(True)
+        else:
+            obs_out[self.student_obs_name] = jp.zeros_like(student_obs)
+            valid_student_obs = jp.array(False)
 
+        info_out[self.student_info_key] = student_info
+        info_out[self.valid_student_obs_key] = valid_student_obs
 
+        return state.replace(obs=obs_out, info=info_out)
 
-
-"""
+    def step(self, state, action):
+        state = self.teacher_env.step(state, action)
+        return self._attach_student_fields(
+            state,
+            action,
+            compute_student_obs=self.get_student_obs,
+        )
