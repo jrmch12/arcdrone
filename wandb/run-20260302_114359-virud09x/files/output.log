@@ -1,0 +1,71 @@
+[2026-03-02 11:44:02,001][absl][INFO] - Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+Exception ignored in: <function WeakSet.__init__.<locals>._remove at 0x7a272059e7a0>
+Traceback (most recent call last):
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/_weakrefset.py", line 39, in _remove
+    def _remove(item, selfref=ref(self)):
+
+KeyboardInterrupt:
+Traceback (most recent call last):
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/sitt/scripts/train.py", line 229, in <module>
+    main()
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/main.py", line 94, in decorated_main
+    _run_hydra(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 394, in _run_hydra
+    _run_app(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 457, in _run_app
+    run_and_report(
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 220, in run_and_report
+    return func()
+           ^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/utils.py", line 458, in <lambda>
+    lambda: hydra.run(
+            ^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/_internal/hydra.py", line 119, in run
+    ret = run_job(
+          ^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/hydra/core/utils.py", line 186, in run_job
+    ret.return_value = task_function(task_cfg)
+                       ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/sitt/scripts/train.py", line 198, in main
+    make_inference_fn, params, metrics = train_fn(environment=env, progress_fn=progress) # this loop call our custom progress function
+                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/sitt/sitt/train.py", line 1040, in train
+    metrics = evaluator.run_evaluation(
+              ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/brax/training/acting.py", line 146, in run_evaluation
+    eval_state = self._generate_eval_unroll(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/traceback_util.py", line 195, in reraise_with_filtered_traceback
+    return fun(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/pjit.py", line 259, in cache_miss
+    executable, pgle_profiler, const_args) = _run_python_pjit(
+                                             ^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/pjit.py", line 142, in _run_python_pjit
+    out_flat, compiled, profiler, const_args = _pjit_call_impl_python(
+                                               ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/pjit.py", line 1202, in _pjit_call_impl_python
+    compiled = computation.compile()
+               ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 2510, in compile
+    executable = UnloadedMeshExecutable.from_hlo(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 3056, in from_hlo
+    xla_executable = _cached_compilation(
+                     ^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/interpreters/pxla.py", line 2837, in _cached_compilation
+    xla_executable = compiler.compile_or_get_cached(
+                     ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 478, in compile_or_get_cached
+    return _compile_and_write_cache(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 746, in _compile_and_write_cache
+    executable = backend_compile_and_load(
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/profiler.py", line 359, in wrapper
+    return func(*args, **kwargs)
+           ^^^^^^^^^^^^^^^^^^^^^
+  File "/home/jrmch12f/miniconda3/envs/arcdrone/lib/python3.11/site-packages/jax/_src/compiler.py", line 362, in backend_compile_and_load
+    return backend.compile_and_load(
+           ^^^^^^^^^^^^^^^^^^^^^^^^^
+KeyboardInterrupt

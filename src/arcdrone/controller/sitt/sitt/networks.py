@@ -19,6 +19,7 @@ from typing import Any, Callable, Literal, Mapping, Sequence, Tuple, Optional
 from brax.training import distribution
 # from brax.training import networks
 from brax.training import types
+from brax.training.networks import normalizer_select
 from brax.training.types import PRNGKey
 import flax
 from flax import linen as nn
@@ -89,7 +90,7 @@ def make_sitt_networks(
     policy_hidden_layer_sizes: Sequence[int] = (32,) * 4,
     student_hidden_layer_sizes: Sequence[int] = (32,) * 4,
     proxy_hidden_layer_sizes: Sequence[int] = (32,) * 4,
-    action_head_sizes: Sequence[int] = (64,),
+    action_hidden_layer_sizes: Sequence[int] = (64,),
     value_hidden_layer_sizes: Sequence[int] = (256,) * 5,
     activation: ActivationFn = nn.tanh,
     policy_obs_key: str = "state",
@@ -120,7 +121,7 @@ def make_sitt_networks(
     )
 
     action_head = MLP(
-        layer_sizes=list(action_head_sizes)
+        layer_sizes=list(action_hidden_layer_sizes)
         + [parametric_action_distribution.param_size],
         activation=activation,
         kernel_init=kernel_init,
@@ -148,10 +149,11 @@ def make_sitt_networks(
     # ------------------------------------------------------------------
 
     def _preprocess(obs, pparams, key):
-        return preprocess_observations_fn(
-            obs[key] if isinstance(obs, Mapping) else obs,
-            pparams,
-        )
+        if isinstance(obs, Mapping):
+            return preprocess_observations_fn(
+                obs[key], normalizer_select(pparams, key)
+            )
+        return preprocess_observations_fn(obs, pparams)
 
     def _apply_policy(decoder, dec_params, head_params, pparams, obs):
         feats = decoder.apply(dec_params, _preprocess(obs, pparams, policy_obs_key))
@@ -294,6 +296,60 @@ def make_inference_fn(sitt_networks: SITTNetworks, compute_value: bool = False):
     return policy
 
   return make_policy
+
+
+def make_student_inference_fn(
+        sitt_networks: SITTNetworks, compute_value: bool = False
+):
+    """Creates student-policy inference function.
+
+    Expected params layout:
+        (normalizer_params, policy_params, value_params, student_dec_params, ...)
+    """
+
+    def make_policy(
+            params: types.Params, deterministic: bool = False
+    ) -> types.Policy:
+        parametric_action_distribution = sitt_networks.parametric_action_distribution
+
+        def policy(
+                observations: types.Observation, key_sample: PRNGKey
+        ) -> Tuple[types.Action, types.Extra]:
+            if len(params) < 4 or params[3] is None:
+                raise ValueError(
+                        'Student inference requires `student_dec_params` at params[3].'
+                )
+
+            student_feats = sitt_networks.student_decoder.apply(
+                    params[0], params[3], observations
+            )
+            logits = sitt_networks.action_head.apply(None, params[1][1], student_feats)
+
+            if deterministic:
+                return parametric_action_distribution.mode(logits), {}
+
+            raw_actions = parametric_action_distribution.sample_no_postprocessing(
+                    logits, key_sample
+            )
+            log_prob = parametric_action_distribution.log_prob(logits, raw_actions)
+            postprocessed_actions = parametric_action_distribution.postprocess(
+                    raw_actions
+            )
+
+            extras = {
+                    'log_prob': log_prob,
+                    'raw_action': raw_actions,
+                    'distribution_params': logits,
+            }
+            if compute_value:
+                extras['value'] = sitt_networks.value_network.apply(
+                        params[0], params[2], observations
+                )
+            return postprocessed_actions, extras
+
+        return policy
+
+    return make_policy
 
 
 # def make_decoder_inference(decoder_network: FeedForwardNetwork):

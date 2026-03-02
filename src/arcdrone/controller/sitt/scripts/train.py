@@ -97,8 +97,8 @@ def main(cfg: DictConfig):
     )
 
     # =========== Handle auto-restore from previous checkpoint ===========
-    from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))
-    restore_path = getattr(cfg.train, 'restore_params_path', None)
+    from_prev = int(getattr(cfg, 'frompreviouscheckpoint', 0))
+    restore_path = getattr(cfg, 'restore_params_path', None)
     # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
     if from_prev and (not restore_path or restore_path == ""):
         outputs_path = Path("outputs")
@@ -109,8 +109,8 @@ def main(cfg: DictConfig):
             pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
             if len(pkl_files) >= from_prev:
                 chosen_pkl = pkl_files[-from_prev]
-                cfg.train.restore_params_path = str(chosen_pkl)
-                cfg.train.restore_value_fn = True
+                cfg.restore_params_path = str(chosen_pkl)
+                cfg.restore_value_fn = True
                 print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
             else:
                 print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
@@ -133,9 +133,9 @@ def main(cfg: DictConfig):
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
         restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,
         use_sitt=cfg.use_sitt,
+        align_update_every_env_steps=cfg.align_update_every_env_steps,
+        align_batch_env_steps=cfg.align_batch_env_steps,
         align_updates_per_trigger=cfg.align_updates_per_trigger,
-        align_freq=cfg.align_freq,
-        align_batch_ratio_per_device=cfg.align_batch_ratio_per_device,
         proxy_kl_coef=cfg.proxy_kl_coef,
         sitt_align_coef=cfg.sitt_align_coef,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
@@ -173,9 +173,13 @@ def main(cfg: DictConfig):
             'eval/walltime': metrics.get('eval/walltime', 0.0),
             'training/learning_rate': metrics.get('training/learning_rate', 0.0),
             'training/total_loss': metrics.get('training/total_loss', 0.0),
+            'training/rl_loss': metrics.get('training/rl_loss', 0.0),
             'training/policy_loss': metrics.get('training/policy_loss', 0.0),
             'training/v_loss': metrics.get('training/v_loss', 0.0),
             'training/entropy_loss': metrics.get('training/entropy_loss', 0.0),
+            'training/rl_align_loss': metrics.get('training/rl_align_loss', 0.0),
+            'training/align_loss': metrics.get('training/align_loss', 0.0),
+            'training/reward_align': metrics.get('training/reward_align', 0.0),
             'training/kl_mean': metrics.get('training/kl_mean', 0.0),
             'training/policy_dist_mean_std': metrics.get('training/policy_dist_mean_std', 0.0),
             'training/sps': metrics.get('training/sps', 0.0),

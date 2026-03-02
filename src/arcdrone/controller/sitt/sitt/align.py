@@ -10,7 +10,9 @@ import jax.numpy as jnp
 
 #     return
 
-@jax.jit
+@jax.jit(static_argnames=(
+    'sitt_network', 'optimizer', 'align_updates_per_trigger'
+))
 def align(
     params,
     opt_state,
@@ -65,7 +67,9 @@ def align(
     def step(carry, _):
         student_dec, proxy_dec, opt_state = carry
 
-        grads = jax.grad(loss_fn, argnums=(0, 1))(student_dec, proxy_dec)
+        loss, grads = jax.value_and_grad(loss_fn, argnums=(0, 1))(
+            student_dec, proxy_dec
+        )
         updates, opt_state = optimizer.update(
             grads, opt_state, (student_dec, proxy_dec)
         )
@@ -75,14 +79,15 @@ def align(
             (student_dec, proxy_dec),
             updates,
         )
-        return (student_dec, proxy_dec, opt_state), None
+        return (student_dec, proxy_dec, opt_state), loss
 
-    (student_dec_params, proxy_dec_params, opt_state), _ = jax.lax.scan(
+    (student_dec_params, proxy_dec_params, opt_state), losses = jax.lax.scan(
         step,
         (student_dec_params, proxy_dec_params, opt_state),
         None,
         length=align_updates_per_trigger,
     )
+    align_loss = jnp.mean(losses)
 
     new_params = (
         policy_dec_params,
@@ -91,6 +96,6 @@ def align(
         action_head_params,
         norm_params,
     )
-    return new_params, opt_state
+    return new_params, opt_state, align_loss
 
 

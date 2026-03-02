@@ -1,0 +1,51 @@
+{
+  "os": "Linux-6.8.0-101-generic-x86_64-with-glibc2.35",
+  "python": "CPython 3.11.0",
+  "startedAt": "2026-03-02T15:29:19.010111Z",
+  "args": [
+    "task=hover",
+    "train.num_envs=256",
+    "train.unroll_length=16",
+    "train.batch_size=2048",
+    "train.num_minibatches=2",
+    "train.num_updates_per_batch=4",
+    "train.num_timesteps=10000000",
+    "train.use_wandb=true",
+    "train.num_evals=30"
+  ],
+  "program": "/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/sitt/scripts/train.py",
+  "codePath": "src/arcdrone/controller/sitt/scripts/train.py",
+  "codePathLocal": "src/arcdrone/controller/sitt/scripts/train.py",
+  "git": {
+    "remote": "git@github.com:jrmch12/borrador_braxenvs.git",
+    "commit": "6c8c8f728ac6ea0498704b91a042cc1f89d6b464"
+  },
+  "email": "jraimundo.mares.12@gmail.com",
+  "root": "/home/jrmch12f/Documents/code/borrador_braxenvs",
+  "host": "jrmch12f",
+  "executable": "/home/jrmch12f/miniconda3/envs/arcdrone/bin/python",
+  "cpu_count": 6,
+  "cpu_count_logical": 12,
+  "gpu": "NVIDIA GeForce RTX 3060",
+  "gpu_count": 1,
+  "disk": {
+    "/": {
+      "total": "157681115136",
+      "used": "76097298432"
+    }
+  },
+  "memory": {
+    "total": "16643239936"
+  },
+  "gpu_nvidia": [
+    {
+      "name": "NVIDIA GeForce RTX 3060",
+      "memoryTotal": "12884901888",
+      "cudaCores": 3584,
+      "architecture": "Ampere",
+      "uuid": "GPU-08497d9e-c6e9-769a-e3c6-db02e12d0e13"
+    }
+  ],
+  "cudaVersion": "13.1",
+  "writerId": "mbu05p8dcv9cpy882mod4c955y3ns3pr"
+}
