@@ -16,9 +16,86 @@ from hydra.utils import to_absolute_path
 from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
+from mujoco_playground import wrapper
+
 
 @hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
+    # =========== Handle CPU debugging mode ===========
+    if cfg.get('debug_cpu', False):
+        print("DEBUG: Running in CPU mode")
+        os.environ["JAX_PLATFORM_NAME"] = "cpu"  
+        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+
+
+    # Import JAX-related modules after setting environment variables
+    # from brax.training.agents.ppo import train as ppo
+    from arcdrone import sitt_train
+    # from brax.training.agents.ppo import networks as ppo_networks
+    from arcdrone import sitt_networks
+    from brax.io import model
+    from arcdrone.utils.wandb_logger import WandbLogger
+    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
+
+    # Map task names to environment classes
+    ENV_CLASSES = {
+        'hover': ARCDroneRL_Hover,
+        'landing': ARCDroneRL_Landing,
+        'vel': ARCDroneRL_Vel,
+    }
+
+    task_name = cfg.task_name
+    env_cfg = cfg.env
+    print(f"Instantiating environment for task: '{task_name}'")
+    if task_name not in ENV_CLASSES:
+        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+    env_class = ENV_CLASSES[task_name]
+    env = env_class(cfg=cfg.env)
+
+    # Wrap environment for Brax training (vectorization + vision support)
+    # NOTE: We use mujoco_playground's wrapper AND set wrap_env=False in sitt_train.train
+    # to avoid double-wrapping (which causes "invalid PRNG key data: ndim=0" error)
+    env = wrapper.wrap_for_brax_training(
+        env,
+        vision=env_cfg.get('vision', False),
+        num_vision_envs=cfg.train.num_envs,
+        action_repeat=cfg.train.action_repeat,
+        episode_length=cfg.train.episode_length,
+    )
+
+    print(f"env '{task_name}' instantiated successfully")
+
+    # =========== Load config and Logger ===========
+
+    use_wandb = cfg.train.use_wandb
+    logger = None
+    if use_wandb:
+        logger = WandbLogger(
+            project_name=cfg.train.wandb_project,
+            run_name=cfg.train.wandb_run_name,
+            config=OmegaConf.to_container(cfg, resolve=True)
+        )
+
+    cfg = cfg.train     # from now on, only train parameters should be use
+
+
+    # =========== Load main training function ===========
+
+    # Select network factory (SITT always used, vision control optional)
+    network_factory = functools.partial(
+        sitt_networks.make_sitt_networks,
+        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+        action_hidden_layer_sizes=cfg.action_hidden_layers,
+        value_hidden_layer_sizes=cfg.value_hidden_layers,
+        policy_obs_key=cfg.policy_obs_key,
+        value_obs_key=cfg.value_obs_key,
+        # SITT-specific:
+        use_sitt=cfg.use_sitt,
+        student_hidden_layer_sizes=cfg.student_hidden_layers,
+        proxy_hidden_layer_sizes=cfg.proxy_hidden_layers,
+    )
+
     # =========== Handle auto-restore from previous checkpoint ===========
     from_prev = int(getattr(cfg.train, 'frompreviouscheckpoint', 0))
     restore_path = getattr(cfg.train, 'restore_params_path', None)
@@ -40,81 +117,29 @@ def main(cfg: DictConfig):
         else:
             print(f"[Auto-restore] No trained_model.pkl files found in outputs/")
 
-    # =========== Handle CPU debugging mode ===========
-    if cfg.get('debug_cpu', False):
-        print("DEBUG: Running in CPU mode")
-        os.environ["JAX_PLATFORM_NAME"] = "cpu"  
-        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
-
-    # Import JAX-related modules after setting environment variables
-    # from brax.training.agents.ppo import train as ppo
-    from ..sitt import train as sitt 
-    # from brax.training.agents.ppo import networks as ppo_networks
-    from ..sitt import networks as sitt_networks
-    from brax.io import model
-    from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
-
-    # Map task names to environment classes
-    ENV_CLASSES = {
-        'hover': ARCDroneRL_Hover,
-        'landing': ARCDroneRL_Landing,
-        'vel': ARCDroneRL_Vel,
-    }
-
-    task_name = cfg.task_name
-    print(f"Instantiating environment for task: '{task_name}'")
-    if task_name not in ENV_CLASSES:
-        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
-    env_class = ENV_CLASSES[task_name]
-    env = env_class(cfg=cfg.env)
-    print(f"env '{task_name}' instantiated successfully")
-
-    # =========== Load config and Logger ===========
-
-    use_wandb = cfg.train.use_wandb
-    logger = None
-    if use_wandb:
-        logger = WandbLogger(
-            project_name=cfg.train.wandb_project,
-            run_name=cfg.train.wandb_run_name,
-            config=OmegaConf.to_container(cfg, resolve=True)
-        )
-
-    cfg = cfg.train     # from now on, only train parameters should be use
-
-
-    # =========== Load main training function ===========
-
-    network_factory = functools.partial(
-        sitt_networks.make_ssit_networks,
-        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
-        action_hidden_layer_sizes=cfg.action_hidden_layers, # sitt
-        value_hidden_layer_sizes=cfg.value_hidden_layers,
-        policy_obs_key=cfg.policy_obs_key,
-        value_obs_key=cfg.value_obs_key,
-        # sitt:
-        use_sitt=cfg.use_sitt,
-        student_hidden_layer_sizes=cfg.student_hidden_layers,
-        proxy_hidden_layer_sizes=cfg.proxy_hidden_layers,
-        )
-
-    # Handle model restoration
     restore_params = None
     restore_path = getattr(cfg, 'restore_params_path', None)
+
     if restore_path:
         print(f"Loading parameters from: {restore_path}")
         restore_params = model.load_params(restore_path)
         print("Parameters loaded successfully!")
 
     train_fn = functools.partial(
-        sitt.train, num_timesteps=cfg.num_timesteps, num_evals=cfg.num_evals, reward_scaling=cfg.reward_scaling,
+        sitt_train.train, num_timesteps=cfg.num_timesteps, num_evals=cfg.num_evals, reward_scaling=cfg.reward_scaling,
         episode_length=cfg.episode_length, normalize_observations=cfg.normalize_observations, action_repeat=cfg.action_repeat,
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory, use_sitt=cfg.use_sitt,)
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,
+        use_sitt=cfg.use_sitt,
+        align_updates_per_trigger=cfg.align_updates_per_trigger,
+        align_freq=cfg.align_freq,
+        align_batch_ratio_per_device=cfg.align_batch_ratio_per_device,
+        proxy_kl_coef=cfg.proxy_kl_coef,
+        sitt_align_coef=cfg.sitt_align_coef,
+        wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
+    )
 
     # =========== Define custom progress function ===========
 

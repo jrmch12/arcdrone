@@ -69,6 +69,9 @@ class MLP(nn.Module):
     return x
   
   
+def _get_obs_size(obs_size: types.ObservationSize, obs_key: str) -> int:
+  obs_size = obs_size[obs_key] if isinstance(obs_size, Mapping) else obs_size
+  return jax.tree_util.tree_flatten(obs_size)[0][-1]
 
 # ---------------------------------------------------------------------
 
@@ -93,7 +96,7 @@ def make_sitt_networks(
     value_obs_key: str = "state",
     distribution_type: Literal["tanh_normal"] = "tanh_normal",
     use_sitt: bool = False,
-) -> SSITNetworks:
+) -> SITTNetworks:
 
     if distribution_type != "tanh_normal":
         raise ValueError("Only tanh_normal supported")
