@@ -1,1 +1,0 @@
-{"timesteps":131072,"training/approx_kl":0,"_runtime":129.639507787,"training/entropy":0,"training/value_loss":0,"eval/episode_length":200,"_timestamp":1.7707868238982358e+09,"_wandb":{"runtime":129},"training/policy_loss":0,"_step":131072,"training/learning_rate":0.0003000000142492354}

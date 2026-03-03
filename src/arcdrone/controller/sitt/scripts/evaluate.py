@@ -200,7 +200,7 @@ def main():
 	parser.add_argument(
 		"--policy",
 		type=str,
-		default="teacher",
+		default="student",
 		choices=["teacher", "student"],
 		help="Which policy to run",
 	)

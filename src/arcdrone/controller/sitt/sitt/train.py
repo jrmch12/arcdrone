@@ -429,8 +429,9 @@ def train(
         'align_batch_env_steps must be <= env_step_per_training_step = batch_size * unroll_length * num_minibatches * action_repeat '
         f'({env_step_per_training_step}), got {align_batch_env_steps}'
     )
-  align_batch_size_per_device = max(
-      int(np.ceil(align_batch_env_steps / device_count)), 1
+  ppo_unrolls_per_step = batch_size * num_minibatches // num_envs
+  align_unrolls_per_trigger = max(
+      int(np.ceil(align_batch_env_steps / (num_envs * unroll_length))), 1
   )
   # Cast to uint32 so comparisons stay in plain JAX types (UInt64.lo is uint32).
   _align_interval_u32 = jnp.uint32(align_update_every_env_steps)
@@ -508,22 +509,6 @@ def train(
       sitt_network,
       compute_value=bootstrap_on_timeout or clipping_epsilon_value is not None,
   )
-
-
-  # if use_sitt:
-  #       # student
-  #   make_student_policy = sitt_networks.make_inference_fn(
-  #       sitt_networks,
-  #       role="student",
-  #       compute_value=False, # HACK: keep always on false
-  #   )
-
-  #   # proxy 
-  #   make_proxy_policy = sitt_networks.make_inference_fn(
-  #       sitt_networks,
-  #       role="proxy",
-  #       compute_value=False, # HACK: keep always on false
-  #   )
 
 
 
@@ -655,19 +640,13 @@ def train(
 
     return (optimizer_state, params, key), metrics
 
-  def training_step(
-      carry: Tuple[TrainingState, envs.State, PRNGKey], unused_t
-  ) -> Tuple[Tuple[TrainingState, envs.State, PRNGKey], Metrics]:
-    training_state, state, key = carry
-    key_sgd, key_generate_unroll, new_key = jax.random.split(key, 3)
-
-    policy = make_policy((
-        training_state.normalizer_params,
-        training_state.params.policy,
-        training_state.params.value,
-    ))
-
-    def f(carry, unused_t):
+  def _generate_rollout_data(
+      state: envs.State,
+      key_generate_unroll: PRNGKey,
+      policy: Callable[..., Any],
+      num_unrolls: int,
+  ) -> Tuple[envs.State, types.Transition]:
+    def _scan_unroll(carry, unused_t):
       current_state, current_key = carry
       current_key, next_key = jax.random.split(current_key)
       extra_fields = ['truncation', 'episode_metrics', 'episode_done']
@@ -683,18 +662,79 @@ def train(
       )
       return (next_state, next_key), data
 
-    (state, _), data = jax.lax.scan(
-        f,
+    (next_state, _), data = jax.lax.scan(
+        _scan_unroll,
         (state, key_generate_unroll),
         (),
-        length=batch_size * num_minibatches // num_envs,
+        length=num_unrolls,
     )
-    # Have leading dimensions (batch_size * num_minibatches, unroll_length)
     data = jax.tree_util.tree_map(lambda x: jnp.swapaxes(x, 1, 2), data)
     data = jax.tree_util.tree_map(
         lambda x: jnp.reshape(x, (-1,) + x.shape[2:]), data
     )
     assert data.discount.shape[1:] == (unroll_length,)
+    return next_state, data
+
+  def _run_align_update(
+      params: sitt_losses.PPONetworkParams,
+      normalizer_params: running_statistics.RunningStatisticsState,
+      align_opt_state: Any,
+      state: envs.State,
+      key_align: PRNGKey,
+  ) -> Tuple[Any, Any, Any, PRNGKey, jax.Array]:
+    key_align_rollout, next_key = jax.random.split(key_align)
+    align_policy = make_policy(
+        (
+            normalizer_params,
+            params.policy,
+            params.value,
+        )
+    )
+    _, data_align = _generate_rollout_data(
+        state,
+        key_align_rollout,
+        align_policy,
+        align_unrolls_per_trigger,
+    )
+
+    (policy_dec, student_dec, proxy_dec, action_head, norm_params) = (
+        params.policy[0],
+        params.student_dec_params,
+        params.proxy_dec_params,
+        params.policy[1],
+        normalizer_params,
+    )
+    (
+        (_, student_dec, proxy_dec, _, _),
+        align_opt_state,
+        align_loss,
+    ) = align_fn(
+        (policy_dec, student_dec, proxy_dec, action_head, norm_params),
+        align_opt_state,
+        data_align.observation,
+        data_align.observation,
+    )
+    return student_dec, proxy_dec, align_opt_state, next_key, align_loss
+
+  def training_step(
+      carry: Tuple[TrainingState, envs.State, PRNGKey], unused_t
+  ) -> Tuple[Tuple[TrainingState, envs.State, PRNGKey], Metrics]:
+    training_state, state, key = carry
+    key_sgd, key_generate_unroll, new_key = jax.random.split(key, 3)
+
+
+    policy = make_policy((
+        training_state.normalizer_params,
+        training_state.params.policy,
+        training_state.params.value,
+    ))
+
+    state, data = _generate_rollout_data(
+      state,
+      key_generate_unroll,
+      policy,
+      ppo_unrolls_per_step,
+    )
 
     reward_align = jnp.array(0.0)
 
@@ -773,52 +813,29 @@ def train(
       )
 
     align_loss = jnp.array(0.0)
-    
+    align_opt_state = training_state.align_opt_state
+
     if use_sitt:
       # Trigger alignment based on actual env steps.
       # UInt64.lo is a plain JAX uint32 — safe for runs < 4B env steps.
       prev_lo = training_state.env_steps.lo
       new_lo = prev_lo + jnp.uint32(env_step_per_training_step)
       do_align = (new_lo // _align_interval_u32) > (prev_lo // _align_interval_u32)
-      
-      obs = data.observation
 
       def _align_step(_):
-        """Perform align_updates_per_trigger gradient updates on student/proxy decoders."""
-        key_align, next_key = jax.random.split(new_key, 2)
-        obs_batch_size = jax.tree_util.tree_leaves(obs)[0].shape[0]
-        sample_size = min(align_batch_size_per_device, obs_batch_size)
-        idx = jax.random.choice(
-          key_align, obs_batch_size, (sample_size,), replace=False
-        )
-        obs_batch = jax.tree_util.tree_map(lambda x: x[idx], obs)
-
-        (policy_dec, student_dec, proxy_dec, action_head, norm_params) = (
-            params.policy[0],
-            params.student_dec_params,
-            params.proxy_dec_params,
-            params.policy[1],
+        return _run_align_update(
+            params,
             normalizer_params,
-        )
-
-        (
-            (_, student_dec, proxy_dec, _, _),
             align_opt_state,
-          align_loss,
-        ) = align_fn(
-            (policy_dec, student_dec, proxy_dec, action_head, norm_params),
-            training_state.align_opt_state,
-            obs_batch,
-            obs_batch,
+            state,
+            new_key,
         )
-        return student_dec, proxy_dec, align_opt_state, next_key, align_loss
 
       def _skip_align(_):
-        """Skip alignment: maintain current student/proxy parameters."""
         return (
             params.student_dec_params,
             params.proxy_dec_params,
-            training_state.align_opt_state,
+            align_opt_state,
             new_key,
             jnp.array(0.0),
         )

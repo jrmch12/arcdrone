@@ -1,7 +1,0 @@
-- train.num_envs=1024
-- train.unroll_length=5
-- train.batch_size=2560
-- train.num_minibatches=4
-- train.num_updates_per_batch=4
-- train.num_timesteps=10000000
-- train.use_wandb=true

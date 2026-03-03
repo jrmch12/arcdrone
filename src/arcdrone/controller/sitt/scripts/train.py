@@ -7,7 +7,7 @@ from datetime import datetime
 from pathlib import Path
 import functools
 import os
-import glob
+
 
 # These imports need to be available before the main function
 from omegaconf import DictConfig, OmegaConf
@@ -21,6 +21,7 @@ from mujoco_playground import wrapper
 
 @hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
+
     # =========== Handle CPU debugging mode ===========
     if cfg.get('debug_cpu', False):
         print("DEBUG: Running in CPU mode")
@@ -34,6 +35,8 @@ def main(cfg: DictConfig):
     from arcdrone import sitt_train
     # from brax.training.agents.ppo import networks as ppo_networks
     from arcdrone import sitt_networks
+    from arcdrone.controller.sitt.env.student_wrapper import StudentWrapper
+    from arcdrone.controller.rl.task.vision_mode.obs import _get_obs_impl as student_obs_fn
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
     from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
@@ -56,6 +59,8 @@ def main(cfg: DictConfig):
     # Wrap environment for Brax training (vectorization + vision support)
     # NOTE: We use mujoco_playground's wrapper AND set wrap_env=False in sitt_train.train
     # to avoid double-wrapping (which causes "invalid PRNG key data: ndim=0" error)
+
+    env = StudentWrapper(teacher_env=env, student_obs_fn=student_obs_fn)
     env = wrapper.wrap_for_brax_training(
         env,
         vision=env_cfg.get('vision', False),

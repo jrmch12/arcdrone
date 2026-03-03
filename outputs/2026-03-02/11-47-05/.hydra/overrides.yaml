@@ -1,9 +1,0 @@
-- task=hover
-- train.num_envs=1024
-- train.unroll_length=16
-- train.batch_size=1024
-- train.num_minibatches=8
-- train.num_updates_per_batch=8
-- train.num_timesteps=10000000
-- train.use_wandb=true
-- train.num_evals=30
