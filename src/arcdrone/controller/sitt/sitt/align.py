@@ -1,3 +1,5 @@
+from functools import partial
+
 import jax
 import jax.numpy as jnp
 
@@ -10,9 +12,12 @@ import jax.numpy as jnp
 
 #     return
 
-@jax.jit(static_argnames=(
-    'sitt_network', 'optimizer', 'align_updates_per_trigger'
-))
+@partial(
+    jax.jit,
+    static_argnames=(
+        'sitt_network', 'optimizer', 'align_updates_per_trigger'
+    ),
+)
 def align(
     params,
     opt_state,

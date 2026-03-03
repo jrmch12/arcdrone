@@ -1,1 +1,0 @@
-{"training/value_loss":0,"training/entropy":0,"_step":5701632,"timesteps":5701632,"eval/episode_length":43.9296875,"training/policy_loss":0.013745510950684547,"training/learning_rate":0,"training/approx_kl":0,"_timestamp":1.7697028543827577e+09,"eval/episode_reward":-2834.0107421875,"_runtime":461.393282555,"eval/episode_reward_std":350.983154296875,"_wandb":{"runtime":461}}

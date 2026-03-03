@@ -1,1 +1,0 @@
-{"_wandb":{"runtime":498},"_step":6291456,"training/entropy":0,"training/learning_rate":0.0003000000142492354,"timesteps":6291456,"eval/episode_length":200,"training/approx_kl":0,"_runtime":498.492809136,"training/policy_loss":0,"training/value_loss":0,"_timestamp":1.7707725610465493e+09}
