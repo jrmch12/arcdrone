@@ -33,7 +33,7 @@
     <light name="spotlight" mode="targetbodycom" target="x2" pos="0 -1 2"/>
     <body name="x2" pos="0 0 0.1" childclass="x2">
       <freejoint/>
-      <camera name="track" pos="-1 0 .5" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
+      <camera name="track_camera" pos="-1 0 .5" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
       <body name="x2_camera_mount" pos="-0.15 0 0.05" childclass="visual">
         <joint name="x2_camera_tilt" type="hinge" axis="0 1 0" limited="true" range="-1.5708 0" damping="0.5"/>
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>

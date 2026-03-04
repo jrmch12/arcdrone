@@ -5,10 +5,11 @@ import mujoco
 import mujoco.viewer
 import jax
 from jax import numpy as jp
-from omegaconf import OmegaConf
+from hydra import compose, initialize_config_dir
+from pathlib import Path
 import numpy as np
 from mujoco import mjx
-from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
+from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 from arcdrone.utils.plotjuggler import PlotJugglerLogger
 
 
@@ -20,9 +21,8 @@ class RewardAnalyzer:
     for visualization. This is a sandbox tool for reward tuning and debugging.
     """
     
-    def __init__(self, cfg_path: str, task_name: str = 'landing', layout_file: str = None):
-        # Load configuration
-        cfg = OmegaConf.load(cfg_path)
+    def __init__(self, cfg, task_name: str = 'landing', layout_file: str = None):
+        # Load configuration from composed Hydra config
         self.cfg = cfg.env
         
         # 1. Create MuJoCo model (for GUI interaction)
@@ -33,7 +33,6 @@ class RewardAnalyzer:
         ENV_CLASSES = {
             'hover': ARCDroneRL_Hover,
             'landing': ARCDroneRL_Landing,
-            'vel': ARCDroneRL_Vel,
         }
         if task_name not in ENV_CLASSES:
             raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
@@ -196,7 +195,7 @@ def main():
         '--task',
         type=str,
         default='landing',
-        choices=['hover', 'landing', 'vel'],
+        choices=['hover', 'landing'],
         help='Task/environment to analyze (hover, landing, vel)'
     )
     parser.add_argument(
@@ -207,9 +206,13 @@ def main():
     )
     args = parser.parse_args()
 
-    # Build config path automatically from task
-    config_path = f'./src/arcdrone/controller/rl/cfg/task/{args.task}.yaml'
-    analyzer = RewardAnalyzer(config_path, task_name=args.task, layout_file=args.layout)
+    cfg_dir = Path(__file__).resolve().parent.parent / 'src' / 'arcdrone' / 'controller' / 'cfg'
+    initialize_config_dir(
+        config_dir=str(cfg_dir), job_name='reward_visualization', version_base=None
+    )
+    cfg = compose(config_name='config', overrides=[f'task={args.task}'])
+
+    analyzer = RewardAnalyzer(cfg, task_name=args.task, layout_file=args.layout)
     analyzer.run()
 
 

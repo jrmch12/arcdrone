@@ -14,7 +14,6 @@
 
 """PPO networks."""
 
-import functools
 from typing import Any, Callable, Literal, Mapping, Sequence, Tuple, Optional
 
 from brax.training import distribution
@@ -69,79 +68,8 @@ class MLP(nn.Module):
       if i != len(self.layer_sizes) - 1 or self.activate_final:
         x = self.activation(x)
     return x
-
-
-class CNN(nn.Module):
-  """CNN module.  Inputs are expected in Batch * HWC format."""
-
-  num_filters: Sequence[int]
-  kernel_sizes: Sequence[Tuple]
-  strides: Sequence[Tuple]
-  activation: ActivationFn = nn.relu
-  use_bias: bool = True
-
-  @nn.compact
-  def __call__(self, data: jnp.ndarray):
-    hidden = data
-    for num_filter, kernel_size, stride in zip(
-        self.num_filters, self.kernel_sizes, self.strides
-    ):
-      hidden = nn.Conv(
-          num_filter,
-          kernel_size=kernel_size,
-          strides=stride,
-          use_bias=self.use_bias,
-      )(hidden)
-      hidden = self.activation(hidden)
-    return hidden
-
-
-class StudentVisionDecoder(nn.Module):
-  """CNN + MLP decoder for the vision-based student.
-
-  1. Runs NatureCNN on every ``pixels/*`` key in the obs dict.
-  2. Spatial average-pools each CNN output.
-  3. Concatenates with the flat ``state_obs_key`` vector (action-buffer).
-  4. Passes the combined vector through an MLP to produce a feature vector
-     compatible with the shared ``action_head``.
-  """
-
-  layer_sizes: Sequence[int]
-  activation: ActivationFn = nn.relu
-  kernel_init: Initializer = jax.nn.initializers.lecun_uniform()
-  state_obs_key: str = 'state'
-
-  @nn.compact
-  def __call__(self, data: dict):
-    # --- CNN on every pixel stream ---
-    pixels_keys = sorted(k for k in data if k.startswith('pixels/'))
-    nature_cnn = functools.partial(
-        CNN,
-        num_filters=[32, 64, 64],
-        kernel_sizes=[(8, 8), (4, 4), (3, 3)],
-        strides=[(4, 4), (2, 2), (1, 1)],
-        activation=nn.relu,
-        use_bias=False,
-    )
-    cnn_outs = [nature_cnn()(data[key]) for key in pixels_keys]
-    cnn_outs = [jnp.mean(out, axis=(-2, -3)) for out in cnn_outs]
-
-    # --- Concat with flat state (action-buffer) if present ---
-    parts = cnn_outs
-    if self.state_obs_key and self.state_obs_key in data:
-      parts.append(data[self.state_obs_key])
-
-    hidden = jnp.concatenate(parts, axis=-1)
-
-    # --- MLP → feature vector (activate_final=False to match policy_decoder) ---
-    return MLP(
-        layer_sizes=self.layer_sizes,
-        activation=self.activation,
-        kernel_init=self.kernel_init,
-        activate_final=False,
-    )(hidden)
-
-
+  
+  
 def _get_obs_size(obs_size: types.ObservationSize, obs_key: str) -> int:
   obs_size = obs_size[obs_key] if isinstance(obs_size, Mapping) else obs_size
   return jax.tree_util.tree_flatten(obs_size)[0][-1]
@@ -169,8 +97,6 @@ def make_sitt_networks(
     value_obs_key: str = "state",
     distribution_type: Literal["tanh_normal"] = "tanh_normal",
     use_sitt: bool = False,
-    student_observation_size: Optional[Mapping[str, Tuple]] = None,
-    student_obs_key: str = "state",
 ) -> SITTNetworks:
 
     if distribution_type != "tanh_normal":
@@ -208,23 +134,10 @@ def make_sitt_networks(
     )
 
     student_decoder = (
-        StudentVisionDecoder(
-            layer_sizes=student_hidden_layer_sizes,
-            activation=activation,
-            kernel_init=kernel_init,
-            state_obs_key=student_obs_key,
-        )
+        MLP(student_hidden_layer_sizes, activation, kernel_init)
         if use_sitt
         else None
     )
-
-    # Dummy student obs dict for init (pixels + flat state)
-    dummy_student_obs = None
-    if use_sitt and student_observation_size is not None:
-        dummy_student_obs = {
-            key: jnp.zeros((1,) + tuple(shape))
-            for key, shape in student_observation_size.items()
-        }
     proxy_decoder = (
         MLP(proxy_hidden_layer_sizes, activation, kernel_init)
         if use_sitt
@@ -296,9 +209,10 @@ def make_sitt_networks(
 
     student_decoder_net = (
         FeedForwardNetwork(
-            init=lambda key: student_decoder.init(key, dummy_student_obs),
+            init=lambda key: student_decoder.init(key, dummy_obs),
             apply=lambda pparams, params, obs: student_decoder.apply(
-                params, obs,
+                params,
+                _preprocess(obs, pparams, policy_obs_key),
             ),
         )
         if use_sitt

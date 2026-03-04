@@ -36,16 +36,15 @@ def main(cfg: DictConfig):
     # from brax.training.agents.ppo import networks as ppo_networks
     from arcdrone import sitt_networks
     from arcdrone.controller.sitt.env.student_wrapper import StudentWrapper
-    from arcdrone.controller.rl.task.vision_mode.obs import _get_obs_impl as student_obs_fn
+    from arcdrone.controller.rl.task.vision_mode.arcdrone import ARCDroneRL_VisionLanding
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
+    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 
     # Map task names to environment classes
     ENV_CLASSES = {
         'hover': ARCDroneRL_Hover,
         'landing': ARCDroneRL_Landing,
-        'vel': ARCDroneRL_Vel,
     }
 
     task_name = cfg.task_name
@@ -56,11 +55,16 @@ def main(cfg: DictConfig):
     env_class = ENV_CLASSES[task_name]
     env = env_class(cfg=cfg.env)
 
-    # Wrap environment for Brax training (vectorization + vision support)
-    # NOTE: We use mujoco_playground's wrapper AND set wrap_env=False in sitt_train.train
-    # to avoid double-wrapping (which causes "invalid PRNG key data: ndim=0" error)
+    # Instantiate the student (vision) env — same xml/cfg, adds BatchRenderer
+    student_env = ARCDroneRL_VisionLanding(cfg=cfg.env)
 
-    env = StudentWrapper(teacher_env=env, student_obs_fn=student_obs_fn)
+    # Discover student obs shapes from an actual reset (same pattern as sitt_train)
+    import jax
+    _dummy_state = student_env.reset(jax.random.PRNGKey(0))
+    student_observation_size = jax.tree_util.tree_map(lambda x: x.shape, _dummy_state.obs)
+    del _dummy_state
+
+    env = StudentWrapper(teacher_env=env, student_env=student_env)
     env = wrapper.wrap_for_brax_training(
         env,
         vision=env_cfg.get('vision', False),
@@ -99,6 +103,8 @@ def main(cfg: DictConfig):
         use_sitt=cfg.use_sitt,
         student_hidden_layer_sizes=cfg.student_hidden_layers,
         proxy_hidden_layer_sizes=cfg.proxy_hidden_layers,
+        student_observation_size=student_observation_size if cfg.use_sitt else None,
+        student_obs_key="state",
     )
 
     # =========== Handle auto-restore from previous checkpoint ===========
@@ -157,7 +163,7 @@ def main(cfg: DictConfig):
         eval_reward_metrics = {}
         std_reward_metrics = {}
         for key, value in metrics.items():
-            if key.startswith('eval/episode_reward') and not key.endswith('_std'):
+            if key.startswith('eval/episode_reward_') and not key.endswith('_std'):
                 reward_name = key[len('eval/episode_reward_'):]
                 std_key = f"eval/episode_reward_{reward_name}_std"
                 std_val = metrics.get(std_key, 0.0)

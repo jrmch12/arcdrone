@@ -1,7 +1,10 @@
+import warnings
+
 import jax
 from jax import numpy as jp
 import mujoco
 from mujoco import mjx
+import numpy as np
 from ml_collections import config_dict
 from omegaconf import DictConfig, OmegaConf
 from flax import struct
@@ -10,7 +13,7 @@ from flax import struct
 from mujoco_playground._src import mjx_env
 
 # RL helper functions
-from .obs import _get_obs_impl
+from .obs import _get_obs_impl, _rgba_to_grayscale
 from .reward import _get_reward_impl  
 from .reward import _check_episode_events_impl  
 from .target import _get_target_impl
@@ -27,7 +30,7 @@ from .target import _get_target_impl
 
 #======== Main class ================
 
-class ARCDroneRL_Landing(mjx_env.MjxEnv):
+class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
 
     """ARC Drone Controller RL Environment."""
 
@@ -59,6 +62,27 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
         # Control ranges
         self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
+
+        # Vision setup
+        self._vision_history = int(self.cfg.get('vision_history', 3))
+        try:
+            from madrona_mjx.renderer import BatchRenderer
+        except ImportError:
+            warnings.warn("Madrona MJX not installed. Vision rendering unavailable.")
+            raise
+
+        self.renderer = BatchRenderer(
+            m=self._mjx_model,
+            gpu_id=int(self.cfg.get('vision_gpu_id', 0)),
+            num_worlds=int(self.cfg.get('vision_render_batch_size', 512)),
+            batch_render_view_width=int(self.cfg.get('vision_render_width', 64)),
+            batch_render_view_height=int(self.cfg.get('vision_render_height', 64)),
+            enabled_geom_groups=np.asarray(list(self.cfg.get('vision_enabled_geom_groups', [0, 1, 2]))),
+            enabled_cameras=np.asarray([0]),
+            add_cam_debug_geo=False,
+            use_rasterizer=bool(self.cfg.get('vision_use_rasterizer', False)),
+            viz_gpu_hdls=None,
+        )
 
 
 
@@ -92,8 +116,19 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
         )
 
         state = self._get_target(state)
-        zero_action = jp.zeros(self._mjx_model.nu)
-        state = self._get_obs(state, zero_action)
+
+        # Vision: initialise renderer and build the frame-history + action buffer
+        render_token, rgb, _ = self.renderer.init(state.data, self._mjx_model)
+        obs_gray = _rgba_to_grayscale(rgb[0].astype(jp.float32)) / 255.0
+        obs_history   = jp.tile(obs_gray, (self._vision_history, 1, 1))
+        action_buffer = jp.zeros((self._vision_history, self._mjx_model.nu))
+        info = {**state.info, "render_token": render_token,
+                "obs_history": obs_history, "action_buffer": action_buffer}
+        obs = {
+            "pixels/view_0": obs_history.transpose(1, 2, 0),  # (H, W, history)
+            "state": action_buffer.flatten(),                  # (history * nu,)
+        }
+        state = state.replace(obs=obs, info=info)
 
         return state
     
@@ -161,39 +196,7 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
         return qpos, qvel
 
 
-    def _initialize_state_vars(self, data, rng):
-        """Initialize state variables and info dictionary"""
 
-        # TODO: maybe is better not to train while the buffer is not valid? 
-        # or do some soft masking adding one observation to let know the buffer is not full yet?
-
-        quat_init = data.sensordata[0:4]
-        angvel_init = data.sensordata[4:7]
-        linacc_init = data.sensordata[7:10]
-        linvel_init = data.sensordata[10:13]
-        pos_init = data.qpos[0:3]
-        
-        return {
-            'step': 0,
-            'rng': rng,
-            'goal_achieved': jp.array(0.0),
-            'steps_within_success': jp.array(0),
-            
-            # Buffers - initialized with current state repeated
-            'action_buffer': jp.tile(jp.zeros(self._mjx_model.nu), (self.cfg.buffer_size, 1)),
-            'target_buffer': jp.tile(jp.zeros(3), (self.cfg.buffer_size, 1)),
-            'linacc_buffer': jp.tile(linacc_init, (self.cfg.buffer_size, 1)),
-            'quat_buffer': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
-            'angvel_buffer': jp.tile(angvel_init, (self.cfg.buffer_size, 1)),
-            'linvel_buffer': jp.tile(linvel_init, (self.cfg.buffer_size, 1)),
-            'pos_buffer': jp.tile(pos_init, (self.cfg.buffer_size, 1)),
-            'linacc_buffer_noisy': jp.tile(linacc_init, (self.cfg.buffer_size, 1)),
-            'quat_buffer_noisy': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
-            'angvel_buffer_noisy': jp.tile(angvel_init, (self.cfg.buffer_size, 1)),
-            'linvel_buffer_noisy': jp.tile(linvel_init, (self.cfg.buffer_size, 1)),
-            # initialize ground_violation to match keys expected by reward/termination
-            'ground_violation': jp.array(0.0),
-        }
 
     def _initialize_metrics(self):
 
@@ -228,6 +231,10 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
         """Update target velocity."""
         return _get_target_impl(self, state)
     
+    def _initialize_state_vars(self, data, rng):
+        """Initialize state variables and info dictionary."""
+        return _initialize_state_vars_impl(self, data, rng)
+    
     def scale_action(self, action_normalized):
         """Scale action from [-1, 1] to actuator control range [ctrl_min, ctrl_max]."""
         action_normalized = jp.array(action_normalized)
@@ -250,3 +257,38 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
     @property
     def mjx_model(self) -> mjx.Model:
         return self._mjx_model
+
+
+def _initialize_state_vars_impl(self, data, rng):
+    """Initialize state variables and info dictionary"""
+
+    # TODO: maybe is better not to train while the buffer is not valid? 
+    # or do some soft masking adding one observation to let know the buffer is not full yet?
+
+    quat_init = data.sensordata[0:4]
+    angvel_init = data.sensordata[4:7]
+    linacc_init = data.sensordata[7:10]
+    linvel_init = data.sensordata[10:13]
+    pos_init = data.qpos[0:3]
+    
+    return {
+        'step': 0,
+        'rng': rng,
+        'goal_achieved': jp.array(0.0),
+        'steps_within_success': jp.array(0),
+        
+        # Buffers - initialized with current state repeated
+        'action_buffer': jp.tile(jp.zeros(self._mjx_model.nu), (self.cfg.buffer_size, 1)),
+        'target_buffer': jp.tile(jp.zeros(3), (self.cfg.buffer_size, 1)),
+        'linacc_buffer': jp.tile(linacc_init, (self.cfg.buffer_size, 1)),
+        'quat_buffer': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
+        'angvel_buffer': jp.tile(angvel_init, (self.cfg.buffer_size, 1)),
+        'linvel_buffer': jp.tile(linvel_init, (self.cfg.buffer_size, 1)),
+        'pos_buffer': jp.tile(pos_init, (self.cfg.buffer_size, 1)),
+        'linacc_buffer_noisy': jp.tile(linacc_init, (self.cfg.buffer_size, 1)),
+        'quat_buffer_noisy': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
+        'angvel_buffer_noisy': jp.tile(angvel_init, (self.cfg.buffer_size, 1)),
+        'linvel_buffer_noisy': jp.tile(linvel_init, (self.cfg.buffer_size, 1)),
+        # initialize ground_violation to match keys expected by reward/termination
+        'ground_violation': jp.array(0.0),
+    }
