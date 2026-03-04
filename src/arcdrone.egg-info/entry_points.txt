@@ -1,3 +1,5 @@
 [console_scripts]
-arcdrone-evaluate = arcdrone.controller.rl.scripts.evaluate:main
-arcdrone-train = arcdrone.controller.rl.scripts.train:main
+arcdrone-evaluate-ppo = arcdrone.controller.rl.scripts.evaluate:main
+arcdrone-evaluate-sitt = arcdrone.controller.sitt.scripts.evaluate:main
+arcdrone-train-ppo = arcdrone.controller.rl.scripts.train:main
+arcdrone-train-sitt = arcdrone.controller.sitt.scripts.train:main

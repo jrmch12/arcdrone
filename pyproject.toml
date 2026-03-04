@@ -10,11 +10,6 @@ authors = [{name = "Jose Mares", email = "josermch12@gmail.com"}]
 readme = "README.md"
 requires-python = ">=3.10"
 dependencies = [
-    "mujoco>=3.0.0",
-    "mujoco_mjx>=3.0.0",
-    "brax>=0.10.0",
-    "jax[cuda12]>=0.4.0",
-    "omegaconf>=2.3.0",
     "wandb>=0.16.0",
     "hydra-core>=1.3.0",
     "pyzmq>=25.0.0",
@@ -22,6 +17,13 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+ml = [
+    "mujoco>=3.0.0",
+    "mujoco_mjx>=3.0.0",
+    "brax>=0.10.0",
+    "jax[cuda12]>=0.4.0",
+    "omegaconf>=2.3.0",
+]
 cad = [
     "onshape-to-robot>=0.4.0",
     "pymeshlab>=2025.7,<2026.0",
@@ -29,8 +31,11 @@ cad = [
 
 [project.scripts]
 
-arcdrone-train = "arcdrone.controller.rl.scripts.train:main"
-arcdrone-evaluate = "arcdrone.controller.rl.scripts.evaluate:main"
+arcdrone-train-ppo = "arcdrone.controller.rl.scripts.train:main"
+arcdrone-train-sitt = "arcdrone.controller.sitt.scripts.train:main"
+arcdrone-evaluate-ppo = "arcdrone.controller.rl.scripts.evaluate:main"
+arcdrone-evaluate-sitt = "arcdrone.controller.sitt.scripts.evaluate:main"
+
 
 [tool.setuptools.packages.find]
 where = ["src"]

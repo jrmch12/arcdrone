@@ -20,7 +20,11 @@ def _check_episode_events_impl(self, state):
 
 
     z_position = state.data.qpos[2]  # z-coordinate of drone position
-    ground_violation = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
+    xy_radius = jp.linalg.norm(current_pos[0:2])
+    in_landing_cylinder = xy_radius <= 0.25  # diameter 0.5 m centered at (0, 0)
+
+    ground_violation_raw = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
+    ground_violation = jp.where(in_landing_cylinder, 0.0, ground_violation_raw)
 
   
     # Check termination conditions
@@ -29,8 +33,11 @@ def _check_episode_events_impl(self, state):
         state.info.get('step', 0) >= self.cfg.max_episode_steps,
     )
     
-    # Add ground collision termination (z <= threshold means drone is too close to ground)
-    ground_collision = z_position <= self.cfg.ground_threshold_event
+    # Add ground collision termination (disabled inside the landing cylinder)
+    ground_collision = jp.logical_and(
+        z_position <= self.cfg.ground_threshold_event,
+        jp.logical_not(in_landing_cylinder),
+    )
     done = jp.logical_or(done, ground_collision)
 
 
@@ -60,6 +67,7 @@ def _get_reward_impl(self, state, action):
     # Compute velocity error (Euclidean distance)
     pos_error = jp.linalg.norm(target - current_pos)
     r_distance = jp.exp(-self.cfg.distance_scale * pos_error) * self.cfg.distance_weight
+    r_distance = -pos_error * 0.01 + r_distance
 
     # ==== Oscillation penalty (velocity component sign flip detection) ====
     # Detect oscillations in each velocity component
@@ -110,6 +118,47 @@ def _get_reward_impl(self, state, action):
 
     rt = -self.cfg.time_penalty
     
+
+    # Lets add three conservative rewards. A reward or penalty that encourage the drone to have a horizontal attitude. And a reward or penalty that the drone to have low angular and linear velocities.
+
+    attitude_weight = 0.15
+    angvel_weight = 0.02
+    linvel_weight = 0.01
+
+    quat = state.info['quat_buffer'][0]
+    quat = quat / jp.maximum(jp.linalg.norm(quat), 1e-8)
+    cos_tilt = jp.clip(1.0 - 2.0 * (quat[1] * quat[1] + quat[2] * quat[2]), -1.0, 1.0)
+    tilt_error = 1.0 - cos_tilt
+    r_attitude_level = -attitude_weight * tilt_error
+
+    angvel = state.info['angvel_buffer'][0]
+    linvel = state.info['linvel_buffer'][0]
+    r_low_angvel = -angvel_weight * jp.mean(jp.square(angvel))
+    r_low_linvel = -linvel_weight * jp.mean(jp.square(linvel))
+
+    # reward for low velocity at low altitudes, to smooth landing
+    # only active inside the landing cylinder (r <= 0.25 m from origin)
+    in_landing_cylinder = jp.linalg.norm(current_pos[0:2]) <= 0.25
+
+    z = state.data.qpos[2]                  # height
+    vz = state.info['linvel_buffer'][0][2]  # vertical velocity
+
+    # --- constants ---
+    k = 5.0    # height sharpness
+    c = 25.0   # velocity sharpness
+    weight = 10.0  # max reward at z=0, vz=0
+
+    # height shaping: 0 at z=1m, 1 at z=0m
+    exp_k = jp.exp(-k)
+    height_term = (jp.exp(-k * z) - exp_k) / (1.0 - exp_k)
+    height_term = jp.clip(height_term, 0.0, 1.0)
+
+    # velocity shaping: 1 at vz=0, smooth decay
+    vel_term = jp.exp(-c * vz**2)
+
+    r_soft_landing = jp.where(in_landing_cylinder, weight * height_term * vel_term, 0.0)
+
+
     # ==== Ground penalty ====
 
     # Heavily penalize being near or at ground level to prevent falling
@@ -128,8 +177,20 @@ def _get_reward_impl(self, state, action):
     
     # ==== Total reward ====
 
-    total_reward = (r_distance + rt + ro + r_osc + r_action_chattering + r_action_penalty +
-                    r_ground + success_bonus)
+    total_reward = (
+        r_distance
+        + rt
+        + ro
+        + r_osc
+        + r_action_chattering
+        + r_action_penalty
+        + r_attitude_level
+        + r_low_angvel
+        + r_low_linvel
+        + r_soft_landing
+        + r_ground
+        + success_bonus
+    )
     
 
     # ==== Update variables ====
@@ -145,6 +206,10 @@ def _get_reward_impl(self, state, action):
         'reward_oscillation': r_osc,
         'reward_action_chattering': r_action_chattering,
         'reward_action_penalty': r_action_penalty,
+        'reward_attitude_level': r_attitude_level,
+        'reward_low_angvel': r_low_angvel,
+        'reward_low_linvel': r_low_linvel,
+        'reward_soft_landing': r_soft_landing,
         'reward_ground_penalty': r_ground,
         'reward_success_bonus': success_bonus,
         'reward_total': total_reward,

@@ -14,7 +14,6 @@ import mujoco.viewer
 from arcdrone import (
 	ARCDroneRL_Hover,
 	ARCDroneRL_Landing,
-	ARCDroneRL_Vel,
 	sitt_networks,
 )
 
@@ -79,7 +78,6 @@ def evaluate(
 	env_classes = {
 		"hover": ARCDroneRL_Hover,
 		"landing": ARCDroneRL_Landing,
-		"vel": ARCDroneRL_Vel,
 	}
 	if task_name not in env_classes:
 		raise ValueError(

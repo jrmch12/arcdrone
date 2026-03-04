@@ -1,19 +1,18 @@
-from collections.abc import Mapping
-from typing import Any, Callable
+import jax
+from typing import Any
 
 from flax import struct
 from jax import numpy as jp
 from mujoco_playground._src import mjx_env
 
-from arcdrone.controller.rl.task.vision_mode.obs import _get_obs_impl as _default_student_obs_fn
-
 
 @struct.dataclass
 class StudentData:
     """Student observation data carried alongside the teacher state."""
-    obs: Any                  # flat student observation vector
-    shouldObs: jp.ndarray     # scalar bool — True when obs is valid
-    info: Any = None          # student-specific buffers (same keys as teacher info)
+    obs: Any                  # pixel + action obs dict
+    shouldObs: jp.ndarray     # scalar bool — True when rendering is requested
+    validObs: jp.ndarray      # scalar int  — 1 if this step was actually rendered, 0 if skipped
+    info: Any = None          # student-specific buffers (render_token, obs_history, …)
 
 
 @struct.dataclass
@@ -26,105 +25,68 @@ class StudentWrapper:
     """Wraps a teacher env so student obs live in ``state.student``.
 
     * ``state.obs`` / ``state.info`` are **never modified** — PPO works as usual.
-    * The student obs function (same one used later for RL fine-tuning) is
-      called with a *fake* state whose ``info`` carries the student buffers,
-      and only its outputs are stored back in ``state.student``.
+    * reset: runs teacher_env.reset then student_env.reset; student info is kept
+      in ``state.student.info`` alongside the render token and frame history.
+    * step: runs teacher_env.step then calls _get_obs_impl(student_env, ...) to
+      update the pixel frame-history buffer.
     """
 
-    def __init__(self, teacher_env, student_obs_fn=_default_student_obs_fn):
+    def __init__(self, teacher_env, student_env):
         self.teacher_env = teacher_env
-        self.student_obs_fn = student_obs_fn
+        self.student_env = student_env
 
     def __getattr__(self, name):
         return getattr(self.teacher_env, name)
 
     # ------------------------------------------------------------------
-    # Core: call student_obs_fn with student buffers, return (obs, info)
-    # ------------------------------------------------------------------
-
-    def _run_student_obs_fn(self, state, action, student_info):
-        """Run the student obs function on a fake state built from *student_info*.
-
-        The student_obs_fn signature is ``fn(env, state, action) -> state``
-        where the returned ``state.obs`` contains the student observation dict
-        and ``state.info`` contains the updated student buffers.
-        """
-        fake_state = state.replace(info=student_info)
-        out = self.student_obs_fn(self.teacher_env, fake_state, action)
-        # Extract flat obs from the dict returned by the student obs function
-        obs = out.obs
-        if isinstance(obs, Mapping):
-            obs = obs.get("state", next(iter(obs.values())))
-        return obs, out.info
-
-    def _init_student_info(self, state, rng):
-        """Initialise the student-specific info dict that vision_mode/obs.py needs.
-
-        Mirrors teacher._initialize_state_vars but owns its own buffer copies so
-        teacher info is never aliased or mutated by student obs computation.
-        """
-        data = state.data
-        buf  = self.teacher_env.cfg.buffer_size
-        nu   = self.teacher_env.action_size
-
-        quat   = data.sensordata[0:4]
-        angvel = data.sensordata[4:7]
-        linacc = data.sensordata[7:10]
-        linvel = data.sensordata[10:13]
-        pos    = data.qpos[0:3]
-
-        return {
-            'rng':               rng,
-            'target_attitude':   jp.zeros(3),
-            # clean buffers — filled with t=0 sensor reading repeated
-            'action_buffer':         jp.zeros((buf, nu)),
-            'target_vel_buffer':     jp.zeros((buf, 3)),
-            'linacc_buffer':         jp.tile(linacc, (buf, 1)),
-            'quat_buffer':           jp.tile(quat,   (buf, 1)),
-            'angvel_buffer':         jp.tile(angvel, (buf, 1)),
-            'linvel_buffer':         jp.tile(linvel, (buf, 1)),
-            'pos_buffer':            jp.tile(pos,    (buf, 1)),
-            # noisy copies (same values at t=0, noise injected on first step)
-            'linacc_buffer_noisy':   jp.tile(linacc, (buf, 1)),
-            'quat_buffer_noisy':     jp.tile(quat,   (buf, 1)),
-            'angvel_buffer_noisy':   jp.tile(angvel, (buf, 1)),
-            'linvel_buffer_noisy':   jp.tile(linvel, (buf, 1)),
-        }
-
-    # ------------------------------------------------------------------
 
     def reset(self, rng):
-        state = self.teacher_env.reset(rng)
+        # 1. Full teacher reset
+        teacher_state = self.teacher_env.reset(rng)
 
-        # Initialise student buffers directly from physics state — no need to
-        # call the obs fn here.  The obs vector shape is known analytically:
-        #   buffer_size * (linacc3 + linvel3 + quat4 + angvel3 + target3 + action_nu + pos3)
-        buf = self.teacher_env.cfg.buffer_size
-        nu  = self.teacher_env.action_size
-        obs_size = buf * (3 + 3 + 4 + 3 + 3 + nu + 3)
+        # 2. Full student reset (initialises render_token + obs_history)
+        student_state = self.student_env.reset(rng)
 
+        # 3. Carry student's info (render_token, obs_history, buffers…) in StudentData
         student = StudentData(
-            obs=jp.zeros(obs_size),   # zeros — not valid yet
+            obs=student_state.obs,
             shouldObs=jp.array(False),
-            info=self._init_student_info(state, rng),
+            validObs=jp.array(0),
+            info=student_state.info,
         )
+
         return StudentState(
-            data=state.data, obs=state.obs, reward=state.reward,
-            done=state.done, metrics=state.metrics, info=state.info,
+            data=teacher_state.data,
+            obs=teacher_state.obs,
+            reward=teacher_state.reward,
+            done=teacher_state.done,
+            metrics=teacher_state.metrics,
+            info=teacher_state.info,
             student=student,
         )
 
     def step(self, state, action):
+        # 1. Teacher step
         state = self.teacher_env.step(state, action)
 
-        # Always run the obs fn to keep student buffers (FIFO history) up to date.
-        # shouldObs is read from the state — training sets it before align rollouts.
+        # 2. Student obs: only render when shouldObs=True (rendering is expensive)
         shouldObs = state.student.shouldObs
-        obs, info = self._run_student_obs_fn(state, action, state.student.info)
+
+        def do_render(_):
+            state_with_student_info = state.replace(info=state.student.info)
+            out = self.student_env._get_obs(state_with_student_info, action)
+            return out.obs, out.info
+
+        def skip_render(_):
+            zero_obs = jax.tree_util.tree_map(jp.zeros_like, state.student.obs)
+            return zero_obs, state.student.info
+
+        student_obs, student_info = jax.lax.cond(shouldObs, do_render, skip_render, None)
 
         student = StudentData(
-            obs=jp.where(shouldObs, obs, jp.zeros_like(obs)),
-            shouldObs=shouldObs,  # preserved — caller controls this via state
-            info=info,
+            obs=student_obs,
+            shouldObs=shouldObs,
+            validObs=jp.where(shouldObs, jp.array(1), jp.array(0)),
+            info=student_info,
         )
         return state.replace(student=student)
