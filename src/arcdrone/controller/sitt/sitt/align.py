@@ -92,7 +92,7 @@ def align(
         None,
         length=align_updates_per_trigger,
     )
-    align_loss = jnp.mean(losses)
+    align_loss = jnp.mean(losses)  # this is just for logging purposes -> metrics
 
     new_params = (
         policy_dec_params,

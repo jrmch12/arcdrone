@@ -1,0 +1,99 @@
+# @package _global_
+task_name: landing
+# name: arcdrone
+# file_path: task/arcdrone.py
+
+
+
+env:
+
+  # ==== General setup ====
+  numEnvs: 2
+  mj_timestep: 0.004
+  n_frames: 5
+  backend: "mjx"
+  xml_path_rel: "assets/skydio_x2/scene.xml"
+  eval_mode: False
+
+  max_episode_steps: 250           # Maximum episode steps
+
+ 
+ # ==== Event / Termination script  ====
+  hover_xy_success_threshold: 0.15
+  hover_z_success_threshold: 0.10
+  success_steps_required: 5
+  success_bonus: 50.0
+
+
+  # ==== Reward script ====
+
+  # Distance reward
+  hover_z_exp_scale: 5.0
+  hover_z_dense_weight: 1.0
+
+  # Oscillation penalty
+  hover_z_weight: 2.0
+
+  # Overshoot penalty
+  hover_z_progress_weight: 5.0
+
+  # Action penalties
+  action_chattering_weight: 0.001
+  action_penalty_weight: 0.0001
+
+  # Time penalty
+  time_penalty: 0.01
+
+  # Ground / crash penalty
+  crash_height: 0.10
+  crash_penalty: 100.0
+
+
+  # ==== Observation script ====
+  buffer_size: 5
+
+  # ===== Reset script ====
+  reset_xy_range: 0.3
+  reset_z: 1.5
+
+  # ==== Target script ====
+  landing_target_x: 0.0
+  landing_target_y: 0.0
+  landing_target_z: 1.5
+
+
+train:
+
+  # PPO Hyperparameters
+  num_timesteps: 100
+  num_evals: 5
+  reward_scaling: 1
+  episode_length: ${env.max_episode_steps}
+  normalize_observations: true
+  action_repeat: 1
+  unroll_length: 10
+  num_minibatches: 24
+  num_updates_per_batch: 8
+  log_training_metrics: false
+  discounting: 0.97
+  learning_rate: 3e-4
+  entropy_cost: 1e-3
+  num_envs: ${env.numEnvs}
+  batch_size: 512
+  seed: 0
+
+  # Network Architecture
+  policy_hidden_layers: [512, 512, 256, 128]
+  value_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "state"
+  value_obs_key: "privileged_state"
+
+  # WandB Configuration
+  use_wandb: true
+  wandb_project: "brax-training"
+  wandb_run_name: "arcdrone_landing_ppo_run"
+
+  # Train from checkpoint
+  restore_params_path: null
+  restore_value_fn: true
+  frompreviouscheckpoint: 0   # 0,1,2,3. This flag overrides the two previous ones. 0 sets false. 1 sets true and uses the last checkpoint. 2 sets true and uses the one before last checkpoint. 3 sets true and uses the one before that.
