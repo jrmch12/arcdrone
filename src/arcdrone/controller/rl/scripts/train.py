@@ -38,13 +38,12 @@ def main(cfg: DictConfig):
         ppo_networks_vision = None
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
+    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 
     # Map task names to environment classes
     ENV_CLASSES = {
         'hover': ARCDroneRL_Hover,
         'landing': ARCDroneRL_Landing,
-        'vel': ARCDroneRL_Vel,
     }
 
     task_name = cfg.task_name

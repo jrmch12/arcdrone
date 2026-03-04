@@ -13,7 +13,7 @@ import functools
 import mujoco
 from mujoco import mjx
 import mujoco.viewer
-from arcdrone import ARCDroneRL_Vel, ARCDroneRL_Landing, ARCDroneRL_Hover
+from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 
 
 def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
@@ -78,7 +78,6 @@ def evaluate(
     ENV_CLASSES = {
         'hover': ARCDroneRL_Hover,
         'landing': ARCDroneRL_Landing,
-        'vel': ARCDroneRL_Vel,
     }
 
     print(f"Instantiating environment for task: '{task_name}'")

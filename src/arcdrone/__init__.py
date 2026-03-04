@@ -16,7 +16,7 @@ __author__ = "Jose Mares"
 
 __all__ = ["__version__", "__author__"]
 
-from .controller.rl.task.velocity_mode.arcdrone import ARCDroneRL_Vel
+# from .controller.rl.task.velocity_mode.arcdrone import ARCDroneRL_Vel
 from .controller.rl.task.landing_mode.arcdrone import ARCDroneRL_Landing
 from .controller.rl.task.hover_mode.arcdrone import ARCDroneRL_Hover
 

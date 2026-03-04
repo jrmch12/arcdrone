@@ -34,11 +34,11 @@
     <body name="x2" pos="0 0 0.1" childclass="x2">
       <freejoint/>
       <camera name="track" pos="-1 0 .5" xyaxes="0 -1 0 1 0 2" mode="trackcom"/>
-      <!-- <body name="x2_camera_mount" pos="-0.15 0 0.05" childclass="visual">
-      <joint name="x2_camera_tilt" type="hinge" axis="0 1 0" limited="true" range="-1.5708 0" damping="0.5"/>
-      <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-      <camera name="x2_camera" pos="0 0 0" xyaxes="0 1 0 0 0 1"/>
-      </body> -->
+      <body name="x2_camera_mount" pos="-0.15 0 0.05" childclass="visual">
+        <joint name="x2_camera_tilt" type="hinge" axis="0 1 0" limited="true" range="-1.5708 0" damping="0.5"/>
+        <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
+        <camera name="x2_camera" pos="0 0 0" xyaxes="0 1 0 0 0 1"/>
+      </body>
       <site name="imu" pos="0 0 .02"/>
       <geom material="phong3SG" mesh="X2_lowpoly" class="visual" quat="0 0 1 1"/>
       <geom class="collision" size=".06 .027 .02" pos=".04 0 .02"/>
@@ -62,7 +62,7 @@
     <motor class="x2" name="thrust2" site="thrust2" gear="0 0 1 0 0  .0201"/>
     <motor class="x2" name="thrust3" site="thrust3" gear="0 0 1 0 0 -.0201"/>
     <motor class="x2" name="thrust4" site="thrust4" gear="0 0 1 0 0  .0201"/>
-    <!-- <position name="x2_camera_servo" joint="x2_camera_tilt" ctrlrange="-1.5708 0" kp="0.5"/> -->
+    <position name="x2_camera_servo" joint="x2_camera_tilt" ctrlrange="-1.5708 0" kp="0.5"/>
   </actuator>
 
   <sensor>

@@ -2,7 +2,7 @@
 
 defaults:
   - task: hover
-  - train: ${task}_sitt      # I dont know why this works, but does.
+  - train: ${task}_ppo      # I dont know why this works, but does.
   - override hydra/job_logging: default  
   - override hydra/hydra_logging: default  
   - _self_
