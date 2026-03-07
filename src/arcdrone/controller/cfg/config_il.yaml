@@ -1,0 +1,20 @@
+# cfg/config_il.yaml
+# Hydra config root for IL training.
+#
+# Usage:
+#   arcdrone-train-il task=landing
+#   arcdrone-train-il task=landing train.teacher_checkpoint_path=outputs/.../trained_model.pkl
+
+defaults:
+  - task: landing
+  - train: ${task}_il
+  - override hydra/job_logging: default
+  - override hydra/hydra_logging: default
+  - _self_
+
+# Global configuration flags
+debug_cpu: false
+
+hydra:
+  run:
+    dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

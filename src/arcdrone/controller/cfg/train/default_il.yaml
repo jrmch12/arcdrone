@@ -1,0 +1,37 @@
+# @package _global_
+
+# Default IL training hyperparameters.
+# Task-specific IL configs (e.g. landing_il.yaml) inherit from this.
+
+train:
+
+  # ---- schedule ----
+  num_il_epochs: 200
+  num_evals: 10
+  num_unrolls_per_epoch: 50
+  align_updates_per_trigger: 4
+
+  # ---- environment ----
+  episode_length: 200
+  action_repeat: 1
+  num_envs: 2
+  unroll_length: 10
+  normalize_observations: true
+  seed: 0
+
+  # ---- optimizer ----
+  learning_rate: 1e-4
+
+  # ---- Madrona/JAX runtime resources ----
+  # Set to null to leave the environment variable unchanged.
+  madrona_kernel_cache: null
+  # Similar to tutorial example (limit_jax_mem(0.6)).
+  jax_mem_fraction: 0.6
+  # 1 GB default heap for Madrona renderer.
+  madrona_device_heap_size: 1073741824
+
+  # ---- Teacher checkpoint (REQUIRED — override on CLI or task config) ----
+  teacher_checkpoint_path: null
+
+  # ---- Logging ----
+  use_wandb: true

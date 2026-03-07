@@ -14,7 +14,7 @@
       <default class="collision">
         <geom group="3" type="box"/>
         <default class="rotor">
-          <geom type="ellipsoid" size=".13 .13 .01"/>
+          <geom type="cylinder" size=".13 .01"/>
         </default>
       </default>
       <site group="5"/>
@@ -49,7 +49,7 @@
       <geom name="rotor2" class="rotor" pos="-.14 .18 .05" mass=".25"/>
       <geom name="rotor3" class="rotor" pos=".14 .18 .08" mass=".25"/>
       <geom name="rotor4" class="rotor" pos=".14 -.18 .08" mass=".25"/>
-      <geom size=".16 .04 .02" pos="0 0 0.02" type="ellipsoid" mass=".325" class="visual" material="invisible"/>
+      <geom size=".16 .04 .02" pos="0 0 0.02" type="box" mass=".325" class="visual" material="invisible"/>
       <site name="thrust1" pos="-.14 -.18 .05"/>
       <site name="thrust2" pos="-.14 .18 .05"/>
       <site name="thrust3" pos=".14 .18 .08"/>

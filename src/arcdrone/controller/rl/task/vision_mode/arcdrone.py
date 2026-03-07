@@ -1,19 +1,15 @@
-import warnings
-
 import jax
 from jax import numpy as jp
 import mujoco
 from mujoco import mjx
-import numpy as np
 from ml_collections import config_dict
 from omegaconf import DictConfig, OmegaConf
-from flax import struct
 
 # MjxEnv base
 from mujoco_playground._src import mjx_env
 
 # RL helper functions
-from .obs import _get_obs_impl, _rgba_to_grayscale
+from .obs import _get_obs_impl
 from .reward import _get_reward_impl  
 from .reward import _check_episode_events_impl  
 from .target import _get_target_impl
@@ -63,26 +59,19 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
         self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
-        # Vision setup
-        self._vision_history = int(self.cfg.get('vision_history', 3))
-        try:
-            from madrona_mjx.renderer import BatchRenderer
-        except ImportError:
-            warnings.warn("Madrona MJX not installed. Vision rendering unavailable.")
-            raise
-
-        self.renderer = BatchRenderer(
-            m=self._mjx_model,
-            gpu_id=int(self.cfg.get('vision_gpu_id', 0)),
-            num_worlds=int(self.cfg.get('vision_render_batch_size', 512)),
-            batch_render_view_width=int(self.cfg.get('vision_render_width', 64)),
-            batch_render_view_height=int(self.cfg.get('vision_render_height', 64)),
-            enabled_geom_groups=np.asarray(list(self.cfg.get('vision_enabled_geom_groups', [0, 1, 2]))),
-            enabled_cameras=np.asarray([0]),
-            add_cam_debug_geo=False,
-            use_rasterizer=bool(self.cfg.get('vision_use_rasterizer', False)),
-            viz_gpu_hdls=None,
+        # Vision setup (warp-based rendering pipeline)
+        self._vision_history = int(self.cfg.vision_config.history)
+        vision_kwargs = self.cfg.vision_config.to_dict()
+        vision_kwargs.pop('history', None)  # not a render-context parameter
+        # YAML lists → tuples so the warp API auto-broadcasts correctly
+        for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
+            if k in vision_kwargs and isinstance(vision_kwargs[k], list):
+                vision_kwargs[k] = tuple(vision_kwargs[k])
+        self._rc = mjx.create_render_context(
+            mjm=self._mj_model,
+            **vision_kwargs,
         )
+        self._rc_pytree = self._rc.pytree()
 
 
 
@@ -99,16 +88,26 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
             qpos=qpos,
             qvel=qvel,
             impl=self._mjx_model.impl.value,
-            nconmax=self._config.nconmax,
+            naconmax=self._config.naconmax,
             njmax=self._config.njmax,
         )
         data = mjx.forward(self._mjx_model, data)
 
         info = self._initialize_state_vars(data, rng)
 
+        # Vision: render initial frame and build the frame-stack + action buffer
+        render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
+        out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
+        rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
+        gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        frame_stack = jp.repeat(gray, self._vision_history, axis=-1)  # (H, W, history)
+        action_buffer = jp.zeros((self._vision_history, self._mjx_model.nu))
+        info = {**info, "frame_stack": frame_stack, "action_buffer": action_buffer}
+        obs = {"pixels/view_0": frame_stack}
+
         state = mjx_env.State(
             data=data,
-            obs=jp.array(0.0),
+            obs=obs,
             reward=jp.array(0.0),
             done=jp.array(0.0),
             metrics=self._initialize_metrics(),
@@ -117,18 +116,20 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
 
         state = self._get_target(state)
 
-        # Vision: initialise renderer and build the frame-history + action buffer
-        render_token, rgb, _ = self.renderer.init(state.data, self._mjx_model)
-        obs_gray = _rgba_to_grayscale(rgb[0].astype(jp.float32)) / 255.0
-        obs_history   = jp.tile(obs_gray, (self._vision_history, 1, 1))
-        action_buffer = jp.zeros((self._vision_history, self._mjx_model.nu))
-        info = {**state.info, "render_token": render_token,
-                "obs_history": obs_history, "action_buffer": action_buffer}
-        obs = {
-            "pixels/view_0": obs_history.transpose(1, 2, 0),  # (H, W, history)
-            "state": action_buffer.flatten(),                  # (history * nu,)
-        }
-        state = state.replace(obs=obs, info=info)
+        # Build the real initial privileged_state from sensor buffers now that
+        # target is set.  Mirrors what _get_obs_impl does each step.
+        # NOTE: keep in sync with obs.py — uncomment both together to re-enable.
+        # _i = state.info
+        # privileged_state = jp.concatenate([
+        #     _i["linacc_buffer"].flatten(),
+        #     _i["linvel_buffer"].flatten(),
+        #     _i["quat_buffer"].flatten(),
+        #     _i["angvel_buffer"].flatten(),
+        #     _i["target_buffer"].flatten(),
+        #     _i["action_buffer"].flatten(),
+        #     _i["pos_buffer"].flatten(),
+        # ])
+        # state = state.replace(obs={**state.obs, "privileged_state": privileged_state})
 
         return state
     
@@ -165,33 +166,39 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
     def _sample_initial_state(self, rng: jp.ndarray):
         """Sample initial position and velocity for the drone.
         
-        Drone starts at 1.5m above ground with zero velocity.
-        Position can be slightly randomized if configured.
+        Drone starts at ~1.5m above ground with small random perturbation.
+        
+        NOTE: qpos MUST depend on `rng` so that JAX traces it through
+        jax.vmap.  If qpos were a pure constant the warp render output
+        would not carry a batch dimension and mjx.get_rgb would crash
+        with a shape mismatch.
         
         Args:
             rng: Random key for sampling
             
         Returns:
-            qpos: (7,) array [x, y, z, qw, qx, qy, qz] - position and orientation quaternion
-            qvel: (6,) array [vx, vy, vz, wx, wy, wz] - linear and angular velocity
+            qpos: (nq,) array — position and orientation quaternion (+ any extra joints)
+            qvel: (nv,) array — linear and angular velocity
         """
-        # Initial position: 1.5m above ground (z=1.5)
-        # Base qpos layout for a free joint + quaternion: [x, y, z, qw, qx, qy, qz]
+        rng, rng_pos, rng_vel = jax.random.split(rng, 3)
+
+        # Nominal pose
         position = jp.array([0.0, 3.0, 1.5])
         quaternion = jp.array([1.0, 0.0, 0.0, 0.0])
 
-        # Build qpos with correct length (model may define additional joints, e.g. camera tilt)
+        # Small random perturbation on xyz (keeps trace alive under vmap
+        # and helps exploration).
+        position = position + 0.01 * jax.random.normal(rng_pos, (3,))
+
+        # Build qpos with correct length (model may define additional joints)
         nq = int(self._mjx_model.nq)
         qpos = jp.zeros(nq)
-        # fill base pose (first 7 entries)
         qpos = qpos.at[0:3].set(position)
         qpos = qpos.at[3:7].set(quaternion)
 
-        # If the model has extra joint coordinates (e.g. hinge for camera), leave them at zero
-
-        # Build qvel with correct length
+        # Build qvel with a tiny random kick (also keeps trace alive)
         nv = int(self._mjx_model.nv)
-        qvel = jp.zeros(nv)
+        qvel = 0.001 * jax.random.normal(rng_vel, (nv,))
 
         return qpos, qvel
 

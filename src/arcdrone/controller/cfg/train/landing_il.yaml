@@ -1,0 +1,35 @@
+# @package _global_
+
+# IL (Imitation Learning) training config for the landing task.
+# Requires a pre-trained teacher checkpoint.
+#
+# Usage:
+#   arcdrone-train-il task=landing
+#   arcdrone-train-il task=landing train.teacher_checkpoint_path=/path/to/model.pkl
+
+train:
+
+  # ---- IL-specific ----
+  teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
+
+  num_il_epochs: 200              # number of collect-then-align cycles
+  num_unrolls_per_epoch: 50       # unroll segments collected per epoch
+  align_updates_per_trigger: 4    # gradient steps per epoch
+
+  # ---- Network Architecture (must match teacher checkpoint) ----
+  proxy_hidden_layers: [512, 512, 256, 128]
+  student_hidden_layers: [512, 512, 256, 128]
+  action_hidden_layers: [512, 512, 256, 128]
+  policy_hidden_layers: [512, 512, 256, 128]
+  value_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "state"
+  value_obs_key: "privileged_state"
+
+  # ---- WandB ----
+  use_wandb: true
+  wandb_project: "brax-training"
+  wandb_run_name: "arcdrone_landing_il_run"
+
+
+defaults:
+  - default_il

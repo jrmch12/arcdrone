@@ -6,7 +6,7 @@
 #       of the config instead of under a nested key:
 
 
-task_name: landing
+task_name: vision
 # name: arcdrone
 # file_path: task/arcdrone.py
 
@@ -21,22 +21,23 @@ env:
   # numEnvs inherits from train.num_envs by default
   # numEnvs: ${train.num_envs}
   xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
-  impl: "jax"
+  impl: "warp"
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
-  nconmax: 0
+  naconmax: 0
   njmax: 2
-  vision: false
+  vision: true
   vision_config:
-    gpu_id: 0
-    render_batch_size: ${train.num_envs}
-    render_width: 64
-    render_height: 64
+    nworld: ${train.num_envs}
+    cam_res: [64, 64]
+    use_textures: false
+    use_shadows: false
+    render_rgb: [true]
+    render_depth: [false]
     enabled_geom_groups: [0, 1, 2]
-    use_rasterizer: false
+    cam_active: [true, false, false]
     history: ${env.buffer_size}
-  
   
   # ==== Task specific ====
 

@@ -76,6 +76,7 @@ logs/
 # # Custom folders
 outputs/
 wandb/
+madrona_cache/
 # tools/mjo
 # reference/
 # borrador_mjo/

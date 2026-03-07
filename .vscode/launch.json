@@ -24,13 +24,34 @@
             "justMyCode": false
         },
         {
+            "name": "Debug Vision PPO",
+            "type": "python",
+            "request": "launch",
+            "program": "${workspaceFolder}/src/arcdrone/controller/rl/scripts/train.py",
+            "args": [
+                "task=vision",
+                "train.num_envs=512",
+                "train.unroll_length=32",
+                "train.batch_size=512",
+                "train.num_minibatches=8",
+                "train.num_updates_per_batch=16",
+                "train.num_timesteps=6000000",
+                "train.use_wandb=false",
+                "train.num_evals=30"
+            ],
+            "console": "integratedTerminal",
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
+        },
+        {
             "name": "Debug Current Script",
             "type": "python",
             "request": "launch",
             "program": "${file}",
             "args": [],
             "console": "integratedTerminal",
-            "cwd": "${workspaceFolder}"
+            "cwd": "${workspaceFolder}",
+            "justMyCode": false
         }
     ]
 }

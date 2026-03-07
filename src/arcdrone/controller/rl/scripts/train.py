@@ -9,6 +9,22 @@ import functools
 import os
 import glob
 
+
+
+# =========== Madrona + JAX memory/runtime setup ===========
+
+# On your second reading, load the compiled rendering backend to save time!
+# os.environ["MADRONA_MWGPU_KERNEL_CACHE"] = "<YOUR_PATH>/madrona_mjx/build/cache"
+os.environ["MADRONA_MWGPU_KERNEL_CACHE"] = "/home/jrmch12f/Documents/code/borrador_braxenvs/madrona_cache"
+# Coordinate between Jax and the Madrona rendering backend
+def limit_jax_mem(limit):
+    os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = f"{limit:.2f}"
+limit_jax_mem(0.6)
+# Madrona device heap – 1GB is fine for simple models (cartpole).
+# For mesh-heavy models (drone) with 512+ worlds, use ~4GB.
+os.environ["MADRONA_MWGPU_DEVICE_HEAP_SIZE"] = str(2 * 1024**3)  # 4 GB
+
+
 # These imports need to be available before the main function
 from omegaconf import DictConfig, OmegaConf
 import hydra
@@ -38,12 +54,13 @@ def main(cfg: DictConfig):
         ppo_networks_vision = None
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
+    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover, ARCDroneRL_VisionLanding
 
     # Map task names to environment classes
     ENV_CLASSES = {
         'hover': ARCDroneRL_Hover,
         'landing': ARCDroneRL_Landing,
+        'vision': ARCDroneRL_VisionLanding,
     }
 
     task_name = cfg.task_name
