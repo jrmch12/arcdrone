@@ -19,6 +19,9 @@ __all__ = ["__version__", "__author__"]
 # from .controller.rl.task.velocity_mode.arcdrone import ARCDroneRL_Vel
 from .controller.rl.task.landing_mode.arcdrone import ARCDroneRL_Landing
 from .controller.rl.task.hover_mode.arcdrone import ARCDroneRL_Hover
+from .controller.rl.task.vision_mode.arcdrone import ARCDroneRL_VisionLanding
 
 from .controller.sitt.sitt import train as sitt_train
 from .controller.sitt.sitt import networks as sitt_networks
+
+from .controller.il.il import train as il_train

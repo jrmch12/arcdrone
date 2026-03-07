@@ -1,33 +1,68 @@
 import jax.numpy as jp
-
-
-def _rgba_to_grayscale(rgba):
-    """Intensity-weighted RGBA → grayscale. Channels must be in the last dim."""
-    r, g, b = rgba[..., 0], rgba[..., 1], rgba[..., 2]
-    return 0.2989 * r + 0.5870 * g + 0.1140 * b
+from mujoco import mjx
 
 
 def _get_obs_impl(self, state, action):
-    """Render one frame, roll both image and action history buffers, return pixel obs."""
-    _, rgb, _ = self.renderer.render(state.info["render_token"], state.data)
+    """Render one frame, shift frame_stack + all sensor buffers, return pixel obs."""
+    data = state.data
 
-    # ── Image buffer: index 0 = newest frame ────────────────────────────────
-    obs_history = state.info["obs_history"]
-    obs_history = jp.roll(obs_history, 1, axis=0)
-    obs_history = obs_history.at[0].set(
-        _rgba_to_grayscale(rgb[0].astype(jp.float32)) / 255.0
-    )
+    # ── Render current frame (warp pipeline) ─────────────────────────────────
+    render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
+    out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
+    rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
+    gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+
+    # ── Frame stack: drop oldest, append newest ──────────────────────────────
+    prev_stack = state.info["frame_stack"]  # (H, W, history)
+    frame_stack = jp.concatenate([prev_stack[..., 1:], gray], axis=-1)
 
     # ── Action buffer: index 0 = most recent action ──────────────────────────
     action_buffer = state.info["action_buffer"]   # (history, nu)
     action_buffer = jp.roll(action_buffer, 1, axis=0)
     action_buffer = action_buffer.at[0].set(action)
 
+    # ── Sensor buffers for privileged critic obs (same as landing_mode) ──────
+    quat    = data.sensordata[0:4]
+    angvel  = data.sensordata[4:7]
+    linacc  = data.sensordata[7:10]
+    linvel  = data.sensordata[10:13]
+    pos     = data.qpos[0:3]
+    target  = state.info.get("target", jp.zeros(3))
+
+    linacc_buffer = jp.concatenate([linacc[jp.newaxis, :], state.info["linacc_buffer"][:-1, :]], axis=0)
+    linvel_buffer = jp.concatenate([linvel[jp.newaxis, :], state.info["linvel_buffer"][:-1, :]], axis=0)
+    quat_buffer   = jp.concatenate([quat[jp.newaxis, :],   state.info["quat_buffer"][:-1, :]],   axis=0)
+    angvel_buffer = jp.concatenate([angvel[jp.newaxis, :], state.info["angvel_buffer"][:-1, :]], axis=0)
+    pos_buffer    = jp.concatenate([pos[jp.newaxis, :],    state.info["pos_buffer"][:-1, :]],    axis=0)
+    target_buffer = jp.concatenate([target[jp.newaxis, :], state.info["target_buffer"][:-1, :]], axis=0)
+
+    # ── Privileged critic obs (clean sensors, identical to landing_mode) ─────
+    privileged_state = jp.concatenate([
+        linacc_buffer.flatten(),
+        linvel_buffer.flatten(),
+        quat_buffer.flatten(),
+        angvel_buffer.flatten(),
+        target_buffer.flatten(),
+        action_buffer.flatten(),
+        pos_buffer.flatten(),
+    ])
+
     # ── Build obs dict ───────────────────────────────────────────────────────
     obs = {
-        "pixels/view_0": obs_history.transpose(1, 2, 0),   # (H, W, history)
-        "state": action_buffer.flatten(),                   # (history * nu,)
+        "pixels/view_0": frame_stack,  # (H, W, history)
+        #"state":           action_buffer.flatten(),          # (history * nu,)
+        #"privileged_state": privileged_state,                # critic obs
     }
 
-    info = {**state.info, "obs_history": obs_history, "action_buffer": action_buffer}
+    info = {
+        **state.info,
+        "frame_stack":   frame_stack,
+        "action_buffer": action_buffer,
+        "linacc_buffer": linacc_buffer,
+        "linvel_buffer": linvel_buffer,
+        "quat_buffer":   quat_buffer,
+        "angvel_buffer": angvel_buffer,
+        "pos_buffer":    pos_buffer,
+        "target_buffer": target_buffer,
+    }
     return state.replace(obs=obs, info=info)

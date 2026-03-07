@@ -1,3 +1,4 @@
+README.md
 pyproject.toml
 src/arcdrone/__init__.py
 src/arcdrone.egg-info/PKG-INFO
@@ -9,6 +10,11 @@ src/arcdrone.egg-info/top_level.txt
 src/arcdrone/controller/__init__.py
 src/arcdrone/controller/cfg/__init__.py
 src/arcdrone/controller/cfg/task/__init__.py
+src/arcdrone/controller/il/__init__.py
+src/arcdrone/controller/il/il/__init__.py
+src/arcdrone/controller/il/il/train.py
+src/arcdrone/controller/il/scripts/__init__.py
+src/arcdrone/controller/il/scripts/train.py
 src/arcdrone/controller/rl/__init__.py
 src/arcdrone/controller/rl/scripts/__init__.py
 src/arcdrone/controller/rl/scripts/evaluate.py
@@ -24,7 +30,10 @@ src/arcdrone/controller/rl/task/landing_mode/arcdrone.py
 src/arcdrone/controller/rl/task/landing_mode/obs.py
 src/arcdrone/controller/rl/task/landing_mode/reward.py
 src/arcdrone/controller/rl/task/landing_mode/target.py
+src/arcdrone/controller/rl/task/vision_mode/arcdrone.py
 src/arcdrone/controller/rl/task/vision_mode/obs.py
+src/arcdrone/controller/rl/task/vision_mode/reward.py
+src/arcdrone/controller/rl/task/vision_mode/target.py
 src/arcdrone/controller/sitt/__init__.py
 src/arcdrone/controller/sitt/env/student_wrapper.py
 src/arcdrone/controller/sitt/scripts/__init__.py

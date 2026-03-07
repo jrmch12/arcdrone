@@ -33,6 +33,7 @@ cad = [
 
 arcdrone-train-ppo = "arcdrone.controller.rl.scripts.train:main"
 arcdrone-train-sitt = "arcdrone.controller.sitt.scripts.train:main"
+arcdrone-train-il = "arcdrone.controller.il.scripts.train:main"
 arcdrone-evaluate-ppo = "arcdrone.controller.rl.scripts.evaluate:main"
 arcdrone-evaluate-sitt = "arcdrone.controller.sitt.scripts.evaluate:main"
 
