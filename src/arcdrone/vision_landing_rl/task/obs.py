@@ -47,8 +47,8 @@ def _get_obs_impl(self, state, action):
 
     # ── Build obs dict ───────────────────────────────────────────────────────
     obs = {
-        "pixels/view_0": frame_stack,  # (H, W, history)
-        "policy_state":           action_buffer.flatten(),          # (history * nu,)
+        "policy_state_pixels": frame_stack,  # (H, W, history)
+        "policy_state_propio":           action_buffer.flatten(),          # (history * nu,)
         "value_state": value_state,                # critic obs
     }
 

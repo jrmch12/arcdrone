@@ -17,63 +17,41 @@ import numpy as np
 from mujoco_playground import wrapper
 
 
-@hydra.main(config_name="config", config_path="../../cfg", version_base=None)
+@hydra.main(config_name="config", config_path="./cfg", version_base=None)
 def main(cfg: DictConfig):
-    # =========== Handle CPU debugging mode ===========
-    if cfg.get('debug_cpu', False):
-        print("DEBUG: Running in CPU mode")
-        os.environ["JAX_PLATFORM_NAME"] = "cpu"  
-        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
-    # =========== Warp + JAX runtime setup (vision tasks only) ===========
+    # =========== Warp + JAX runtime setup ===========
     # Must happen BEFORE JAX is imported so XLA flags take effect.
-    if cfg.env.get('vision', False):
-        print("Vision mode: applying Warp/XLA runtime settings")
-        xla_flags = os.environ.get("XLA_FLAGS", "")
-        xla_flags += " --xla_gpu_triton_gemm_any=True"
-        os.environ["XLA_FLAGS"] = xla_flags
-        # Let Warp manage GPU memory — disable JAX pre-allocation
-        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-        os.environ["MUJOCO_GL"] = "egl"
+    xla_flags = os.environ.get("XLA_FLAGS", "")
+    xla_flags += " --xla_gpu_triton_gemm_any=True"
+    os.environ["XLA_FLAGS"] = xla_flags
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    os.environ["MUJOCO_GL"] = "egl"
 
     # Import JAX-related modules after setting environment variables
     from brax.training.agents.ppo import train as ppo
-    from brax.training.agents.ppo import networks as ppo_networks
-    # vision networks (optional)
-    try:
-        from brax.training.agents.ppo import networks_vision as ppo_networks_vision
-    except Exception:
-        ppo_networks_vision = None
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover, ARCDroneRL_VisionLanding
+    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
+    from arcdrone.vision_landing_rl.training.networks import make_ppo_networks_vision
 
-    # Map task names to environment classes
-    ENV_CLASSES = {
-        'hover': ARCDroneRL_Hover,
-        'landing': ARCDroneRL_Landing,
-        'vision': ARCDroneRL_VisionLanding,
-    }
+    # =========== Environment ===========
 
-    task_name = cfg.task_name
     env_cfg = cfg.env
-    print(f"Instantiating environment for task: '{task_name}'")
-    if task_name not in ENV_CLASSES:
-        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
-    env_class = ENV_CLASSES[task_name]
-    env = env_class(cfg=cfg.env)
+    print("Instantiating ARCDroneRL_VisionLanding...")
+    env = ARCDroneRL_VisionLanding(cfg=env_cfg)
 
-    # Wrap environment for Brax training (VmapWrapper + EpisodeWrapper + AutoResetWrapper).
-    # NOTE: wrap_env=False is passed to ppo.train below to avoid double-wrapping.
-    # Warp batching is handled transparently via jax.vmap inside VmapWrapper.
+    print("Environment instantiated successfully")
+
+    # =========== Wrap for Brax training ===========
+
     env = wrapper.wrap_for_brax_training(
         env,
         action_repeat=cfg.train.action_repeat,
         episode_length=cfg.train.episode_length,
     )
 
-    print(f"env '{task_name}' instantiated successfully")
+    print("Environment wrapped successfully")
 
     # =========== Load config and Logger ===========
 
@@ -89,25 +67,17 @@ def main(cfg: DictConfig):
     cfg = cfg.train     # from now on, only train parameters should be use
 
 
-    # =========== Load main training function ===========
+    # =========== Network factory ===========
 
-    # Select network factory (vision vs non-vision)
-    if env_cfg.get('vision', False) and ppo_networks_vision is not None:
-        network_factory = functools.partial(
-            ppo_networks_vision.make_ppo_networks_vision,
-            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
-            value_hidden_layer_sizes=cfg.value_hidden_layers,
-            policy_obs_key=cfg.policy_obs_key,
-            value_obs_key=cfg.value_obs_key,
-        )
-    else:
-        network_factory = functools.partial(
-            ppo_networks.make_ppo_networks,
-            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
-            value_hidden_layer_sizes=cfg.value_hidden_layers,
-            policy_obs_key=cfg.policy_obs_key,
-            value_obs_key=cfg.value_obs_key,
-        )
+    network_factory = functools.partial(
+        make_ppo_networks_vision,
+        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+        action_hidden_layer_sizes=cfg.action_hidden_layers,
+        value_hidden_layer_sizes=cfg.value_hidden_layers,
+        policy_obs_key=cfg.policy_obs_key,
+        policy_propio_key=cfg.policy_propio_key,
+        value_obs_key=cfg.value_obs_key,
+    )
 
     # =========== Handle auto-restore from previous checkpoint ===========
     from_prev = int(getattr(cfg, 'frompreviouscheckpoint', 0))

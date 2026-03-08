@@ -32,12 +32,6 @@ train:
   restore_value_fn: true 
   frompreviouscheckpoint: 0   # 0,1,2,3. This flag overrides the two previous ones. 0 sets false. 1 sets true and uses the last checkpoint. 2 sets true and uses the one before last checkpoint. 3 sets true and uses the one before that.
   
-  
-  # Network Architecture
-  policy_hidden_layers: [512, 512, 256, 128]
-  value_hidden_layers: [512, 512, 256, 128]
-  policy_obs_key: "state"
-  value_obs_key: "privileged_state"
 
   # WandB Configuration
   use_wandb: true
