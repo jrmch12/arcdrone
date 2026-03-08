@@ -8,11 +8,10 @@
 
 train:
 
-  use_sitt: false
 
 
-  policy_obs_key: None
-  value_obs_key: None
+  policy_obs_key: "state"
+  value_obs_key: "privileged_state"
   
   # WandB Configuration
   wandb_project: "brax-training"

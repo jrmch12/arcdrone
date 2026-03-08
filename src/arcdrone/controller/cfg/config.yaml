@@ -2,14 +2,14 @@
 
 defaults:
   - task: hover
-  - train: ${task}_ppo      # I dont know why this works, but does.
+  - train: ${task}_${train_mode}      # I dont know why this works with the variable task, but it does.
   - override hydra/job_logging: default  
   - override hydra/hydra_logging: default  
   - _self_
 
 # Global configuration flags
 debug_cpu: false  # Set to true to force CPU mode for debugging
-
+train_mode: ppo # Options: ppo, sitt, il
 hydra:
   run:
     dir: outputs/${now:%Y-%m-%d}/${now:%H-%M-%S}

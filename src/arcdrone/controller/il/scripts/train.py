@@ -15,7 +15,6 @@ import os
 
 from omegaconf import DictConfig, OmegaConf
 import hydra
-from hydra.utils import to_absolute_path
 from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
@@ -32,17 +31,15 @@ def main(cfg: DictConfig):
         os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
         os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
-    # =========== Madrona + JAX memory/runtime setup ===========
-    
-    # On your second reading, load the compiled rendering backend to save time!
-    # os.environ["MADRONA_MWGPU_KERNEL_CACHE"] = "<YOUR_PATH>/madrona_mjx/build/cache"
-    os.environ["MADRONA_MWGPU_KERNEL_CACHE"] = "/home/jrmch12f/Documents/code/borrador_braxenvs/madrona_cache"
-    # Coordinate between Jax and the Madrona rendering backend
-    def limit_jax_mem(limit):
-        os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = f"{limit:.2f}"
-    limit_jax_mem(0.6)
-    # Reduce madrona memory allocation to 1GB as cartpole doesn't need much
-    os.environ["MADRONA_MWGPU_DEVICE_HEAP_SIZE"] = "1073741824"
+    # =========== Warp + JAX runtime setup ===========
+
+    # Enable Triton GEMM for better GPU utilisation (recommended for warp impl)
+    xla_flags = os.environ.get("XLA_FLAGS", "")
+    xla_flags += " --xla_gpu_triton_gemm_any=True"
+    os.environ["XLA_FLAGS"] = xla_flags
+    # Let warp manage its own GPU memory — do NOT pre-allocate JAX memory
+    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    os.environ["MUJOCO_GL"] = "egl"
 
 
     # Import JAX-related modules AFTER setting env vars
@@ -73,17 +70,16 @@ def main(cfg: DictConfig):
         )
     env = ENV_CLASSES[task_name](cfg=cfg.env)
 
-    # Instantiate the student (vision) env — same xml/cfg, adds BatchRenderer
+    # Instantiate the student (vision) env — same xml/cfg, warp render context
+    # is built inside __init__, so it is safe to create here before wrapping.
     student_env = ARCDroneRL_VisionLanding(cfg=cfg.env)
 
-    # Compute student observation shapes statically from config.
-    # A dummy reset is NOT used here: calling student_env.reset() before the
-    # env is wrapped by MadronaWrapper would trigger Madrona CUDA ops outside
-    # the proper jax.vmap context, corrupting the CUDA state.
+    # Compute student observation shapes from the vision config.
+    # Warp uses cam_res=[W, H]; render_util reshapes as (H, W, 3).
     vision_cfg = cfg.env.vision_config
     history = int(cfg.env.buffer_size)
-    render_h = int(vision_cfg.render_height)
-    render_w = int(vision_cfg.render_width)
+    cam_res = vision_cfg.cam_res          # list/tuple [W, H]
+    render_w, render_h = int(cam_res[0]), int(cam_res[1])
     nu = env.action_size
     student_observation_size = {
         "pixels/view_0": (render_h, render_w, history),
@@ -91,13 +87,9 @@ def main(cfg: DictConfig):
     }
 
     # Combine teacher (state) + student (vision) under StudentWrapper.
-    # Must wrap with vision=True so MadronaWrapper handles the BatchRenderer
-    # batching via jax.vmap (VmapWrapper can't trace the Madrona CUDA ops).
     env = StudentWrapper(teacher_env=env, student_env=student_env)
     env = wrapper.wrap_for_brax_training(
         env,
-        vision=True,
-        num_vision_envs=cfg.train.num_envs,
         action_repeat=cfg.train.action_repeat,
         episode_length=cfg.train.episode_length,
     )
