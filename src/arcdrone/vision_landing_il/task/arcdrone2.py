@@ -26,7 +26,7 @@ from .target import _get_target_impl
 
 #======== Main class ================
 
-class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
+class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
 
     """ARC Drone Controller RL Environment."""
 
@@ -60,8 +60,10 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
         # Vision setup (warp-based rendering pipeline)
+        self._vision_history = int(self.cfg.vision_config.history)
         vision_kwargs = self.cfg.vision_config.to_dict()
-        # OmegaConf/YAML always deserializes as lists; warp API needs tuples
+        vision_kwargs.pop('history', None)  # not a render-context parameter
+        # YAML lists → tuples so the warp API auto-broadcasts correctly
         for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
             if k in vision_kwargs and isinstance(vision_kwargs[k], list):
                 vision_kwargs[k] = tuple(vision_kwargs[k])
@@ -98,26 +100,10 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
         out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
         rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
         gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        frame_stack = jp.repeat(gray, self.cfg.buffer_size, axis=-1)  # (H, W, history)
-        action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
+        frame_stack = jp.repeat(gray, self._vision_history, axis=-1)  # (H, W, history)
+        action_buffer = jp.zeros((self._vision_history, self._mjx_model.nu))
         info = {**info, "frame_stack": frame_stack, "action_buffer": action_buffer}
-
-        # Build initial obs dict (flat structure, pixels/view_0 key so Brax's
-        # _remove_pixels strips it from the normalizer update)
-        value_state = jp.concatenate([
-            info["linacc_buffer"].flatten(),
-            info["linvel_buffer"].flatten(),
-            info["quat_buffer"].flatten(),
-            info["angvel_buffer"].flatten(),
-            info["target_buffer"].flatten(),
-            info["action_buffer"].flatten(),
-            info["pos_buffer"].flatten(),
-        ])
-        obs = {
-            "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
-            "propio": action_buffer.flatten(),  # (history * nu,)
-            "value_obs": value_state,           # critic obs
-        }
+        obs = {"pixels/view_0": frame_stack}
 
         state = mjx_env.State(
             data=data,
@@ -130,20 +116,17 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
 
         state = self._get_target(state)
 
-        # Build the real initial privileged_state from sensor buffers now that
-        # target is set.  Mirrors what _get_obs_impl does each step.
-        # NOTE: keep in sync with obs.py — uncomment both together to re-enable.
-        # _i = state.info
-        # privileged_state = jp.concatenate([
-        #     _i["linacc_buffer"].flatten(),
-        #     _i["linvel_buffer"].flatten(),
-        #     _i["quat_buffer"].flatten(),
-        #     _i["angvel_buffer"].flatten(),
-        #     _i["target_buffer"].flatten(),
-        #     _i["action_buffer"].flatten(),
-        #     _i["pos_buffer"].flatten(),
-        # ])
-        # state = state.replace(obs={**state.obs, "privileged_state": privileged_state})
+        _i = state.info
+        privileged_state = jp.concatenate([
+            _i["linacc_buffer"].flatten(),
+            _i["linvel_buffer"].flatten(),
+            _i["quat_buffer"].flatten(),
+            _i["angvel_buffer"].flatten(),
+            _i["target_buffer"].flatten(),
+            _i["action_buffer"].flatten(),
+            _i["pos_buffer"].flatten(),
+        ])
+        state = state.replace(obs={**state.obs, "privileged_state": privileged_state})
 
         return state
     

@@ -26,7 +26,7 @@ from .target import _get_target_impl
 
 #======== Main class ================
 
-class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
+class ARCDroneRL_Landing(mjx_env.MjxEnv):
 
     """ARC Drone Controller RL Environment."""
 
@@ -59,17 +59,17 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
         self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
-        # Vision setup (warp-based rendering pipeline)
-        vision_kwargs = self.cfg.vision_config.to_dict()
-        # OmegaConf/YAML always deserializes as lists; warp API needs tuples
-        for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
-            if k in vision_kwargs and isinstance(vision_kwargs[k], list):
-                vision_kwargs[k] = tuple(vision_kwargs[k])
-        self._rc = mjx.create_render_context(
-            mjm=self._mj_model,
-            **vision_kwargs,
-        )
-        self._rc_pytree = self._rc.pytree()
+        # # Vision setup (warp-based rendering pipeline)
+        # vision_kwargs = self.cfg.vision_config.to_dict()
+        # # OmegaConf/YAML always deserializes as lists; warp API needs tuples
+        # for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
+        #     if k in vision_kwargs and isinstance(vision_kwargs[k], list):
+        #         vision_kwargs[k] = tuple(vision_kwargs[k])
+        # self._rc = mjx.create_render_context(
+        #     mjm=self._mj_model,
+        #     **vision_kwargs,
+        # )
+        # self._rc_pytree = self._rc.pytree()
 
 
 
@@ -93,14 +93,14 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
 
         info = self._initialize_state_vars(data, rng)
 
-        # Vision: render initial frame and build the frame-stack + action buffer
-        render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
-        out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
-        rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
-        gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        frame_stack = jp.repeat(gray, self.cfg.buffer_size, axis=-1)  # (H, W, history)
-        action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
-        info = {**info, "frame_stack": frame_stack, "action_buffer": action_buffer}
+        # # Vision: render initial frame and build the frame-stack + action buffer
+        # render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
+        # out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
+        # rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
+        # gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack = jp.repeat(gray, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+        # action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
+        # info = {**info, "frame_stack": frame_stack, "action_buffer": action_buffer}
 
         # Build initial obs dict (flat structure, pixels/view_0 key so Brax's
         # _remove_pixels strips it from the normalizer update)
@@ -114,9 +114,11 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
             info["pos_buffer"].flatten(),
         ])
         obs = {
-            "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
-            "propio": action_buffer.flatten(),  # (history * nu,)
+            # "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
+            # "propio": action_buffer.flatten(),  # (history * nu,)
+            "policy_obs": value_state,           # critic obs
             "value_obs": value_state,           # critic obs
+            
         }
 
         state = mjx_env.State(

@@ -1,4 +1,4 @@
-task_name: vision_landing_il
+task_name: vision_landing_ppo
 
 defaults:
   - override hydra/job_logging: default  
@@ -15,22 +15,22 @@ env:
   
   # ==== MJXEnvs / mujoco_playground flags ====
   xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
-  impl: "warp"
+  impl: "jax"
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
   naconmax: 0
   njmax: 2
-  vision: true
-  vision_config: # must contain only warp api parameters
-    nworld: ${train.num_envs}
-    cam_res: [64, 64]
-    use_textures: false
-    use_shadows: false
-    enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, false, false]
-    render_rgb: [true]
-    render_depth: [false]
+  vision: false
+  # vision_config: # must contain only warp api parameters
+  #   nworld: ${train.num_envs}
+  #   cam_res: [64, 64]
+  #   use_textures: false
+  #   use_shadows: false
+  #   enabled_geom_groups: [0, 1, 2]
+  #   cam_active: [true, false, false]
+  #   render_rgb: [true]
+  #   render_depth: [false]
   
   # ==== Task specific ====
 
@@ -73,30 +73,22 @@ train:
   learning_rate: 3e-4
   entropy_cost: 1e-3
   # Default number of parallel environments. Task configs can override.
-  num_envs: 4
+  num_envs: 2
   batch_size: 512
   seed: 0
 
-  # ---- IL Hyperparameters ----
-  teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
-  num_il_epochs: 200              # number of collect-then-align cycles
-  num_unrolls_per_epoch: 50       # unroll segments collected per epoch
-  align_updates_per_trigger: 4    # gradient steps per epoch
-
   # Network Architecture
-  policy_dec_hidden_layers: [256, 128]
-  policy_propio_proj_hidden_layers: [64]
+  policy_dec_hidden_layers: [512, 512, 256, 128]
+  # policy_propio_proj_hidden_layers: [64]
   action_hidden_layers: [512, 512, 256, 128]
   value_hidden_layers: [512, 512, 256, 128]
-  cnn_num_filters: [32, 64, 64]
-  cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
-  cnn_strides: [[4, 4], [2, 2], [1, 1]]
-  policy_pixels_key: "pixels/view_0"
-  policy_propio_key: "propio"
+  # cnn_num_filters: [32, 64, 64]
+  # cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
+  # cnn_strides: [[4, 4], [2, 2], [1, 1]]
+  # policy_pixels_key: "pixels/view_0"
+  # policy_propio_key: "propio"
   value_obs_key: "value_obs"
-  teacher_obs_key: "teacher_obs"
-  # IL extras
-  teacher_dec_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "policy_obs"
 
   # Train from checkpoint (for continuing training)
   restore_params_path: null      
@@ -105,7 +97,7 @@ train:
 
   # WandB Configuration
   wandb_project: "brax-training"
-  wandb_run_name: "arcdrone_vision_landing_ppo_run"
+  wandb_run_name: "arcdrone_landing_ppo_run"
   use_wandb: false
 
 

@@ -22,16 +22,15 @@ env:
   naconmax: 0
   njmax: 2
   vision: true
-  vision_config:
+  vision_config: # must contain only warp api parameters
     nworld: ${train.num_envs}
     cam_res: [64, 64]
     use_textures: false
     use_shadows: false
-    render_rgb: [true]
-    render_depth: [false]
     enabled_geom_groups: [0, 1, 2]
     cam_active: [true, false, false]
-    history: ${env.buffer_size}
+    render_rgb: [true]
+    render_depth: [false]
   
   # ==== Task specific ====
 
@@ -61,6 +60,7 @@ train:
   # PPO Hyperparameters
   num_timesteps: 100 # 20_000_000
   num_evals: 8
+  num_eval_envs: 2
   reward_scaling: 0.1
   episode_length: 200
   normalize_observations: true
@@ -85,8 +85,7 @@ train:
   cnn_num_filters: [32, 64, 64]
   cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
   cnn_strides: [[4, 4], [2, 2], [1, 1]]
-  policy_obs_key: "policy_obs"
-  policy_pixels_key: "pixels"
+  policy_pixels_key: "pixels/view_0"
   policy_propio_key: "propio"
   value_obs_key: "value_obs"
 
