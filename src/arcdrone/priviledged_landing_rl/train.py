@@ -20,26 +20,26 @@ from mujoco_playground import wrapper
 @hydra.main(config_name="config", config_path="./cfg", version_base=None)
 def main(cfg: DictConfig):
 
-    # =========== Warp + JAX runtime setup ===========
-    # Must happen BEFORE JAX is imported so XLA flags take effect.
-    xla_flags = os.environ.get("XLA_FLAGS", "")
-    xla_flags += " --xla_gpu_triton_gemm_any=True"
-    os.environ["XLA_FLAGS"] = xla_flags
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-    os.environ["MUJOCO_GL"] = "egl"
+    # # =========== Warp + JAX runtime setup ===========
+    # # Must happen BEFORE JAX is imported so XLA flags take effect.
+    # xla_flags = os.environ.get("XLA_FLAGS", "")
+    # xla_flags += " --xla_gpu_triton_gemm_any=True"
+    # os.environ["XLA_FLAGS"] = xla_flags
+    # os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+    # os.environ["MUJOCO_GL"] = "egl"
 
     # Import JAX-related modules after setting environment variables
     from brax.training.agents.ppo import train as ppo
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
-    from arcdrone.vision_landing_rl.training.networks import make_ppo_networks_vision
+    from arcdrone.priviledged_landing_rl.task.arcdrone import ARCDroneRL_Landing
+    from arcdrone.priviledged_landing_rl.training import networks as ppo_networks
 
     # =========== Environment ===========
 
     env_cfg = cfg.env
-    print("Instantiating ARCDroneRL_VisionLanding...")
-    env = ARCDroneRL_VisionLanding(cfg=env_cfg)
+    print("Instantiating ARCDroneRL_Landing...")
+    env = ARCDroneRL_Landing(cfg=env_cfg)
 
     print("Environment instantiated successfully")
 
@@ -70,16 +70,14 @@ def main(cfg: DictConfig):
     # =========== Network factory ===========
 
     network_factory = functools.partial(
-        make_ppo_networks_vision,
+        ppo_networks.make_ppo_networks,
         policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
-        cnn_num_filters=cfg.cnn_num_filters,
-        cnn_kernel_sizes=cfg.cnn_kernel_sizes,
-        cnn_strides=cfg.cnn_strides,
-        policy_pixels_key=cfg.policy_pixels_key,
-        policy_propio_key=cfg.policy_propio_key,
+        # cnn_num_filters=cfg.cnn_num_filters,
+        # cnn_kernel_sizes=cfg.cnn_kernel_sizes,
+        # cnn_strides=cfg.cnn_strides,
+        policy_obs_key=cfg.policy_obs_key,
         value_obs_key=cfg.value_obs_key,
     )
 
@@ -209,4 +207,4 @@ if __name__ == '__main__':
 
 # How to use?
 #
-# python src/arcdrone/vision_landing_rl/train.py train.num_envs=512 train.unroll_length=16 train.batch_size=256 train.num_minibatches=4 train.num_updates_per_batch=16 train.num_timesteps=10000000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=128 
+# python src/arcdrone/priviledged_landing_rl/train.py train.num_envs=512 train.unroll_length=32 train.batch_size=512 train.num_minibatches=8 train.num_updates_per_batch=16 train.num_timesteps=15000000 train.use_wandb=true train.num_evals=30 train.num_eval_envs=128 train.frompreviouscheckpoint=0

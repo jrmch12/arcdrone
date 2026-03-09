@@ -1,0 +1,79 @@
+# @package _global_
+
+
+# ^^^
+# |||   Tell Hydra to place everything in this YAML file at the root 
+#       of the config instead of under a nested key:
+
+
+task_name: hover
+# name: arcdrone
+# file_path: task/arcdrone.py
+
+
+defaults:
+  - default_task
+
+
+env:
+  
+  # ==== MJXEnvs / mujoco_playground flags ====
+  # numEnvs inherits from train.num_envs by default
+  # numEnvs: ${train.num_envs}
+  xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
+  impl: "jax"
+  sim_dt: 0.004
+  ctrl_dt: 0.02
+  action_repeat: 1
+  nconmax: 0
+  njmax: 2
+  vision: false
+  vision_config:
+    gpu_id: 0
+    render_batch_size: 1
+    render_width: 64
+    render_height: 64
+    enabled_geom_groups: [0]
+    use_rasterizer: false
+    history: 3
+  
+  
+  # ==== Task specific ====
+
+  buffer_size: 5
+
+  # Episode control
+  max_episode_steps: ${..train.episode_length}
+  success_threshold: 0.02
+  success_steps_required: 10
+  
+  # Reward function
+  distance_weight: 1 
+  distance_scale: 0.3  # exponential          
+  overshoot_penalty: 5
+  oscillation_penalty: 2
+  action_chattering_weight: 0.001
+  action_penalty_weight: 0.0001
+  time_penalty: 0.01 
+  success_bonus: 50.0
+  ground_penalty_weight: 10.0  
+  ground_threshold_event: 0.15  
+  ground_threshold_penalty: 0.5 
+
+  # Sensor noise
+  linacc_noise: 0.02  # m/s²
+  quat_noise: 0.001   # dimensionless
+  angvel_noise: 0.01  # rad/s
+  linvel_noise: 0.01  # m/s
+  
+
+  
+
+
+  
+
+
+
+
+
+

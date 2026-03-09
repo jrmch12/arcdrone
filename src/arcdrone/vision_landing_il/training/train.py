@@ -58,8 +58,8 @@ class ILTrainingState:
     # ILNetworkParams: policy and value are frozen from the teacher checkpoint;
     # student_enc_params and proxy_dec_params are updated by alignment.
     params: il_networks.ILNetworkParams
-    # Nested normalizer covering both teacher value obs (frozen) and student
-    # policy_obs/propio (updated during alignment rollouts).
+    # Flat normalizer covering propio (updated during IL) and
+    # value_obs / teacher_obs (frozen from teacher checkpoint).
     normalizer_params: Any
     env_steps: Any  # jnp scalar (uint32)
 
@@ -130,8 +130,6 @@ def train(
     # --- callbacks ---
     progress_fn: Callable[[int, Metrics], None] = lambda *args: None,
     policy_params_fn: Callable[..., None] = lambda *args: None,
-    # --- student observation size ---
-    student_observation_size: Optional[Mapping[str, Tuple]] = None,
     run_evals: bool = True,
     wrap_env: bool = False,
     wrap_env_fn: Optional[Callable[[Any], Any]] = None,
@@ -297,22 +295,44 @@ def train(
     )
 
     # ── Normalizer ────────────────────────────────────────────────────────
-    # Start from the teacher's running stats (covers value_obs).
-    # We extend it with a fresh propio sub-normalizer for the student branch.
-    # The nested dict matches the paths used by _select_normalizer_by_path.
-    propio_spec = jax.tree_util.tree_map(
-        lambda x: specs.Array(x.shape[-1:], jnp.dtype("float32")),
-        env_state.obs["policy_obs"]["propio"]
-        if isinstance(env_state.obs, dict)
-        else env_state.obs,
-    )
-    init_propio_norm = running_statistics.init_state(propio_spec)
+    # The teacher checkpoint was trained on flat privileged state only, so its
+    # RunningStatisticsState has array leaves (not dict-structured).  It has NO
+    # propio stats — we must supply those fresh.
+    #
+    # Strategy: build a fresh RS for the full non-pixel obs structure, then
+    # transplant the teacher's per-field arrays into value_obs / teacher_obs,
+    # leaving propio at its fresh-init values (updated from rollouts).
 
-    # Combine: teacher's value_obs stats (frozen) + fresh propio stats (trained)
-    init_normalizer_params = {
-        "value_obs": teacher_norm_params,      # frozen — use as-is from teacher ckpt
-        "policy_obs": {"propio": init_propio_norm},
-    }
+    propio_spec = specs.Array(
+        env_state.obs["propio"].shape[2:], jnp.dtype("float32")
+    )
+    fresh_propio_norm = running_statistics.init_state(propio_spec)
+
+    # Build a combined RS whose leaves are dicts keyed by obs name.
+    # running_statistics.RunningStatisticsState is a flax struct with
+    #   .count, .mean, .std, .summed_variance
+    # normalizer_select(rs, key) does tree_map(lambda x: x[key], rs) so each leaf
+    # must be a dict at the top level.
+    init_normalizer_params = running_statistics.RunningStatisticsState(
+        count=teacher_norm_params.count,
+        mean={
+            "value_obs":   teacher_norm_params.mean,
+            "teacher_obs": teacher_norm_params.mean,
+            "propio":      fresh_propio_norm.mean,
+        },
+        std={
+            "value_obs":   teacher_norm_params.std,
+            "teacher_obs": teacher_norm_params.std,
+            "propio":      fresh_propio_norm.std,
+        },
+        summed_variance={
+            "value_obs":   teacher_norm_params.summed_variance,
+            "teacher_obs": teacher_norm_params.summed_variance,
+            "propio":      fresh_propio_norm.summed_variance,
+        },
+        std_eps=teacher_norm_params.std_eps,
+        mode=teacher_norm_params.mode,
+    )
 
     training_state = ILTrainingState(
         align_opt_state=align_optimizer.init(
@@ -386,9 +406,11 @@ def train(
         action_head = training_state.params.policy[1]   # shared action head (frozen)
         norm_params = training_state.normalizer_params
 
-        # The env returns a single obs dict containing both slices:
-        #   data.observation["value_obs"]          → teacher (privileged) state
-        #   data.observation["policy_obs"]["pixels"] + ["propio"] → student vision
+        # The env returns a flat obs dict:
+        #   data.observation["teacher_obs"]   → teacher (privileged) state
+        #   data.observation["value_obs"]     → critic state
+        #   data.observation["pixels/view_0"] → student vision frames
+        #   data.observation["propio"]        → student propio
         # We pass the same dict for both; each network helper extracts its own keys.
         student_obs = data.observation
 
@@ -409,20 +431,17 @@ def train(
             student_obs,        # vision obs → student_encoder
         )
 
-        # 3. Update running normalizer — student propio only.
-        # Pixels are already normalised by the env (shifted to [-0.5, 0.5]).
-        # Teacher value_obs stats are frozen (imported from teacher checkpoint).
+        # 3. Update running normalizer with non-pixel obs from the collected batch.
+        # teacher_norm_params is a single RunningStatisticsState for the dict obs;
+        # running_statistics.update expects a batch matching its structure.
+        # Pixels are excluded (normalised by env to [-0.5, 0.5]).
         normalizer_params = training_state.normalizer_params
         if normalize_observations:
-            propio_batch = data.observation["policy_obs"]["propio"]
-            new_propio_stats = running_statistics.update(
-                normalizer_params["policy_obs"]["propio"],
-                propio_batch,
+            non_pixel_obs = {k: v for k, v in data.observation.items()
+                             if not k.startswith("pixels/")}
+            normalizer_params = running_statistics.update(
+                normalizer_params, non_pixel_obs,
             )
-            normalizer_params = {
-                **normalizer_params,
-                "policy_obs": {"propio": new_propio_stats},
-            }
 
         new_params = training_state.params.replace(
             student_enc_params=student_enc,

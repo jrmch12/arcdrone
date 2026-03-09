@@ -1,0 +1,43 @@
+# @package _global_
+
+
+# ^^^
+# |||   Tell Hydra to place everything in this YAML file at the root 
+#       of the config instead of under a nested key:
+
+
+train: 
+
+  use_sitt: true
+  # HARDCODED: align_optimizer is adam and lr is 1e-4
+  # HARDCODED: wrap_env
+  align_update_every_env_steps: 1000000 # Trigger alignment every N env-steps (global timer)
+  align_batch_env_steps: 20000 # Env-steps sampled per alignment trigger (global)
+  align_updates_per_trigger: 4 # Number of optimization steps to take when align is triggered
+  proxy_kl_coef: 1.9
+  sitt_align_coef: 0.01
+
+
+
+  # Network Architecture
+  proxy_hidden_layers: [512, 512, 256, 128]
+  student_hidden_layers: [512, 512, 256, 128]
+  action_hidden_layers: [512, 512, 256, 128]
+  policy_hidden_layers: [512, 512, 256, 128]
+  value_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "state"
+  value_obs_key: "privileged_state"
+
+  # WandB Configuration
+  use_wandb: true
+  wandb_project: "brax-training"
+  wandb_run_name: "arcdrone_hover_sitt_run"
+
+
+defaults:
+
+  - default_ppo
+
+
+
+  

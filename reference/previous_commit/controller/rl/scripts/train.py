@@ -9,49 +9,63 @@ import functools
 import os
 import glob
 
+# These imports need to be available before the main function
 from omegaconf import DictConfig, OmegaConf
 import hydra
+from hydra.utils import to_absolute_path
 from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 from mujoco_playground import wrapper
 
 
-@hydra.main(config_name="config", config_path="./cfg", version_base=None)
+@hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
-
-    # =========== Warp + JAX runtime setup ===========
-    # Must happen BEFORE JAX is imported so XLA flags take effect.
-    xla_flags = os.environ.get("XLA_FLAGS", "")
-    xla_flags += " --xla_gpu_triton_gemm_any=True"
-    os.environ["XLA_FLAGS"] = xla_flags
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-    os.environ["MUJOCO_GL"] = "egl"
+    # =========== Handle CPU debugging mode ===========
+    if cfg.get('debug_cpu', False):
+        print("DEBUG: Running in CPU mode")
+        os.environ["JAX_PLATFORM_NAME"] = "cpu"  
+        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
 
     # Import JAX-related modules after setting environment variables
     from brax.training.agents.ppo import train as ppo
+    from brax.training.agents.ppo import networks as ppo_networks
+    # vision networks (optional)
+    try:
+        from brax.training.agents.ppo import networks_vision as ppo_networks_vision
+    except Exception:
+        ppo_networks_vision = None
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
-    from arcdrone.vision_landing_rl.training.networks import make_ppo_networks_vision
+    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 
-    # =========== Environment ===========
+    # Map task names to environment classes
+    ENV_CLASSES = {
+        'hover': ARCDroneRL_Hover,
+        'landing': ARCDroneRL_Landing,
+    }
 
+    task_name = cfg.task_name
     env_cfg = cfg.env
-    print("Instantiating ARCDroneRL_VisionLanding...")
-    env = ARCDroneRL_VisionLanding(cfg=env_cfg)
+    print(f"Instantiating environment for task: '{task_name}'")
+    if task_name not in ENV_CLASSES:
+        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+    env_class = ENV_CLASSES[task_name]
+    env = env_class(cfg=cfg.env)
 
-    print("Environment instantiated successfully")
-
-    # =========== Wrap for Brax training ===========
-
+    # Wrap environment for Brax training (vectorization + vision support)
+    # NOTE: We use mujoco_playground's wrapper AND set wrap_env=False in ppo.train
+    # to avoid double-wrapping (which causes "invalid PRNG key data: ndim=0" error)
     env = wrapper.wrap_for_brax_training(
         env,
+        vision=env_cfg.get('vision', False),
+        num_vision_envs=cfg.train.num_envs,
         action_repeat=cfg.train.action_repeat,
         episode_length=cfg.train.episode_length,
     )
 
-    print("Environment wrapped successfully")
+    print(f"env '{task_name}' instantiated successfully")
 
     # =========== Load config and Logger ===========
 
@@ -65,23 +79,27 @@ def main(cfg: DictConfig):
         )
 
     cfg = cfg.train     # from now on, only train parameters should be use
-    assert cfg.num_envs > cfg.num_eval_envs, "num_envs must be greater than num_eval_envs"
 
-    # =========== Network factory ===========
 
-    network_factory = functools.partial(
-        make_ppo_networks_vision,
-        policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
-        action_hidden_layer_sizes=cfg.action_hidden_layers,
-        value_hidden_layer_sizes=cfg.value_hidden_layers,
-        cnn_num_filters=cfg.cnn_num_filters,
-        cnn_kernel_sizes=cfg.cnn_kernel_sizes,
-        cnn_strides=cfg.cnn_strides,
-        policy_pixels_key=cfg.policy_pixels_key,
-        policy_propio_key=cfg.policy_propio_key,
-        value_obs_key=cfg.value_obs_key,
-    )
+    # =========== Load main training function ===========
+
+    # Select network factory (vision vs non-vision)
+    if env_cfg.get('vision', False) and ppo_networks_vision is not None:
+        network_factory = functools.partial(
+            ppo_networks_vision.make_ppo_networks_vision,
+            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+            value_hidden_layer_sizes=cfg.value_hidden_layers,
+            policy_obs_key=cfg.policy_obs_key,
+            value_obs_key=cfg.value_obs_key,
+        )
+    else:
+        network_factory = functools.partial(
+            ppo_networks.make_ppo_networks,
+            policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+            value_hidden_layer_sizes=cfg.value_hidden_layers,
+            policy_obs_key=cfg.policy_obs_key,
+            value_obs_key=cfg.value_obs_key,
+        )
 
     # =========== Handle auto-restore from previous checkpoint ===========
     from_prev = int(getattr(cfg, 'frompreviouscheckpoint', 0))
@@ -119,7 +137,7 @@ def main(cfg: DictConfig):
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,num_eval_envs=cfg.num_eval_envs,
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
     )
 
@@ -205,8 +223,4 @@ def main(cfg: DictConfig):
 
 if __name__ == '__main__':
     main()
-
-
-# How to use?
-#
-# python src/arcdrone/vision_landing_rl/train.py train.num_envs=512 train.unroll_length=16 train.batch_size=256 train.num_minibatches=4 train.num_updates_per_batch=16 train.num_timesteps=10000000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=128 
+    

@@ -7,51 +7,73 @@ from datetime import datetime
 from pathlib import Path
 import functools
 import os
-import glob
 
+
+# These imports need to be available before the main function
 from omegaconf import DictConfig, OmegaConf
 import hydra
+from hydra.utils import to_absolute_path
 from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 from mujoco_playground import wrapper
 
 
-@hydra.main(config_name="config", config_path="./cfg", version_base=None)
+@hydra.main(config_name="config", config_path="../../cfg", version_base=None)
 def main(cfg: DictConfig):
 
-    # =========== Warp + JAX runtime setup ===========
-    # Must happen BEFORE JAX is imported so XLA flags take effect.
-    xla_flags = os.environ.get("XLA_FLAGS", "")
-    xla_flags += " --xla_gpu_triton_gemm_any=True"
-    os.environ["XLA_FLAGS"] = xla_flags
-    os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
-    os.environ["MUJOCO_GL"] = "egl"
+    # =========== Handle CPU debugging mode ===========
+    if cfg.get('debug_cpu', False):
+        print("DEBUG: Running in CPU mode")
+        os.environ["JAX_PLATFORM_NAME"] = "cpu"  
+        os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+        os.environ["XLA_PYTHON_CLIENT_ALLOCATOR"] = "platform"
+
 
     # Import JAX-related modules after setting environment variables
-    from brax.training.agents.ppo import train as ppo
+    # from brax.training.agents.ppo import train as ppo
+    from arcdrone import sitt_train
+    # from brax.training.agents.ppo import networks as ppo_networks
+    from arcdrone import sitt_networks
+    from arcdrone.controller.sitt.env.student_wrapper import StudentWrapper
+    from arcdrone.controller.rl.task.vision_mode.arcdrone import ARCDroneRL_VisionLanding
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
-    from arcdrone.vision_landing_rl.training.networks import make_ppo_networks_vision
+    from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 
-    # =========== Environment ===========
+    # Map task names to environment classes
+    ENV_CLASSES = {
+        'hover': ARCDroneRL_Hover,
+        'landing': ARCDroneRL_Landing,
+    }
 
+    task_name = cfg.task_name
     env_cfg = cfg.env
-    print("Instantiating ARCDroneRL_VisionLanding...")
-    env = ARCDroneRL_VisionLanding(cfg=env_cfg)
+    print(f"Instantiating environment for task: '{task_name}'")
+    if task_name not in ENV_CLASSES:
+        raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
+    env_class = ENV_CLASSES[task_name]
+    env = env_class(cfg=cfg.env)
 
-    print("Environment instantiated successfully")
+    # Instantiate the student (vision) env — same xml/cfg, adds BatchRenderer
+    student_env = ARCDroneRL_VisionLanding(cfg=cfg.env)
 
-    # =========== Wrap for Brax training ===========
+    # Discover student obs shapes from an actual reset (same pattern as sitt_train)
+    import jax
+    _dummy_state = student_env.reset(jax.random.PRNGKey(0))
+    student_observation_size = jax.tree_util.tree_map(lambda x: x.shape, _dummy_state.obs)
+    del _dummy_state
 
+    env = StudentWrapper(teacher_env=env, student_env=student_env)
     env = wrapper.wrap_for_brax_training(
         env,
+        vision=env_cfg.get('vision', False),
+        num_vision_envs=cfg.train.num_envs,
         action_repeat=cfg.train.action_repeat,
         episode_length=cfg.train.episode_length,
     )
 
-    print("Environment wrapped successfully")
+    print(f"env '{task_name}' instantiated successfully")
 
     # =========== Load config and Logger ===========
 
@@ -65,22 +87,24 @@ def main(cfg: DictConfig):
         )
 
     cfg = cfg.train     # from now on, only train parameters should be use
-    assert cfg.num_envs > cfg.num_eval_envs, "num_envs must be greater than num_eval_envs"
 
-    # =========== Network factory ===========
 
+    # =========== Load main training function ===========
+
+    # Select network factory (SITT always used, vision control optional)
     network_factory = functools.partial(
-        make_ppo_networks_vision,
-        policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
+        sitt_networks.make_sitt_networks,
+        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
-        cnn_num_filters=cfg.cnn_num_filters,
-        cnn_kernel_sizes=cfg.cnn_kernel_sizes,
-        cnn_strides=cfg.cnn_strides,
-        policy_pixels_key=cfg.policy_pixels_key,
-        policy_propio_key=cfg.policy_propio_key,
+        policy_obs_key=cfg.policy_obs_key,
         value_obs_key=cfg.value_obs_key,
+        # SITT-specific:
+        use_sitt=cfg.use_sitt,
+        student_hidden_layer_sizes=cfg.student_hidden_layers,
+        proxy_hidden_layer_sizes=cfg.proxy_hidden_layers,
+        student_observation_size=student_observation_size if cfg.use_sitt else None,
+        student_obs_key="state",
     )
 
     # =========== Handle auto-restore from previous checkpoint ===========
@@ -106,20 +130,25 @@ def main(cfg: DictConfig):
 
     restore_params = None
     restore_path = getattr(cfg, 'restore_params_path', None)
+
     if restore_path:
         print(f"Loading parameters from: {restore_path}")
         restore_params = model.load_params(restore_path)
         print("Parameters loaded successfully!")
 
-
-
     train_fn = functools.partial(
-        ppo.train, num_timesteps=cfg.num_timesteps, num_evals=cfg.num_evals, reward_scaling=cfg.reward_scaling,
+        sitt_train.train, num_timesteps=cfg.num_timesteps, num_evals=cfg.num_evals, reward_scaling=cfg.reward_scaling,
         episode_length=cfg.episode_length, normalize_observations=cfg.normalize_observations, action_repeat=cfg.action_repeat,
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,num_eval_envs=cfg.num_eval_envs,
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,
+        use_sitt=cfg.use_sitt,
+        align_update_every_env_steps=cfg.align_update_every_env_steps,
+        align_batch_env_steps=cfg.align_batch_env_steps,
+        align_updates_per_trigger=cfg.align_updates_per_trigger,
+        proxy_kl_coef=cfg.proxy_kl_coef,
+        sitt_align_coef=cfg.sitt_align_coef,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
     )
 
@@ -134,7 +163,7 @@ def main(cfg: DictConfig):
         eval_reward_metrics = {}
         std_reward_metrics = {}
         for key, value in metrics.items():
-            if key.startswith('eval/episode_reward') and not key.endswith('_std'):
+            if key.startswith('eval/episode_reward_') and not key.endswith('_std'):
                 reward_name = key[len('eval/episode_reward_'):]
                 std_key = f"eval/episode_reward_{reward_name}_std"
                 std_val = metrics.get(std_key, 0.0)
@@ -155,9 +184,13 @@ def main(cfg: DictConfig):
             'eval/walltime': metrics.get('eval/walltime', 0.0),
             'training/learning_rate': metrics.get('training/learning_rate', 0.0),
             'training/total_loss': metrics.get('training/total_loss', 0.0),
+            'training/rl_loss': metrics.get('training/rl_loss', 0.0),
             'training/policy_loss': metrics.get('training/policy_loss', 0.0),
             'training/v_loss': metrics.get('training/v_loss', 0.0),
             'training/entropy_loss': metrics.get('training/entropy_loss', 0.0),
+            'training/rl_align_loss': metrics.get('training/rl_align_loss', 0.0),
+            'training/align_loss': metrics.get('training/align_loss', 0.0),
+            'training/reward_align': metrics.get('training/reward_align', 0.0),
             'training/kl_mean': metrics.get('training/kl_mean', 0.0),
             'training/policy_dist_mean_std': metrics.get('training/policy_dist_mean_std', 0.0),
             'training/sps': metrics.get('training/sps', 0.0),
@@ -205,8 +238,4 @@ def main(cfg: DictConfig):
 
 if __name__ == '__main__':
     main()
-
-
-# How to use?
-#
-# python src/arcdrone/vision_landing_rl/train.py train.num_envs=512 train.unroll_length=16 train.batch_size=256 train.num_minibatches=4 train.num_updates_per_batch=16 train.num_timesteps=10000000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=128 
+    

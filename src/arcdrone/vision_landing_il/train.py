@@ -19,11 +19,8 @@ from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 
-@hydra.main(config_name="config_il", config_path="../../cfg", version_base=None)
+@hydra.main(config_name="config", config_path="./cfg", version_base=None)
 def main(cfg: DictConfig):
-
-    cfg_train = cfg.train
-
 
     # =========== Warp + JAX runtime setup ===========
 
@@ -39,7 +36,7 @@ def main(cfg: DictConfig):
     # Import JAX-related modules AFTER setting env vars
     from arcdrone.vision_landing_il.training.train import train as il_train
     from arcdrone.vision_landing_il.training import networks as il_networks
-    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
+    from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
     from mujoco_playground import wrapper
@@ -47,14 +44,21 @@ def main(cfg: DictConfig):
 
     # =========== Environment ===========
 
-    env = ARCDroneRL_VisionLanding(cfg=cfg.env)
+    env_cfg = cfg.env
+    print("Instantiating ARCDroneRL_VisionLanding_StudentTeacher...")
+    env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=env_cfg)
+
+    print("Environment instantiated successfully")
+
+    # =========== Wrap for Brax training ===========
 
     env = wrapper.wrap_for_brax_training(
         env,
         action_repeat=cfg.train.action_repeat,
         episode_length=cfg.train.episode_length,
     )
-    print(f"env '{task_name}' instantiated successfully")
+
+    print("Environment wrapped successfully")
 
     # =========== Logger ===========
 
@@ -67,11 +71,13 @@ def main(cfg: DictConfig):
             config=OmegaConf.to_container(cfg, resolve=True),
         )
 
-    # from now on, only train params
+    cfg = cfg.train     # from now on, only train parameters should be use
+    assert cfg.num_envs > cfg.num_eval_envs, "num_envs must be greater than num_eval_envs"
+
 
     # =========== Load teacher checkpoint ===========
 
-    teacher_path = cfg_train.teacher_checkpoint_path
+    teacher_path = cfg.teacher_checkpoint_path
     if not teacher_path:
         raise ValueError(
             "IL training requires a teacher checkpoint. "
@@ -85,18 +91,18 @@ def main(cfg: DictConfig):
 
     network_factory = functools.partial(
         il_networks.make_il_networks,
-        teacher_dec_hidden_layers=cfg_train.teacher_dec_hidden_layers,
-        policy_dec_hidden_layers=cfg_train.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg_train.policy_propio_proj_hidden_layers,
-        action_hidden_layer_sizes=cfg_train.action_hidden_layers,
-        value_hidden_layer_sizes=cfg_train.value_hidden_layers,
-        cnn_num_filters=cfg_train.cnn_num_filters,
-        cnn_kernel_sizes=cfg_train.cnn_kernel_sizes,
-        cnn_strides=cfg_train.cnn_strides,
-        policy_obs_key=cfg_train.policy_obs_key,
-        policy_pixels_key=cfg_train.policy_pixels_key,
-        policy_propio_key=cfg_train.policy_propio_key,
-        teacher_obs_key=cfg_train.value_obs_key,
+        teacher_dec_hidden_layers=cfg.teacher_dec_hidden_layers,
+        policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
+        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
+        action_hidden_layer_sizes=cfg.action_hidden_layers,
+        value_hidden_layer_sizes=cfg.value_hidden_layers,
+        cnn_num_filters=cfg.cnn_num_filters,
+        cnn_kernel_sizes=cfg.cnn_kernel_sizes,
+        cnn_strides=cfg.cnn_strides,
+        policy_pixels_key=cfg.policy_pixels_key,
+        policy_propio_key=cfg.policy_propio_key,
+        teacher_obs_key=cfg.teacher_obs_key,
+        value_obs_key=cfg.value_obs_key,
     )
 
     # =========== Build train_fn ===========
@@ -105,18 +111,18 @@ def main(cfg: DictConfig):
         il_train,
         env=env,
         teacher_params=teacher_params,
-        num_il_epochs=cfg_train.num_il_epochs,
-        num_evals=cfg_train.num_evals,
-        unroll_length=cfg_train.unroll_length,
-        num_unrolls_per_epoch=cfg_train.num_unrolls_per_epoch,
-        align_updates_per_trigger=cfg_train.align_updates_per_trigger,
+        num_il_epochs=cfg.num_il_epochs,
+        num_evals=cfg.num_evals,
+        unroll_length=cfg.unroll_length,
+        num_unrolls_per_epoch=cfg.num_unrolls_per_epoch,
+        align_updates_per_trigger=cfg.align_updates_per_trigger,
         network_factory=network_factory,
-        num_envs=cfg_train.num_envs,
-        episode_length=cfg_train.episode_length,
-        action_repeat=cfg_train.action_repeat,
-        normalize_observations=cfg_train.normalize_observations,
-        learning_rate=cfg_train.learning_rate,
-        seed=cfg_train.seed,
+        num_envs=cfg.num_envs,
+        episode_length=cfg.episode_length,
+        action_repeat=cfg.action_repeat,
+        normalize_observations=cfg.normalize_observations,
+        learning_rate=cfg.learning_rate,
+        seed=cfg.seed,
         deterministic_eval=True,
         wrap_env=False,  # mujoco_playground wrapper already applied above
     )

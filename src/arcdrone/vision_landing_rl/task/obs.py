@@ -46,12 +46,12 @@ def _get_obs_impl(self, state, action):
     ])
 
     # ── Build obs dict ───────────────────────────────────────────────────────
+    # If using Brax ppo/train.py we need this dict to be a
+    # Flat structure: pixels/view_0 key is stripped by Brax's _remove_pixels
     obs = {
-        "policy_obs": {
-            "pixels": frame_stack,  # (H, W, history)
-            "propio": action_buffer.flatten(),  # (history * nu,)
-        },
-        "value_obs": value_state,  # critic obs
+        "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
+        "propio": action_buffer.flatten(),  # (history * nu,)
+        "value_obs": value_state,           # critic obs
     }
 
     info = {

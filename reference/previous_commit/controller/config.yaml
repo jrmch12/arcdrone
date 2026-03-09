@@ -1,0 +1,161 @@
+_wandb:
+    value:
+        cli_version: 0.25.0
+        e:
+            aynem2eridf8wk4a34v0mzmiyidhb6uw:
+                args:
+                    - task=landing
+                    - train.num_envs=512
+                    - train.unroll_length=32
+                    - train.batch_size=512
+                    - train.num_minibatches=8
+                    - train.num_updates_per_batch=16
+                    - train.num_timesteps=12000000
+                    - train.use_wandb=true
+                    - train.num_evals=30
+                    - train.use_sitt=false
+                cpu_count: 6
+                cpu_count_logical: 12
+                cudaVersion: "13.1"
+                disk:
+                    /:
+                        total: "157681115136"
+                        used: "78352789504"
+                email: jraimundo.mares.12@gmail.com
+                executable: /home/jrmch12f/miniconda3/envs/madmjx/bin/python3.11
+                git:
+                    commit: 0097d0cd334ea3d1da3939dd3362a96c8d501818
+                    remote: git@github.com:jrmch12/borrador_braxenvs.git
+                gpu: NVIDIA GeForce RTX 3060
+                gpu_count: 1
+                gpu_nvidia:
+                    - architecture: Ampere
+                      cudaCores: 3584
+                      memoryTotal: "12884901888"
+                      name: NVIDIA GeForce RTX 3060
+                      uuid: GPU-08497d9e-c6e9-769a-e3c6-db02e12d0e13
+                host: jrmch12f
+                memory:
+                    total: "16643244032"
+                os: Linux-6.8.0-101-generic-x86_64-with-glibc2.35
+                program: /home/jrmch12f/miniconda3/envs/madmjx/bin/arcdrone-train-sitt
+                python: CPython 3.11.14
+                root: /home/jrmch12f/Documents/code/borrador_braxenvs
+                startedAt: "2026-03-04T15:58:07.149542Z"
+                writerId: aynem2eridf8wk4a34v0mzmiyidhb6uw
+        m: []
+        python_version: 3.11.14
+        t:
+            "1":
+                - 12
+                - 45
+                - 50
+            "2":
+                - 12
+                - 45
+                - 50
+            "3":
+                - 2
+                - 13
+                - 16
+                - 61
+            "4": 3.11.14
+            "5": 0.25.0
+            "12": 0.25.0
+            "13": linux-x86_64
+debug_cpu:
+    value: false
+env:
+    value:
+        action_chattering_weight: 0.001
+        action_penalty_weight: 0.0001
+        action_repeat: 1
+        buffer_size: 5
+        ctrl_dt: 0.02
+        distance_scale: 0.3
+        distance_weight: 1
+        ground_penalty_weight: 10
+        ground_threshold_event: 0.15
+        ground_threshold_penalty: 0.5
+        hola: 123
+        impl: jax
+        max_episode_steps: 200
+        nconmax: 0
+        njmax: 2
+        oscillation_penalty: 2
+        overshoot_penalty: 5
+        sim_dt: 0.004
+        success_bonus: 500
+        success_steps_required: 10
+        success_threshold: 0.02
+        time_penalty: 0.01
+        vision: false
+        vision_config:
+            enabled_geom_groups:
+                - 0
+            gpu_id: 0
+            history: 3
+            render_batch_size: 1
+            render_height: 64
+            render_width: 64
+            use_rasterizer: false
+        xml_path_rel: assets/skydio_x2/scene.xml
+task_name:
+    value: landing
+train:
+    value:
+        action_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        action_repeat: 1
+        align_batch_env_steps: 20000
+        align_update_every_env_steps: 1000000
+        align_updates_per_trigger: 4
+        batch_size: 512
+        discounting: 0.97
+        entropy_cost: 0.001
+        episode_length: 200
+        frompreviouscheckpoint: 0
+        learning_rate: 0.0003
+        log_training_metrics: false
+        normalize_observations: true
+        num_envs: 512
+        num_evals: 30
+        num_minibatches: 8
+        num_timesteps: 12000000
+        num_updates_per_batch: 16
+        policy_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        policy_obs_key: state
+        proxy_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        proxy_kl_coef: 1.9
+        restore_params_path: null
+        restore_value_fn: true
+        reward_scaling: 0.1
+        seed: 0
+        sitt_align_coef: 0.01
+        student_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        unroll_length: 32
+        use_sitt: false
+        use_wandb: true
+        value_hidden_layers:
+            - 512
+            - 512
+            - 256
+            - 128
+        value_obs_key: privileged_state
+        wandb_project: brax-training
+        wandb_run_name: arcdrone_hover_sitt_run
