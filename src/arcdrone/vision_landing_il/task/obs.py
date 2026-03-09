@@ -35,7 +35,7 @@ def _get_obs_impl(self, state, action):
     target_buffer = jp.concatenate([target[jp.newaxis, :], state.info["target_buffer"][:-1, :]], axis=0)
 
 
-    value_state = jp.concatenate([
+    priviledged_state = jp.concatenate([
         linacc_buffer.flatten(),
         linvel_buffer.flatten(),
         quat_buffer.flatten(),
@@ -47,11 +47,13 @@ def _get_obs_impl(self, state, action):
 
     # ── Build obs dict ───────────────────────────────────────────────────────
     obs = {
-        "policy_obs": {
+        "student_obs": {
             "pixels": frame_stack,  # (H, W, history)
             "propio": action_buffer.flatten(),  # (history * nu,)
         },
-        "value_obs": value_state,  # critic obs
+        "value_obs": priviledged_state,  # Critic obs
+        "teacher_obs": priviledged_state,  # Critic obs
+
     }
 
     info = {

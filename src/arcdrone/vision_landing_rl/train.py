@@ -71,10 +71,15 @@ def main(cfg: DictConfig):
 
     network_factory = functools.partial(
         make_ppo_networks_vision,
-        policy_hidden_layer_sizes=cfg.policy_hidden_layers,
+        policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
+        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
+        cnn_num_filters=cfg.cnn_num_filters,
+        cnn_kernel_sizes=cfg.cnn_kernel_sizes,
+        cnn_strides=cfg.cnn_strides,
         policy_obs_key=cfg.policy_obs_key,
+        policy_pixels_key=cfg.policy_pixels_key,
         policy_propio_key=cfg.policy_propio_key,
         value_obs_key=cfg.value_obs_key,
     )

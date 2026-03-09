@@ -1,18 +1,4 @@
-"""PPO networks for vision-based landing RL.
-
-Architecture
-------------
-Policy  : NatureCNN on ``policy_state_pixels``
-          + concat flat ``policy_state_propio`` (action history)
-          → MLP body (policy_hidden_layers)
-          → action_head MLP (action_hidden_layers)
-          → logits
-Value   : plain MLP on ``value_state`` (privileged flat obs) → scalar
-
-Both networks are Brax-PPO-compatible via the FeedForwardNetwork / PPONetworks
-dataclasses.  Building blocks (MLP, CNN, VisionDecoder) live in
-arrowdrone.common.networks so they can be reused by other tasks.
-"""
+"""PPO networks for vision-based landing RL."""
 
 from typing import Any, Callable, Mapping, Sequence, Tuple
 
@@ -25,7 +11,7 @@ from flax import linen as nn
 import jax
 import jax.numpy as jnp
 
-from arcdrone.common.networks import MLP, VisionDecoder, _get_obs_size
+from arcdrone.common.networks import CNN, MLP, _get_obs_size
 
 
 ActivationFn = Callable[[jnp.ndarray], jnp.ndarray]
@@ -46,6 +32,68 @@ class PPONetworks:
     parametric_action_distribution: distribution.ParametricDistribution
 
 
+class PolicyVisionProprioEncoder(nn.Module):
+    """Two-branch policy encoder: [pixels->CNN and proprio->MLP projector]->fusion MLP."""
+
+    cnn_num_filters: Sequence[int]
+    cnn_kernel_sizes: Sequence[Tuple[int, int]]
+    cnn_strides: Sequence[Tuple[int, int]]
+    proprio_proj_hidden_layers: Sequence[int]
+    fusion_hidden_layers: Sequence[int]
+    activation: ActivationFn = nn.relu
+    kernel_init: Initializer = jax.nn.initializers.lecun_uniform()
+
+    @nn.compact
+    def __call__(self, pixels: jnp.ndarray, proprio: jnp.ndarray) -> jnp.ndarray:
+        cnn_out = CNN(
+            num_filters=self.cnn_num_filters,
+            kernel_sizes=self.cnn_kernel_sizes,
+            strides=self.cnn_strides,
+            activation=self.activation,
+            use_bias=False,
+        )(pixels)
+        cnn_feats = jnp.mean(cnn_out, axis=(-2, -3))
+
+        proprio_feats = MLP(
+            layer_sizes=list(self.proprio_proj_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=True,
+        )(proprio)
+
+        fused = jnp.concatenate([cnn_feats, proprio_feats], axis=-1)
+        return MLP(
+            layer_sizes=list(self.fusion_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=False,
+        )(fused)
+
+
+def _split_path(path: str) -> Sequence[str]:
+    return tuple(k for k in path.split("/") if k)
+
+
+def _get_by_path(tree: Mapping[str, Any], path: str):
+    value = tree
+    for key in _split_path(path):
+        value = value[key]
+    return value
+
+
+def _select_normalizer_by_path(pparams: Any, path: str):
+    selected = pparams
+    for key in _split_path(path):
+        selected = normalizer_select(selected, key)
+    return selected
+
+
+def _shape_last_dim(shape_spec: Any) -> int:
+    if isinstance(shape_spec, int):
+        return shape_spec
+    return int(jax.tree_util.tree_flatten(shape_spec)[0][-1])
+
+
 # ---------------------------------------------------------------------------
 # Factory
 # ---------------------------------------------------------------------------
@@ -56,28 +104,27 @@ def make_ppo_networks_vision(
     preprocess_observations_fn: types.PreprocessObservationFn = (
         types.identity_observation_preprocessor
     ),
-    # Vision policy backbone (MLP layers *after* the CNN)
-    policy_hidden_layer_sizes: Sequence[int] = (256, 256),
+    # Fusion decoder layers after concatenating CNN and proprio projector features.
+    policy_dec_hidden_layers: Sequence[int] = (256, 256),
+    # Proprio projection branch (MLP) before fusion.
+    policy_propio_proj_hidden_layers: Sequence[int] = (64,),
     # Action head on top of the policy backbone features
     action_hidden_layer_sizes: Sequence[int] = (64,),
-    # Value network. When value_obs_key starts with "pixels/" a separate
-    # VisionDecoder + linear head is used; otherwise a plain MLP on a flat
-    # state vector is used (e.g. when privileged_state is in the obs dict).
-    value_hidden_layer_sizes: Sequence[int] = (256, 256, 256, 256, 256),
+    value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
+    cnn_num_filters: Sequence[int] = (32, 64, 64),
+    cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
+    cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
     activation: ActivationFn = nn.relu,
-    # Key for the pixel observation fed to the CNN.
-    policy_obs_key: str = "policy_state_pixels",
-    # Key for the proprioceptive state (e.g. action history) concatenated
-    # with CNN features before the MLP body.  Set to "" to disable.
-    policy_propio_key: str = "policy_state_propio",
-    value_obs_key: str = "value_state",
+    # Path to policy group in observation dict (e.g. "policy_obs").
+    policy_obs_key: str = "policy_obs",
+    # Key inside policy_obs group for pixel tensor.
+    policy_pixels_key: str = "pixels",
+    # Key inside policy_obs group for proprio tensor.
+    policy_propio_key: str = "propio",
+    # Path to value vector in observation dict (e.g. "value_obs").
+    value_obs_key: str = "value_obs",
 ) -> PPONetworks:
-    """Build two-stream vision-policy + privileged-state-value PPO networks.
-
-    Policy params layout  : (vision_decoder_params, action_head_params)
-    Value params layout   : value_mlp_params  (plain MLP, no vision)
-    Brax PPO params order : (normalizer_params, policy_params, value_params)
-    """
+    """Build two-stream vision-policy + privileged-state-value PPO networks."""
 
     kernel_init = jax.nn.initializers.lecun_uniform()
 
@@ -89,99 +136,85 @@ def make_ppo_networks_vision(
     # Modules
     # ------------------------------------------------------------------
 
-    vision_decoder = VisionDecoder(
-        layer_sizes=list(policy_hidden_layer_sizes),
+    policy_encoder = PolicyVisionProprioEncoder(
+        cnn_num_filters=list(cnn_num_filters),
+        cnn_kernel_sizes=list(cnn_kernel_sizes),
+        cnn_strides=list(cnn_strides),
+        proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+        fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
-        pixels_obs_key=policy_obs_key,     # explicit pixel key
-        state_obs_key=policy_propio_key,   # propio concat; "" = disabled
     )
 
-    action_head = MLP(
+    policy_action_head = MLP(
         layer_sizes=list(action_hidden_layer_sizes)
             + [parametric_action_distribution.param_size],
         activation=activation,
         kernel_init=kernel_init,
     )
 
-    # Value backbone: VisionDecoder when value uses pixels, plain MLP otherwise.
-    # This lets you switch to privileged state later just by changing value_obs_key.
-    _value_uses_vision = value_obs_key.startswith("pixels/")
 
-    if _value_uses_vision:
-        value_backbone = VisionDecoder(
-            layer_sizes=list(value_hidden_layer_sizes),
-            activation=activation,
-            kernel_init=kernel_init,
-            state_obs_key="",
-        )
-        # Linear head → scalar
-        value_head = MLP(layer_sizes=[1], activation=activation, kernel_init=kernel_init)
-    else:
-        value_backbone = MLP(
-            layer_sizes=list(value_hidden_layer_sizes) + [1],
-            activation=activation,
-            kernel_init=kernel_init,
-        )
-        value_head = None
+    value_mlp = MLP(
+        layer_sizes=list(value_hidden_layer_sizes) + [1],
+        activation=activation,
+        kernel_init=kernel_init,
+    )
+
 
     # ------------------------------------------------------------------
     # Dummy inputs for init
     # ------------------------------------------------------------------
 
-    # Policy dummy obs: pixels + propio (if enabled)
-    pixel_shape = observation_size[policy_obs_key]   # e.g. (64, 64, 5)
-    dummy_policy_obs = {policy_obs_key: jnp.zeros((1,) + tuple(pixel_shape))}
-    if policy_propio_key:
-        propio_size = _get_obs_size(observation_size, policy_propio_key)
-        dummy_policy_obs[policy_propio_key] = jnp.zeros((1, propio_size))
+    policy_obs_size = _get_by_path(observation_size, policy_obs_key)
+    pixel_shape = tuple(policy_obs_size[policy_pixels_key])
+    propio_size = _shape_last_dim(policy_obs_size[policy_propio_key])
+    dummy_pixels = jnp.zeros((1,) + pixel_shape)
+    dummy_propio = jnp.zeros((1, propio_size))
 
     # Value dummy input
-    if _value_uses_vision:
-        val_shape = observation_size[value_obs_key]  # (H, W, C)
-        dummy_value_obs = {value_obs_key: jnp.zeros((1,) + tuple(val_shape))}
-    else:
-        value_obs_size = _get_obs_size(observation_size, value_obs_key)
-        dummy_value_obs = jnp.zeros((1, value_obs_size))
+    value_obs_size = _get_obs_size(_get_by_path(observation_size, value_obs_key), "")
+    dummy_value_obs = jnp.zeros((1, value_obs_size))
 
     # ------------------------------------------------------------------
     # Helpers
     # ------------------------------------------------------------------
 
-    def _preprocess_state(obs, pparams):
-        """Normalise the flat state slice used by the value network (state-only path)."""
+    def _preprocess_value(obs, pparams):
         if isinstance(obs, Mapping):
+            value_obs = _get_by_path(obs, value_obs_key)
             return preprocess_observations_fn(
-                obs[value_obs_key], normalizer_select(pparams, value_obs_key)
+                value_obs,
+                _select_normalizer_by_path(pparams, value_obs_key),
             )
         return preprocess_observations_fn(obs, pparams)
+
+    def _extract_policy_obs(obs):
+        policy_group = _get_by_path(obs, policy_obs_key)
+        return policy_group[policy_pixels_key], policy_group[policy_propio_key]
+
+    def _preprocess_policy_propio(obs, pparams):
+        _, proprio = _extract_policy_obs(obs)
+        return preprocess_observations_fn(
+            proprio,
+            _select_normalizer_by_path(
+                pparams, f"{policy_obs_key}/{policy_propio_key}"
+            ),
+        )
 
     # ------------------------------------------------------------------
     # Value network init / apply
     # ------------------------------------------------------------------
 
-    if _value_uses_vision:
-        def _value_init(key):
-            k1, k2 = jax.random.split(key)
-            bb_params = value_backbone.init(k1, dummy_value_obs)
-            feats = value_backbone.apply(bb_params, dummy_value_obs)
-            head_params = value_head.init(k2, feats)
-            return bb_params, head_params
+    def _value_init(key):
+        return value_mlp.init(key, dummy_value_obs)
 
-        def _value_apply(pparams, params, obs):
-            if not isinstance(obs, Mapping):
-                obs = {value_obs_key: obs}
-            feats = value_backbone.apply(params[0], obs)
-            return jnp.squeeze(value_head.apply(params[1], feats), axis=-1)
-    else:
-        def _value_init(key):
-            return value_backbone.init(key, dummy_value_obs)
-
-        def _value_apply(pparams, params, obs):
-            return jnp.squeeze(
-                value_backbone.apply(params, _preprocess_state(obs, pparams)),
-                axis=-1,
-            )
+    def _value_apply(pparams, params, obs):
+        return jnp.squeeze(
+            value_mlp.apply(params, _preprocess_value(obs, pparams)),
+            axis=-1,
+        )
+    
+    value_network = FeedForwardNetwork(init=_value_init, apply=_value_apply)
 
     # ------------------------------------------------------------------
     # Policy network
@@ -191,21 +224,18 @@ def make_ppo_networks_vision(
 
     def _policy_init(key):
         k1, k2 = jax.random.split(key)
-        dec_params = vision_decoder.init(k1, dummy_policy_obs)
-        feats = vision_decoder.apply(dec_params, dummy_policy_obs)
-        head_params = action_head.init(k2, feats)
+        dec_params = policy_encoder.init(k1, dummy_pixels, dummy_propio)
+        feats = policy_encoder.apply(dec_params, dummy_pixels, dummy_propio)
+        head_params = policy_action_head.init(k2, feats)
         return dec_params, head_params
 
     def _policy_apply(pparams, params, obs):
-        # Pixels are already in [-0.5, 0.5] from the env — no normalisation.
-        # obs must be a dict with policy_obs_key (pixels) and optionally
-        # policy_propio_key (action history).
-        feats = vision_decoder.apply(params[0], obs)
-        return action_head.apply(params[1], feats)
+        pixels, _ = _extract_policy_obs(obs)
+        proprio = _preprocess_policy_propio(obs, pparams)
+        feats = policy_encoder.apply(params[0], pixels, proprio)
+        return policy_action_head.apply(params[1], feats)
 
     policy_network = FeedForwardNetwork(init=_policy_init, apply=_policy_apply)
-
-    value_network = FeedForwardNetwork(init=_value_init, apply=_value_apply)
 
     # ------------------------------------------------------------------
 

@@ -1,4 +1,4 @@
-task_name: vision_landing_ppo
+task_name: vision_landing_il
 
 defaults:
   - override hydra/job_logging: default  
@@ -77,6 +77,12 @@ train:
   batch_size: 512
   seed: 0
 
+  # ---- IL Hyperparameters ----
+  teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
+  num_il_epochs: 200              # number of collect-then-align cycles
+  num_unrolls_per_epoch: 50       # unroll segments collected per epoch
+  align_updates_per_trigger: 4    # gradient steps per epoch
+
   # Network Architecture
   policy_dec_hidden_layers: [256, 256]
   policy_propio_proj_hidden_layers: [64]
@@ -89,6 +95,8 @@ train:
   policy_pixels_key: "pixels"
   policy_propio_key: "propio"
   value_obs_key: "value_obs"
+  # IL extras
+  teacher_dec_hidden_layers: [512, 512, 256, 128]
 
   # Train from checkpoint (for continuing training)
   restore_params_path: null      
