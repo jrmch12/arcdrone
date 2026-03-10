@@ -1,15 +1,20 @@
-"""SITT-style alignment step for vision IL training.
+"""Alignment step for vision IL training.
 
 The alignment loss drives the student (vision) encoder to produce the same
-feature representations — and therefore same actions — as the frozen teacher
-(privileged-state) decoder, via a proxy intermediate.
+feature representations — and therefore the same actions — as the frozen
+teacher (privileged-state) decoder.
 
-Params tuple layout (matching train.py)::
+Only ``student_enc_params`` is trainable.  All teacher constants
+(``teacher_dec_params``, ``action_head_params``, ``teacher_norm``) are
+pre-bound via ``functools.partial`` in the caller so they never appear
+inside the JAX training state.
 
-    (teacher_dec_params, student_enc_params, proxy_dec_params,
-     action_head_params, norm_params)
-
-Only ``student_enc_params`` and ``proxy_dec_params`` receive gradients.
+Minibatching mirrors PPO's SGD step exactly:
+  - data in:        (batch_size * num_minibatches, unroll_length, ...)
+  - per minibatch:  (batch_size * unroll_length, ...)   [T flattened into N]
+  - outer scan:     align_updates_per_trigger passes over all minibatches
+  - inner scan:     num_minibatches gradient steps per pass
+  CNN sees batch_size * unroll_length images per gradient step.
 """
 
 from functools import partial
@@ -22,102 +27,109 @@ import optax
 
 @partial(
     jax.jit,
-    static_argnames=("il_network", "optimizer", "align_updates_per_trigger"),
+    static_argnames=("il_network", "optimizer", "align_updates_per_trigger", "num_minibatches"),
 )
 def align(
-    params: Tuple,
+    student_enc_params,
     opt_state: optax.OptState,
     teacher_obs,
     student_obs,
+    propio_norm,
     *,
+    teacher_dec_params,
+    action_head_params,
+    teacher_norm,
     il_network,
     optimizer,
     align_updates_per_trigger: int,
+    num_minibatches: int,
 ):
-    """Run ``align_updates_per_trigger`` gradient steps on the alignment loss.
+    """Run minibatched alignment.
+
+    Data is split into ``num_minibatches`` minibatches.  This whole pass is
+    repeated ``align_updates_per_trigger`` times (≈ ``num_updates_per_batch``
+    in PPO).  Total gradient steps = align_updates_per_trigger * num_minibatches.
 
     Args:
-        params: 5-tuple ``(teacher_dec_params, student_enc_params,
-                           proxy_dec_params, action_head_params, norm_params)``.
-        opt_state: optax state for ``(student_enc_params, proxy_dec_params)``.
-        teacher_obs: observations fed to the frozen teacher decoder.
-        student_obs: vision observations fed to the trainable student encoder.
-        il_network: ``ILNetworks`` instance (must be hashable / static).
-        optimizer: optax optimiser for the alignment step.
-        align_updates_per_trigger: number of gradient steps per call.
+        student_enc_params: trainable student encoder params.
+        opt_state: optax state for ``student_enc_params``.
+        teacher_obs: dict of obs, shape ``(batch_size * num_minibatches, T, ...)``.
+        student_obs: same shape as ``teacher_obs``.
+        propio_norm: live ``RunningStatisticsState`` for proprio normalisation.
+        teacher_dec_params: frozen teacher decoder params (pre-bound via partial).
+        action_head_params: frozen action head params (pre-bound via partial).
+        teacher_norm: frozen teacher normaliser sub-state (pre-bound via partial).
+        il_network: ``ILNetworks`` instance (static).
+        optimizer: optax optimiser.
+        align_updates_per_trigger: outer loop repetitions (like num_updates_per_batch).
+        num_minibatches: number of gradient steps per outer repetition.
 
     Returns:
-        ``(new_params, new_opt_state, align_loss)``
+        ``(new_student_enc_params, new_opt_state, mean_align_loss)``
     """
 
-    (
-        teacher_dec_params,
-        student_enc_params,
-        proxy_dec_params,
-        action_head_params,
-        norm_params,
-    ) = params
+    # ── Pre-split data into minibatches ────────────────────────────────────
+    # Input leaf shape:  (batch_size * num_minibatches, unroll_length, ...)
+    # After reshape:     (num_minibatches, batch_size * unroll_length, ...)
+    # The CNN therefore sees batch_size * unroll_length images per step.
+    def _to_minibatches(x):
+        # x: (B*M, T, ...) → (M, B*T, ...)
+        return jnp.reshape(x, (num_minibatches, -1) + x.shape[2:])
 
-    def loss_fn(student_enc, proxy_dec):
-        # ── Features ──────────────────────────────────────────────────────
-        teacher_feat = il_network.teacher_decoder.apply(
-            norm_params, teacher_dec_params, teacher_obs
-        )
-        student_feat = il_network.student_encoder.apply(
-            norm_params, student_enc, student_obs
-        )
-        proxy_feat = il_network.proxy_decoder.apply(
-            norm_params, proxy_dec, teacher_obs
-        )
+    mb_teacher_obs = jax.tree_util.tree_map(_to_minibatches, teacher_obs)
+    mb_student_obs = jax.tree_util.tree_map(_to_minibatches, student_obs)
 
-        # ── Embedding loss ─────────────────────────────────────────────────
-        embed_loss = (
-            jnp.mean(jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat)))
-            + jnp.mean(jnp.abs(jax.lax.stop_gradient(student_feat) - proxy_feat))
-        )
+    # ── Per-minibatch gradient step ────────────────────────────────────────
+    def minibatch_step(carry, data):
+        student_enc, opt_st = carry
+        t_obs, s_obs = data
 
-        # ── Action loss ────────────────────────────────────────────────────
-        teacher_logits = il_network.action_head.apply(
-            None, action_head_params, jax.lax.stop_gradient(teacher_feat)
-        )
-        student_logits = il_network.action_head.apply(
-            None, action_head_params, student_feat
-        )
-        proxy_logits = il_network.action_head.apply(
-            None, action_head_params, proxy_feat
-        )
+        def loss_fn(student_enc):
+            # teacher_norm / propio_norm are the correct RunningStatisticsState
+            # sub-states — passed directly, no normalizer_select needed.
+            teacher_feat = il_network.teacher_decoder.apply(
+                teacher_norm, teacher_dec_params, t_obs
+            )
+            student_feat = il_network.student_encoder.apply(
+                propio_norm, student_enc, s_obs
+            )
 
-        action_loss = (
-            jnp.mean(jnp.abs(student_logits - jax.lax.stop_gradient(teacher_logits)))
-            + jnp.mean(jnp.abs(jax.lax.stop_gradient(student_logits) - proxy_logits))
-        )
+            embed_loss = jnp.mean(
+                jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat))
+            )
+            teacher_logits = il_network.action_head.apply(
+                None, action_head_params, jax.lax.stop_gradient(teacher_feat)
+            )
+            student_logits = il_network.action_head.apply(
+                None, action_head_params, student_feat
+            )
+            action_loss = jnp.mean(
+                jnp.abs(student_logits - jax.lax.stop_gradient(teacher_logits))
+            )
+            return embed_loss + action_loss
 
-        return embed_loss + action_loss
+        loss, grads = jax.value_and_grad(loss_fn)(student_enc)
+        updates, opt_st = optimizer.update(grads, opt_st, student_enc)
+        student_enc = optax.apply_updates(student_enc, updates)
+        return (student_enc, opt_st), loss
 
-    def step(carry, _):
-        student_enc, proxy_dec, opt_st = carry
-        loss, grads = jax.value_and_grad(loss_fn, argnums=(0, 1))(
-            student_enc, proxy_dec
+    # ── One pass over all minibatches ─────────────────────────────────────
+    def sgd_step(carry, _):
+        student_enc, opt_st = carry
+        (student_enc, opt_st), losses = jax.lax.scan(
+            minibatch_step,
+            (student_enc, opt_st),
+            (mb_teacher_obs, mb_student_obs),
+            length=num_minibatches,
         )
-        updates, opt_st = optimizer.update(grads, opt_st, (student_enc, proxy_dec))
-        student_enc, proxy_dec = jax.tree_util.tree_map(
-            lambda p, u: p + u, (student_enc, proxy_dec), updates
-        )
-        return (student_enc, proxy_dec, opt_st), loss
+        return (student_enc, opt_st), jnp.mean(losses)
 
-    (student_enc_params, proxy_dec_params, opt_state), losses = jax.lax.scan(
-        step,
-        (student_enc_params, proxy_dec_params, opt_state),
+    # ── Outer loop: repeat align_updates_per_trigger times ────────────────
+    (student_enc_params, opt_state), epoch_losses = jax.lax.scan(
+        sgd_step,
+        (student_enc_params, opt_state),
         None,
         length=align_updates_per_trigger,
     )
-    align_loss = jnp.mean(losses)
 
-    new_params = (
-        teacher_dec_params,
-        student_enc_params,
-        proxy_dec_params,
-        action_head_params,
-        norm_params,
-    )
-    return new_params, opt_state, align_loss
+    return student_enc_params, opt_state, jnp.mean(epoch_losses)
