@@ -19,8 +19,8 @@ env:
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
-  naconmax: 0
-  njmax: 2
+  naconmax: ${mul:${env.njmax},${train.num_envs}}
+  njmax: 250
   vision: true
   vision_config: # must contain only warp api parameters
     nworld: ${train.num_envs}
@@ -61,27 +61,32 @@ train:
   num_timesteps: 100 # 20_000_000
   num_evals: 8
   num_eval_envs: 2
-  reward_scaling: 0.1
+  # reward_scaling: 0.1           # PPO only
   episode_length: 200
   normalize_observations: true
   action_repeat: 1
   unroll_length: 10
-  num_minibatches: 24
-  num_updates_per_batch: 8
-  log_training_metrics: false
-  discounting: 0.97
+  # num_minibatches: 24           # PPO only
+  # num_updates_per_batch: 8      # PPO only
+  # log_training_metrics: false   # PPO only
+  # discounting: 0.97             # PPO only
   learning_rate: 3e-4
-  entropy_cost: 1e-3
+  # entropy_cost: 1e-3            # PPO only
   # Default number of parallel environments. Task configs can override.
   num_envs: 4
-  batch_size: 512
+  # batch_size: 512               # PPO only
   seed: 0
 
   # ---- IL Hyperparameters ----
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
   num_il_epochs: 200              # number of collect-then-align cycles
-  num_unrolls_per_epoch: 50       # unroll segments collected per epoch
-  align_updates_per_trigger: 4    # gradient steps per epoch
+  # Minibatch layout (mirrors PPO):
+  #   num_unrolls = batch_size * num_minibatches // num_envs  (inferred)
+  #   CNN sees batch_size * unroll_length images per gradient step
+  #   total grad steps per epoch = align_updates_per_trigger * num_minibatches
+  batch_size: 256                 # env trajectories per minibatch
+  num_minibatches: 4              # minibatches per epoch
+  align_updates_per_trigger: 4    # full passes over all minibatches per epoch
 
   # Network Architecture
   policy_dec_hidden_layers: [256, 128]
@@ -99,13 +104,13 @@ train:
   teacher_dec_hidden_layers: [512, 512, 256, 128]
 
   # Train from checkpoint (for continuing training)
-  restore_params_path: null      
-  restore_value_fn: true 
-  frompreviouscheckpoint: 0   # 0,1,2,3. This flag overrides the two previous ones. 0 sets false. 1 sets true and uses the last checkpoint. 2 sets true and uses the one before last checkpoint. 3 sets true and uses the one before that.
+  # restore_params_path: null     # PPO only
+  # restore_value_fn: true        # PPO only
+  # frompreviouscheckpoint: 0     # PPO only
 
   # WandB Configuration
   wandb_project: "brax-training"
-  wandb_run_name: "arcdrone_vision_landing_ppo_run"
+  wandb_run_name: "arcdrone_vision_landing_il_run"
   use_wandb: false
 
 

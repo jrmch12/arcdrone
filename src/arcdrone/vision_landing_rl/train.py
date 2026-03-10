@@ -10,6 +10,8 @@ import os
 import glob
 
 from omegaconf import DictConfig, OmegaConf
+# Custom resolver: ${mul:a,b} → int(a) * int(b)
+OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=True)
 import hydra
 from hydra.core.hydra_config import HydraConfig
 import numpy as np

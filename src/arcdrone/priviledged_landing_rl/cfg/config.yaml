@@ -15,12 +15,12 @@ env:
   
   # ==== MJXEnvs / mujoco_playground flags ====
   xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
-  impl: "jax"
+  impl: "warp"
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
-  naconmax: 0
-  njmax: 2
+  naconmax: ${mul:${env.njmax},${train.num_envs}}
+  njmax: 250
   vision: false
   # vision_config: # must contain only warp api parameters
   #   nworld: ${train.num_envs}

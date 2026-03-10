@@ -295,6 +295,15 @@ def _shape_last_dim(shape_spec: Any) -> int:
 # ===========================================================================
 
 @flax.struct.dataclass
+class ILNetworkParams:
+    """Params tracked during IL alignment training."""
+    policy: Any               # (teacher_dec_params, action_head_params) — frozen from teacher ckpt
+    value: Any                # value_params — frozen
+    student_enc_params: Any   # PolicyVisionProprioEncoder flax params — trained
+    proxy_dec_params: Any     # proxy MLP flax params — trained
+
+
+@flax.struct.dataclass
 class ILNetworks:
     """All networks needed for vision IL (student–teacher alignment).
 
@@ -306,9 +315,10 @@ class ILNetworks:
     teacher_network: FeedForwardNetwork        # flat state  → logits  (frozen, for rollouts)
     student_network: FeedForwardNetwork        # vision obs  → logits  (student inference)
     value_network: FeedForwardNetwork          # flat state  → scalar  (frozen)
-    # Adapters used in alignment
+    # Decoder-only adapters used in alignment
     teacher_decoder: FeedForwardNetwork        # flat state  → features
     student_encoder: FeedForwardNetwork        # vision obs  → features
+    proxy_decoder: FeedForwardNetwork          # flat state  → proxy features
     action_head: FeedForwardNetwork            # features    → logits
     parametric_action_distribution: distribution.ParametricDistribution
 
@@ -323,8 +333,9 @@ def make_il_networks(
     preprocess_observations_fn: types.PreprocessObservationFn = (
         types.identity_observation_preprocessor
     ),
-    # Teacher MLP decoder (frozen from checkpoint)
+    # Teacher / proxy MLP decoder
     teacher_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
+    proxy_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
     # Student (vision) encoder — same architecture as vision RL student
     policy_dec_hidden_layers: Sequence[int] = (256, 256),
     policy_propio_proj_hidden_layers: Sequence[int] = (64,),
@@ -356,6 +367,12 @@ def make_il_networks(
 
     teacher_decoder_mlp = MLP(
         layer_sizes=list(teacher_dec_hidden_layers),
+        activation=activation,
+        kernel_init=kernel_init,
+        activate_final=True,
+    )
+    proxy_decoder_mlp = MLP(
+        layer_sizes=list(proxy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
         activate_final=True,
@@ -419,14 +436,13 @@ def make_il_networks(
     # ------------------------------------------------------------------
 
     def _preprocess_teacher(obs, pparams):
-        """Normalise teacher (policy) obs.
-
-        ``pparams`` is already the per-key sub-state (extracted from the full
-        teacher checkpoint normalizer via normalizer_select before training),
-        so we do NOT call normalizer_select here — just apply it directly.
-        """
-        teacher_obs = obs[teacher_obs_key] if isinstance(obs, Mapping) else obs
-        return preprocess_observations_fn(teacher_obs, pparams)
+        """Normalise teacher (policy) obs using its own normalizer sub-state."""
+        if isinstance(obs, Mapping):
+            teacher_obs = obs[teacher_obs_key]
+            return preprocess_observations_fn(
+                teacher_obs, normalizer_select(pparams, teacher_obs_key)
+            )
+        return preprocess_observations_fn(obs, pparams)
 
     def _preprocess_value(obs, pparams):
         """Normalise value obs using its own normalizer sub-state (may differ from teacher)."""
@@ -442,12 +458,10 @@ def make_il_networks(
         return obs[policy_pixels_key], obs[policy_propio_key]
 
     def _preprocess_student_propio(obs, pparams):
-        """Normalise proprio obs.
-
-        ``pparams`` is the propio RunningStatisticsState directly — not a dict.
-        """
-        proprio = obs[policy_propio_key] if isinstance(obs, Mapping) else obs
-        return preprocess_observations_fn(proprio, pparams)
+        proprio = obs[policy_propio_key]
+        return preprocess_observations_fn(
+            proprio, normalizer_select(pparams, policy_propio_key)
+        )
 
     # ------------------------------------------------------------------
     # Decoder-only FeedForwardNetworks (used in align.py)
@@ -457,6 +471,13 @@ def make_il_networks(
     teacher_decoder_net = FeedForwardNetwork(
         init=lambda key: teacher_decoder_mlp.init(key, dummy_teacher_obs),
         apply=lambda pparams, params, obs: teacher_decoder_mlp.apply(
+            params, _preprocess_teacher(obs, pparams)
+        ),
+    )
+
+    proxy_decoder_net = FeedForwardNetwork(
+        init=lambda key: proxy_decoder_mlp.init(key, dummy_teacher_obs),
+        apply=lambda pparams, params, obs: proxy_decoder_mlp.apply(
             params, _preprocess_teacher(obs, pparams)
         ),
     )
@@ -529,6 +550,7 @@ def make_il_networks(
         value_network=value_network,
         teacher_decoder=teacher_decoder_net,
         student_encoder=student_encoder_net,
+        proxy_decoder=proxy_decoder_net,
         action_head=action_head_net,
         parametric_action_distribution=parametric_action_distribution,
     )
@@ -538,71 +560,56 @@ def make_il_networks(
 # IL inference helpers
 # ---------------------------------------------------------------------------
 
-def make_frozen_teacher_policy(
-    il_networks: ILNetworks,
-    teacher_norm_params: Any,
-    teacher_policy_params: Any,
-    deterministic: bool = False,
-) -> types.Policy:
-    """Returns a ``policy(obs, key)`` with all teacher params baked in as constants.
+def make_teacher_inference_fn(il_networks: ILNetworks, compute_value: bool = False):
+    """Teacher policy factory.
 
-    Nothing is passed at call time — teacher norm and policy params are closed
-    over here so they never appear in the JAX training state.
-    """
-
-    def policy(
-        observations: types.Observation, key_sample: PRNGKey
-    ) -> Tuple[types.Action, types.Extra]:
-        logits = il_networks.teacher_network.apply(
-            teacher_norm_params, teacher_policy_params, observations
-        )
-        if deterministic:
-            return il_networks.parametric_action_distribution.mode(logits), {}
-        raw_actions = (
-            il_networks.parametric_action_distribution
-            .sample_no_postprocessing(logits, key_sample)
-        )
-        log_prob = il_networks.parametric_action_distribution.log_prob(
-            logits, raw_actions
-        )
-        postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
-        return postprocessed, {
-            "log_prob": log_prob,
-            "raw_action": raw_actions,
-            "distribution_params": logits,
-        }
-
-    return policy
-
-
-def make_student_inference_fn(il_networks: ILNetworks, action_head_params: Any):
-    """Student (vision) policy factory.
-
-    ``action_head_params`` is a frozen constant from the teacher checkpoint,
-    closed over here so it is never part of the JAX training state.
-
-    Expected params at call time (from _pack_student_params):
-        params[0] = propio_norm        (RunningStatisticsState)
-        params[1] = student_enc_params
+    Expected params tuple:
+        params[0] = normalizer_params
+        params[1] = (teacher_dec_params, action_head_params)
+        params[2] = value_params
     """
 
     def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
-        propio_norm, student_enc = params
 
         def policy(observations: types.Observation, key_sample: PRNGKey):
-            # Pass propio_norm directly — _preprocess_student_propio uses it as-is.
-            logits = il_networks.student_network.apply(
-                propio_norm, (student_enc, action_head_params), observations
-            )
+            logits = il_networks.teacher_network.apply(params[0], params[1], observations)
             if deterministic:
                 return il_networks.parametric_action_distribution.mode(logits), {}
-            raw_actions = (
-                il_networks.parametric_action_distribution
-                .sample_no_postprocessing(logits, key_sample)
+            raw_actions = il_networks.parametric_action_distribution.sample_no_postprocessing(
+                logits, key_sample
             )
-            log_prob = il_networks.parametric_action_distribution.log_prob(
-                logits, raw_actions
+            log_prob = il_networks.parametric_action_distribution.log_prob(logits, raw_actions)
+            postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
+            extras = {"log_prob": log_prob, "raw_action": raw_actions, "distribution_params": logits}
+            if compute_value:
+                extras["value"] = il_networks.value_network.apply(params[0], params[2], observations)
+            return postprocessed, extras
+
+        return policy
+
+    return make_policy
+
+
+def make_student_inference_fn(il_networks: ILNetworks):
+    """Student (vision) policy factory.
+
+    Expected params tuple:
+        params[0] = normalizer_params
+        params[1] = teacher policy params (ignored by student — kept for uniform signature)
+        params[2] = value_params         (ignored by student)
+        params[3] = (student_enc_params, action_head_params)
+    """
+
+    def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
+
+        def policy(observations: types.Observation, key_sample: PRNGKey):
+            logits = il_networks.student_network.apply(params[0], params[3], observations)
+            if deterministic:
+                return il_networks.parametric_action_distribution.mode(logits), {}
+            raw_actions = il_networks.parametric_action_distribution.sample_no_postprocessing(
+                logits, key_sample
             )
+            log_prob = il_networks.parametric_action_distribution.log_prob(logits, raw_actions)
             postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
             return postprocessed, {
                 "log_prob": log_prob,

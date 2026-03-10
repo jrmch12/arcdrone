@@ -1,11 +1,18 @@
 """Hydra entry-point for pure Imitation Learning training.
 
-Loads a pre-trained teacher checkpoint, builds the SITT network
-(with ``use_sitt=True``), and runs IL-only training (no PPO).
+Loads a pre-trained teacher (privileged-state RL) checkpoint and trains a
+student vision encoder to match teacher features via an alignment loss.
+No PPO — pure supervised feature/action matching.
 
 Example::
 
-    arcdrone-train-il task=landing
+    python src/arcdrone/vision_landing_il/train.py \\
+        train.teacher_checkpoint_path=/path/to/teacher.pkl \\
+        train.num_envs=512 train.unroll_length=16 \\
+        train.batch_size=256 train.num_minibatches=4 \\
+        train.num_il_epochs=200 train.align_updates_per_trigger=4 \\
+        train.num_evals=32 train.num_eval_envs=128 \\
+        train.use_wandb=true
 """
 
 from datetime import datetime
@@ -16,6 +23,8 @@ import os
 from omegaconf import DictConfig, OmegaConf
 import hydra
 from hydra.core.hydra_config import HydraConfig
+# Custom resolver: ${mul:a,b} → int(a) * int(b)
+OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=True)
 import numpy as np
 
 
@@ -113,8 +122,10 @@ def main(cfg: DictConfig):
         teacher_params=teacher_params,
         num_il_epochs=cfg.num_il_epochs,
         num_evals=cfg.num_evals,
+        num_eval_envs=cfg.num_eval_envs,
         unroll_length=cfg.unroll_length,
-        num_unrolls_per_epoch=cfg.num_unrolls_per_epoch,
+        batch_size=cfg.batch_size,
+        num_minibatches=cfg.num_minibatches,
         align_updates_per_trigger=cfg.align_updates_per_trigger,
         network_factory=network_factory,
         num_envs=cfg.num_envs,
@@ -184,3 +195,4 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     main()
+

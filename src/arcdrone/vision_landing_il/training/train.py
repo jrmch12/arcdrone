@@ -52,16 +52,16 @@ _PMAP_AXIS_NAME = "i"
 
 @flax.struct.dataclass
 class ILTrainingState:
-    """Minimal state for the IL learner (no PPO optimizer / value fn)."""
+    """Minimal mutable state for the IL learner.
 
+    Only student_enc_params is updated during training.
+    Teacher policy/value params are Python-level constants (closed over),
+    not JAX arrays in the training state.
+    """
     align_opt_state: optax.OptState
-    # ILNetworkParams: policy and value are frozen from the teacher checkpoint;
-    # student_enc_params and proxy_dec_params are updated by alignment.
-    params: il_networks.ILNetworkParams
-    # Flat normalizer covering propio (updated during IL) and
-    # value_obs / teacher_obs (frozen from teacher checkpoint).
-    normalizer_params: Any
-    env_steps: Any  # jnp scalar (uint32)
+    student_enc_params: Any   # PolicyVisionProprioEncoder — the only trainable params
+    normalizer_params: Any    # running stats for non-pixel obs (propio updated; others frozen)
+    env_steps: Any            # jnp scalar (uint32)
 
 
 # ====================== helpers ======================
@@ -77,23 +77,8 @@ def _strip_weak_type(tree):
     return jax.tree_util.tree_map(f, tree)
 
 
-def _pack_inference_params(ts: ILTrainingState) -> InferenceParams:
-    """Pack into the 4-tuple expected by make_student_inference_fn.
-
-    Layout:
-        [0] normalizer_params
-        [1] teacher policy params  (decoder, action_head) — frozen
-        [2] value params           — frozen
-        [3] student network params (student_enc, action_head)
-    """
-    # The student network uses (student_enc_params, shared_action_head_params)
-    student_net_params = (ts.params.student_enc_params, ts.params.policy[1])
-    return (
-        ts.normalizer_params,
-        ts.params.policy,
-        ts.params.value,
-        student_net_params,
-    )
+# _pack_inference_params is defined as a closure inside train() once teacher
+# params are known (see below).
 
 
 # ====================== main ======================
@@ -106,7 +91,8 @@ def train(
     num_il_epochs: int = 200,
     num_evals: int = 10,
     unroll_length: int = 10,
-    num_unrolls_per_epoch: int = 50,
+    batch_size: int = 32,
+    num_minibatches: int = 16,
     align_updates_per_trigger: int = 4,
     # --- architecture ---
     network_factory: types.NetworkFactory[
@@ -137,20 +123,22 @@ def train(
     """Pure IL training loop.
 
     Args:
-        teacher_env: teacher (state-based) environment, already wrapped for
-            Brax training if ``wrap_env=False``.
-        student_env: student (vision) environment — only used when the student
-            decoder is a CNN; ignored when student obs == teacher obs.
-        teacher_params: 5-tuple ``(normalizer, policy, value, student_dec,
-            proxy_dec)`` loaded from a SITT/RL checkpoint.  Only the teacher
-            policy weights are used for rollouts; student/proxy are
-            re-initialised.
+        teacher_params: 3-tuple ``(normalizer, policy, value)`` loaded from a
+            priviledged_landing_rl PPO checkpoint.  Only the teacher policy
+            weights are used for rollouts; student encoder is re-initialised.
         num_il_epochs: total number of collect-then-align cycles.
         num_evals: how often to evaluate (spread across ``num_il_epochs``).
         unroll_length: number of env steps per unroll segment.
-        num_unrolls_per_epoch: how many unroll segments to collect per epoch.
-        align_updates_per_trigger: gradient steps on alignment loss per epoch.
-        network_factory: factory that builds the ``SITTNetworks``.
+        batch_size: number of environment trajectories per minibatch (matches PPO
+            semantics).  The CNN sees ``batch_size * unroll_length`` images per
+            gradient step.
+        num_minibatches: number of minibatches to split the collected data into
+            per epoch.  ``num_unrolls_per_epoch`` is inferred as
+            ``batch_size * num_minibatches // num_envs``.
+        align_updates_per_trigger: how many full passes over all minibatches to
+            run per epoch (≈ ``num_updates_per_batch`` in PPO).  Total gradient
+            steps = ``align_updates_per_trigger * num_minibatches``.
+        network_factory: factory that builds the ``ILNetworks``.
         num_envs: parallel environments.
         episode_length: max episode length (used by the wrapper).
         action_repeat: action repeat for the env wrapper.
@@ -162,14 +150,13 @@ def train(
         max_devices_per_host: cap on devices per host process.
         progress_fn: callback ``(step, metrics) -> None``.
         policy_params_fn: callback ``(step, make_policy, params) -> None``.
-        student_observation_size: dict ``{key: shape}`` for student obs init.
         run_evals: if ``False`` skip evaluation rollouts.
         wrap_env: if ``True``, wrap envs with the Brax training wrapper.
         wrap_env_fn: custom wrapping function.
 
     Returns:
         ``(make_policy, params, metrics)`` where ``make_policy`` is the
-        **student** inference function and ``params`` is the 5-tuple.
+        **student** inference function and ``params`` is ``(norm, (student_enc, action_head))``.
     """
 
     xt = time.time()
@@ -208,8 +195,9 @@ def train(
 
     env = env
 
-    # env-steps per epoch
-    env_steps_per_epoch = num_envs * unroll_length * num_unrolls_per_epoch * action_repeat
+    # env-steps per epoch — matches PPO formula exactly:
+    #   env_step_per_training_step = batch_size * unroll_length * num_minibatches * action_repeat
+    env_steps_per_epoch = batch_size * unroll_length * num_minibatches * action_repeat
 
     # ========================= keys =========================
 
@@ -224,19 +212,23 @@ def train(
     # ========================= reset envs =========================
 
     assert num_envs % device_count == 0
+    assert batch_size * num_minibatches % num_envs == 0, (
+        f"batch_size ({batch_size}) * num_minibatches ({num_minibatches}) "
+        f"must be divisible by num_envs ({num_envs})"
+    )
+
+    # Number of rollout segments collected per epoch per device.
+    # Mirrors PPO: batch_size * num_minibatches // num_envs
+    num_envs_per_device = num_envs // device_count
+    num_unrolls_per_epoch = batch_size * num_minibatches // num_envs_per_device
 
     key_envs = jax.random.split(key_env, num_envs // process_count)
     key_envs = jnp.reshape(
         key_envs, (local_devices_to_use, -1) + key_envs.shape[1:]
     )
 
-    # Follow the Brax PPO convention: pmap when multiple devices are available,
-    # jit+vmap for the single-device (Warp) case.  Both produce a leading
-    # device-count dimension that the vmap'd training loop expects.
-    if local_devices_to_use > 1:
-        reset_fn = jax.pmap(env.reset, axis_name=_PMAP_AXIS_NAME)
-    else:
-        reset_fn = jax.jit(jax.vmap(env.reset))
+    # Always pmap (even 1 device) to avoid nested-vmap issues with warp rendering.
+    reset_fn = jax.pmap(env.reset, axis_name=_PMAP_AXIS_NAME)
     env_state = reset_fn(key_envs)
 
     # ========================= observation shapes =========================
@@ -255,91 +247,84 @@ def train(
         preprocess_observations_fn=normalize,
     )
 
-    # Teacher inference (frozen — drives rollouts)
-    make_teacher_policy = il_networks.make_teacher_inference_fn(il_network)
-
-    # Student inference (what we export / evaluate at the end)
-    make_student_policy = il_networks.make_student_inference_fn(il_network)
-
     # ========================= optimizer =========================
 
     align_optimizer = optax.adam(learning_rate)
 
-    align_fn = functools.partial(
-        align,
-        il_network=il_network,      # ILNetworks — static, hashable
-        optimizer=align_optimizer,
-        align_updates_per_trigger=align_updates_per_trigger,
-    )
-
     # ========================= init params =========================
 
-
     # ── Decompose teacher checkpoint ──────────────────────────────────────
-    # teacher_params layout (from vision_landing_rl PPO): (norm, policy, value)
-    # where policy = (teacher_dec_params, action_head_params)
-    teacher_norm_params = teacher_params[0]
-    teacher_policy_params = teacher_params[1]  # (teacher_dec, action_head)
-    teacher_value_params = teacher_params[2]
+    # Layout from priviledged_landing_rl PPO: (norm, policy, value)
+    #   norm   = RunningStatisticsState with dict leaves keyed by obs name
+    #   policy = (teacher_dec_params, action_head_params)
+    #   value  = value_params
+    from brax.training.networks import normalizer_select as _nsel
+    teacher_norm_params   = teacher_params[0]   # frozen constant
+    teacher_policy_params = teacher_params[1]   # (teacher_dec, action_head) — frozen constant
+    teacher_value_params  = teacher_params[2]   # frozen constant
+    teacher_dec_params    = teacher_policy_params[0]
+    action_head_params    = teacher_policy_params[1]
 
-    # ── Fresh student encoder + proxy decoder ─────────────────────────────
-    key_student, key_proxy = jax.random.split(key_il)
-    student_enc_params = il_network.student_encoder.init(key_student)
-    proxy_dec_params = il_network.proxy_decoder.init(key_proxy)
+    # Extract per-key sub-states (Python constants — never enter JAX training state).
+    # Teacher checkpoint was trained with keys "policy_obs" and "value_obs".
+    teacher_obs_norm = _nsel(teacher_norm_params, "policy_obs")
+    value_obs_norm   = _nsel(teacher_norm_params, "value_obs")  # noqa: F841
 
-    init_params = il_networks.ILNetworkParams(
-        policy=teacher_policy_params,
-        value=teacher_value_params,
-        student_enc_params=student_enc_params,
-        proxy_dec_params=proxy_dec_params,
+    # ── Frozen teacher policy for rollouts (stochastic, all constants baked in) ──
+    frozen_teacher_policy = il_networks.make_frozen_teacher_policy(
+        il_network,
+        teacher_norm_params=teacher_obs_norm,
+        teacher_policy_params=teacher_policy_params,
+        deterministic=False,
     )
 
-    # ── Normalizer ────────────────────────────────────────────────────────
-    # The teacher checkpoint was trained on flat privileged state only, so its
-    # RunningStatisticsState has array leaves (not dict-structured).  It has NO
-    # propio stats — we must supply those fresh.
-    #
-    # Strategy: build a fresh RS for the full non-pixel obs structure, then
-    # transplant the teacher's per-field arrays into value_obs / teacher_obs,
-    # leaving propio at its fresh-init values (updated from rollouts).
+    # ── Student inference factory (action_head baked in as closure) ──────────
+    make_student_policy = il_networks.make_student_inference_fn(
+        il_network,
+        action_head_params=action_head_params,
+    )
 
+    def _pack_student_params(ts: ILTrainingState):
+        """Pack replicated-only tensors for evaluator + _unpmap.
+
+        Returns (propio_norm, student_enc_params) — both are part of
+        ILTrainingState and are correctly replicated across devices, so
+        _unpmap (x[0]) is safe on their leaves.
+
+        action_head_params is NOT included here because it is a Python-level
+        constant that was never replicated; _unpmap would corrupt it by
+        indexing [0] on non-replicated arrays.
+        """
+        return (ts.normalizer_params, ts.student_enc_params)
+
+    # ── Align function: teacher constants pre-bound via partial ───────────
+    align_fn = functools.partial(
+        align,
+        il_network=il_network,
+        optimizer=align_optimizer,
+        align_updates_per_trigger=align_updates_per_trigger,
+        num_minibatches=num_minibatches,         # for the minibatch inner loop
+        teacher_dec_params=teacher_dec_params,   # constant — pre-bound here
+        action_head_params=action_head_params,   # constant — pre-bound here
+        teacher_norm=teacher_obs_norm,           # constant — pre-bound here
+    )
+
+    # ── Fresh student encoder ──────────────────────────────────────────────
+    student_enc_params = il_network.student_encoder.init(key_il)
+
+    # ── Normalizer: propio only ────────────────────────────────────────────
+    # teacher_obs_norm and value_obs_norm are Python-level constants closed
+    # over by the network apply functions — they never go into ILTrainingState.
+    # Only propio stats are dynamic and need to be tracked.
     propio_spec = specs.Array(
         env_state.obs["propio"].shape[2:], jnp.dtype("float32")
     )
-    fresh_propio_norm = running_statistics.init_state(propio_spec)
-
-    # Build a combined RS whose leaves are dicts keyed by obs name.
-    # running_statistics.RunningStatisticsState is a flax struct with
-    #   .count, .mean, .std, .summed_variance
-    # normalizer_select(rs, key) does tree_map(lambda x: x[key], rs) so each leaf
-    # must be a dict at the top level.
-    init_normalizer_params = running_statistics.RunningStatisticsState(
-        count=teacher_norm_params.count,
-        mean={
-            "value_obs":   teacher_norm_params.mean,
-            "teacher_obs": teacher_norm_params.mean,
-            "propio":      fresh_propio_norm.mean,
-        },
-        std={
-            "value_obs":   teacher_norm_params.std,
-            "teacher_obs": teacher_norm_params.std,
-            "propio":      fresh_propio_norm.std,
-        },
-        summed_variance={
-            "value_obs":   teacher_norm_params.summed_variance,
-            "teacher_obs": teacher_norm_params.summed_variance,
-            "propio":      fresh_propio_norm.summed_variance,
-        },
-        std_eps=teacher_norm_params.std_eps,
-        mode=teacher_norm_params.mode,
-    )
+    propio_norm = running_statistics.init_state(propio_spec)
 
     training_state = ILTrainingState(
-        align_opt_state=align_optimizer.init(
-            (student_enc_params, proxy_dec_params)
-        ),
-        params=init_params,
-        normalizer_params=init_normalizer_params,
+        align_opt_state=align_optimizer.init(student_enc_params),
+        student_enc_params=student_enc_params,
+        normalizer_params=propio_norm,
         env_steps=jnp.uint32(0),
     )
 
@@ -389,67 +374,33 @@ def train(
         key_rollout, key_next = jax.random.split(key)
 
         # 1. Roll out the FROZEN teacher policy to collect observations.
-        # Use params from training_state so this function is self-contained
-        # and compatible with jit/vmap tracing (no closure over outer tensors).
-        teacher_policy = make_teacher_policy((
-            training_state.normalizer_params,
-            training_state.params.policy,
-            training_state.params.value,
-        ))
-
+        # frozen_teacher_policy is a direct policy(obs, key) function with all
+        # teacher constants baked in — no params needed at call time.
         env_state, data = _generate_rollout_data(
-            env_state, key_rollout, teacher_policy, num_unrolls_per_epoch,
+            env_state, key_rollout, frozen_teacher_policy, num_unrolls_per_epoch,
         )
 
-        # 2. Alignment update: student encoder + proxy learn to match teacher decoder
-        teacher_dec = training_state.params.policy[0]   # teacher decoder params (frozen)
-        action_head = training_state.params.policy[1]   # shared action head (frozen)
-        norm_params = training_state.normalizer_params
-
-        # The env returns a flat obs dict:
-        #   data.observation["teacher_obs"]   → teacher (privileged) state
-        #   data.observation["value_obs"]     → critic state
-        #   data.observation["pixels/view_0"] → student vision frames
-        #   data.observation["propio"]        → student propio
-        # We pass the same dict for both; each network helper extracts its own keys.
-        student_obs = data.observation
-
-        (
-            (_, student_enc, proxy_dec, _, _),
-            align_opt_state,
-            align_loss,
-        ) = align_fn(
-            (
-                teacher_dec,
-                training_state.params.student_enc_params,
-                training_state.params.proxy_dec_params,
-                action_head,
-                norm_params,
-            ),
+        # 2. Alignment: student encoder learns to match frozen teacher decoder.
+        # All teacher constants (norm, dec_params, action_head) are pre-bound
+        # in align_fn via functools.partial — not in the training state.
+        student_enc, align_opt_state, align_loss = align_fn(
+            training_state.student_enc_params,
             training_state.align_opt_state,
-            data.observation,   # teacher (privileged) obs → teacher_decoder & proxy
-            student_obs,        # vision obs → student_encoder
+            data.observation,              # teacher_obs (teacher_obs_key extracted inside)
+            data.observation,              # student_obs (propio + pixels extracted inside)
+            training_state.normalizer_params,  # live propio_norm
         )
 
-        # 3. Update running normalizer with non-pixel obs from the collected batch.
-        # teacher_norm_params is a single RunningStatisticsState for the dict obs;
-        # running_statistics.update expects a batch matching its structure.
-        # Pixels are excluded (normalised by env to [-0.5, 0.5]).
+        # 3. Update propio running stats from collected batch.
         normalizer_params = training_state.normalizer_params
         if normalize_observations:
-            non_pixel_obs = {k: v for k, v in data.observation.items()
-                             if not k.startswith("pixels/")}
             normalizer_params = running_statistics.update(
-                normalizer_params, non_pixel_obs,
+                normalizer_params, data.observation["propio"],
             )
 
-        new_params = training_state.params.replace(
-            student_enc_params=student_enc,
-            proxy_dec_params=proxy_dec,
-        )
         new_state = ILTrainingState(
             align_opt_state=align_opt_state,
-            params=new_params,
+            student_enc_params=student_enc,
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + jnp.uint32(env_steps_per_epoch),
         )
@@ -460,20 +411,19 @@ def train(
         return new_state, env_state, metrics
 
     # ========================= jit / pmap epoch ==============================
-    # Mirror the Brax PPO convention: pmap for multi-device, jit+vmap for
-    # single-device (Warp).  donate_argnums lets XLA reuse buffer memory for
-    # training_state and env_state across epochs.
-    if local_devices_to_use > 1:
-        il_epoch_jit = jax.pmap(
-            il_epoch,
-            axis_name=_PMAP_AXIS_NAME,
-            donate_argnums=(0, 1),
-        )
-    else:
-        il_epoch_jit = jax.jit(
-            jax.vmap(il_epoch),
-            donate_argnums=(0, 1),
-        )
+    # Always use pmap, even for 1 device.
+    # jit(vmap(il_epoch)) would wrap render calls in a JAX vmap context,
+    # which combines with the training-wrapper's own jax.vmap(env.step) into
+    # a nested vmap.  Warp's render kernels cannot handle nested vmap and
+    # produce wrong-rank outputs.  pmap on 1 device is effectively jit with
+    # a device-partition axis — no extra vmap transform.
+    # donate_argnums lets XLA reuse buffer memory for training_state and
+    # env_state across epochs.
+    il_epoch_jit = jax.pmap(
+        il_epoch,
+        axis_name=_PMAP_AXIS_NAME,
+        donate_argnums=(0, 1),
+    )
 
     # ========================= eval =========================
 
@@ -488,10 +438,8 @@ def train(
 
     evaluator = acting.Evaluator(
         eval_env_resolved,
-        functools.partial(
-            make_teacher_policy, deterministic=deterministic_eval
-        ),
-        num_eval_envs=num_envs,
+        make_student_policy,   # factory: params=(propio_norm, student_enc_params)
+        num_eval_envs=num_eval_envs,
         episode_length=episode_length,
         action_repeat=action_repeat,
         key=eval_key,
@@ -515,13 +463,13 @@ def train(
     metrics: Metrics = {}
     if process_id == 0 and run_evals:
         metrics = evaluator.run_evaluation(
-            _unpmap(_pack_inference_params(training_state)),
+            _unpmap(_pack_student_params(training_state)),
             training_metrics={},
         )
         logging.info(metrics)
         progress_fn(0, metrics)
 
-    params = _unpmap(_pack_inference_params(training_state))
+    params = _unpmap(_pack_student_params(training_state))
     policy_params_fn(0, make_student_policy, params)
 
     for epoch in range(num_il_epochs):
@@ -546,8 +494,8 @@ def train(
         sps = env_steps_per_epoch / epoch_time
 
         if process_id == 0:
-            params = _unpmap(_pack_inference_params(training_state))
-            policy_params_fn(current_step, make_student_policy, params)
+            student_params = _unpmap(_pack_student_params(training_state))
+            policy_params_fn(current_step, make_student_policy, student_params)
 
             should_eval = (
                 run_evals
@@ -561,7 +509,8 @@ def train(
 
             if should_eval:
                 metrics = evaluator.run_evaluation(
-                    params, training_metrics_out,
+                    _unpmap(_pack_student_params(training_state)),
+                    training_metrics_out,
                 )
             else:
                 metrics = training_metrics_out
@@ -575,6 +524,10 @@ def train(
 
     # ========================= done =========================
 
-    params = _unpmap(_pack_inference_params(training_state))
+    params = _unpmap(_pack_student_params(training_state))
     logging.info("IL training complete — total env steps: %d", current_step)
-    return (make_student_policy, params, metrics)
+    # Build a self-contained checkpoint: include action_head_params so the
+    # saved file does not require the teacher checkpoint at evaluation time.
+    # Layout: (propio_norm, (student_enc_params, action_head_params))
+    checkpoint_params = (params[0], (params[1], action_head_params))
+    return (make_student_policy, checkpoint_params, metrics)
