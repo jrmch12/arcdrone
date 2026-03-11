@@ -27,12 +27,23 @@ def _check_episode_events_impl(self, state):
     ground_violation = jp.where(in_landing_cylinder, 0.0, ground_violation_raw)
 
   
-    # Check termination conditions
-    done = jp.logical_or(
-        steps_within_success >= self.cfg.success_steps_required,
-        state.info.get('step', 0) >= self.cfg.max_episode_steps,
-    )
+    # # Check termination conditions
+    # done = jp.logical_or(
+    #     steps_within_success >= self.cfg.success_steps_required,
+    #     state.info.get('step', 0) >= self.cfg.max_episode_steps,
+    # )
     
+    # # Add ground collision termination (disabled inside the landing cylinder)
+    # ground_collision = jp.logical_and(
+    #     z_position <= self.cfg.ground_threshold_event,
+    #     jp.logical_not(in_landing_cylinder),
+    # )
+    # done = jp.logical_or(done, ground_collision)
+
+
+    # Check termination conditions
+    done = state.info.get('step', 0) >= self.cfg.max_episode_steps
+
     # Add ground collision termination (disabled inside the landing cylinder)
     ground_collision = jp.logical_and(
         z_position <= self.cfg.ground_threshold_event,
@@ -143,18 +154,36 @@ def _get_reward_impl(self, state, action):
     z = state.data.qpos[2]                  # height
     vz = state.info['linvel_buffer'][0][2]  # vertical velocity
 
-    # --- constants ---
-    k = 5.0    # height sharpness
-    c = 25.0   # velocity sharpness
-    weight = 10.0  # max reward at z=0, vz=0
+    # # --- constants ---
+    # k = 5.0    # height sharpness
+    # c = 25.0   # velocity sharpness
+    # weight = 10.0  # max reward at z=0, vz=0
 
-    # height shaping: 0 at z=1m, 1 at z=0m
-    exp_k = jp.exp(-k)
+    # # height shaping: 0 at z=1m, 1 at z=0m
+    # exp_k = jp.exp(-k)
+    # height_term = (jp.exp(-k * z) - exp_k) / (1.0 - exp_k)
+    # height_term = jp.clip(height_term, 0.0, 1.0)
+
+    # # velocity shaping: 1 at vz=0, smooth decay
+    # vel_term = jp.exp(-c * vz**2)
+
+
+    # Soft landing reward — only inside landing cylinder
+    k       = 5.0    # height sharpness (0 at z=1m, 1 at z=0m)
+    weight  = 20    # max reward magnitude
+
+    exp_k       = jp.exp(-k)
     height_term = (jp.exp(-k * z) - exp_k) / (1.0 - exp_k)
     height_term = jp.clip(height_term, 0.0, 1.0)
 
-    # velocity shaping: 1 at vz=0, smooth decay
-    vel_term = jp.exp(-c * vz**2)
+    vz_desired  = -0.05  # m/s gentle descent target
+    c_vz        = 40.0
+    c_vxy       = 30.0
+
+    vxy = jp.linalg.norm(state.info['linvel_buffer'][0][0:2])
+    vel_z_term  = jp.exp(-c_vz * (vz - vz_desired)**2)
+    vel_xy_term = jp.exp(-c_vxy * vxy**2)
+    vel_term    = vel_z_term * vel_xy_term
 
     r_soft_landing = jp.where(in_landing_cylinder, weight * height_term * vel_term, 0.0)
 
@@ -175,6 +204,22 @@ def _get_reward_impl(self, state, action):
         0.0
     )
     
+    # Testing !
+
+    # Hard crash penalty — penalize fast descent near ground inside landing cylinder
+    _IMPACT_TOL    = 0.3   # m/s downward speed allowed before penalty kicks in
+    _CRASH_Z       = 0.15  # m altitude below which penalty is active
+    _CRASH_WEIGHT  = 20  # penalty scale
+
+    impact_speed = jp.maximum(0.0, -vz - _IMPACT_TOL)
+    r_crash_penalty = jp.where(
+        jp.logical_and(in_landing_cylinder, z < _CRASH_Z),
+        -_CRASH_WEIGHT * impact_speed,
+        0.0
+    )
+
+
+
     # ==== Total reward ====
 
     total_reward = (
@@ -189,7 +234,8 @@ def _get_reward_impl(self, state, action):
         + r_low_linvel
         + r_soft_landing
         + r_ground
-        + success_bonus
+        # + success_bonus
+        # + r_crash_penalty
     )
     
 
@@ -212,7 +258,9 @@ def _get_reward_impl(self, state, action):
         'reward_soft_landing': r_soft_landing,
         'reward_ground_penalty': r_ground,
         'reward_success_bonus': success_bonus,
+        'reward_crash_penalty': r_crash_penalty,
         'reward_total': total_reward,
+        
     })
 
 

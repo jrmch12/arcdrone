@@ -237,6 +237,7 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
             'reward_success_bonus': jp.float32(0.0),
             'reward_ground_penalty': jp.float32(0.0),
             'reward_total': jp.float32(0.0),
+            'reward_crash_penalty': jp.zeros(()),
         }
 
     def _get_obs(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:

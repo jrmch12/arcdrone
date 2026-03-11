@@ -338,6 +338,7 @@ def make_il_networks(
     activation: ActivationFn = nn.relu,
     # Student vision obs keys (flat dict: e.g. 'pixels/view_0', 'propio')
     policy_pixels_key: str = "pixels/view_0",
+    policy_pixels_key_1: str = "pixels/view_1",
     policy_propio_key: str = "propio",
     # Teacher / value obs key (flat privileged state)
     teacher_obs_key: str = "teacher_obs",
@@ -403,9 +404,12 @@ def make_il_networks(
     value_obs_size = _shape_last_dim(value_obs_raw)
     dummy_value_obs = jnp.zeros((1, value_obs_size))
 
-    # Student vision obs — flat keys: obs["pixels/view_0"], obs["propio"]
-    # Use direct dict access because "pixels/view_0" contains a slash but is a single top-level key.
-    pixel_shape = tuple(observation_size[policy_pixels_key])
+    # Student vision obs — flat keys: obs["pixels/view_0"], obs["pixels/view_1"], obs["propio"]
+    # Both camera frame stacks are concatenated along the channel axis before the CNN.
+    pixel_shape_0 = tuple(observation_size[policy_pixels_key])
+    pixel_shape_1 = tuple(observation_size[policy_pixels_key_1])
+    # Concatenate: (H, W, history) + (H, W, history) → (H, W, 2*history)
+    pixel_shape = pixel_shape_0[:-1] + (pixel_shape_0[-1] + pixel_shape_1[-1],)
     propio_size = _shape_last_dim(observation_size[policy_propio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
     dummy_propio = jnp.zeros((1, propio_size))
@@ -438,8 +442,9 @@ def make_il_networks(
         return preprocess_observations_fn(obs, pparams)
 
     def _extract_student_obs(obs):
-        # Direct access: "pixels/view_0" is a flat top-level key (not a nested path)
-        return obs[policy_pixels_key], obs[policy_propio_key]
+        # Concatenate both camera frame stacks along channel axis: (H, W, 2*history)
+        pixels = jnp.concatenate([obs[policy_pixels_key], obs[policy_pixels_key_1]], axis=-1)
+        return pixels, obs[policy_propio_key]
 
     def _preprocess_student_propio(obs, pparams):
         """Normalise proprio obs.

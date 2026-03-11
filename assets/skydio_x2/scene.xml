@@ -21,6 +21,7 @@
   <worldbody>
     <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
     <camera name="outer_camera" pos="-10 0 4" xyaxes="0 -1 0 0.37139 0 0.92848"/>
+    <camera name="outer_camera_side" pos="0 -10 4" xyaxes="1 0 0 0 0.37139 0.92848"/>
     <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
     <geom name="fiducial_plate" type="box" pos="0 0 0.002" size="0.3 0.3 0.002" material="fiducial" contype="0" conaffinity="0"/>
   </worldbody>
