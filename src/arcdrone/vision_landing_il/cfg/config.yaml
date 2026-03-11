@@ -28,9 +28,9 @@ env:
     use_textures: false
     use_shadows: false
     enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, false, false]
-    render_rgb: [true]
-    render_depth: [false]
+    cam_active: [true, true]
+    render_rgb: [true, true]
+    render_depth: [false, false]
   
   # ==== Task specific ====
 
@@ -97,6 +97,7 @@ train:
   cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
   cnn_strides: [[4, 4], [2, 2], [1, 1]]
   policy_pixels_key: "pixels/view_0"
+  policy_pixels_key_1: "pixels/view_1"
   policy_propio_key: "propio"
   value_obs_key: "value_obs"
   teacher_obs_key: "teacher_obs"

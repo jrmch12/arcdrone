@@ -108,6 +108,7 @@ def evaluate(
 		cnn_kernel_sizes=cfg_train.cnn_kernel_sizes,
 		cnn_strides=cfg_train.cnn_strides,
 		policy_pixels_key=cfg_train.policy_pixels_key,
+		policy_pixels_key_1=cfg_train.policy_pixels_key_1,
 		policy_propio_key=cfg_train.policy_propio_key,
 		teacher_obs_key=cfg_train.teacher_obs_key,
 		value_obs_key=cfg_train.value_obs_key,
