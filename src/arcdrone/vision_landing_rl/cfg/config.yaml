@@ -28,9 +28,9 @@ env:
     use_textures: false
     use_shadows: false
     enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, false, false]
-    render_rgb: [true]
-    render_depth: [false]
+    cam_active: [true, true]
+    render_rgb: [true, true]
+    render_depth: [false, false]
   
   # ==== Task specific ====
 

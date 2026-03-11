@@ -24,13 +24,13 @@ env:
   vision: true
   vision_config: # must contain only warp api parameters
     nworld: ${train.num_envs}
-    cam_res: [64, 64]
+    cam_res: [128, 128]
     use_textures: false
     use_shadows: false
     enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, true]
-    render_rgb: [true, true]
-    render_depth: [false, false]
+    cam_active: [true, true, true]
+    render_rgb: [true, true, true]
+    render_depth: [false, false, false]
   
   # ==== Task specific ====
 

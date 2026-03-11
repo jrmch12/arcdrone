@@ -6,13 +6,22 @@ def _get_obs_impl(self, state, action):
     """Render one frame, shift frame_stack + all sensor buffers, return pixel obs."""
     data = state.data
 
-    # ── Pixels ─────────────────────────────────
+
+    # ── Pixels: two cameras ──
     render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
     out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
-    rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
-    gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-    prev_stack = state.info["frame_stack"]  # (H, W, history)
-    frame_stack = jp.concatenate([prev_stack[..., 1:], gray], axis=-1)
+
+    # Camera 0: outer_camera (front)
+    rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
+    gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+    prev_stack_0 = state.info["frame_stack_0"]  # (H, W, history)
+    frame_stack_0 = jp.concatenate([prev_stack_0[..., 1:], gray0], axis=-1)
+
+    # Camera 1: outer_camera_side (side)
+    rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
+    gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+    prev_stack_1 = state.info["frame_stack_1"]  # (H, W, history)
+    frame_stack_1 = jp.concatenate([prev_stack_1[..., 1:], gray1], axis=-1)
 
     # ── Priviledged ──────────────────────────
     action_buffer = state.info["action_buffer"]   # (history, nu)
@@ -45,18 +54,19 @@ def _get_obs_impl(self, state, action):
         pos_buffer.flatten(),
     ])
 
-    # ── Build obs dict ───────────────────────────────────────────────────────
-    # If using Brax ppo/train.py we need this dict to be a
-    # Flat structure: pixels/view_0 key is stripped by Brax's _remove_pixels
+    # ── Build obs dict ──
+    # Flat structure: pixels/view_0 and view_1 keys
     obs = {
-        "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
+        "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
+        "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
         "propio": action_buffer.flatten(),  # (history * nu,)
         "value_obs": value_state,           # critic obs
     }
 
     info = {
         **state.info,
-        "frame_stack":   frame_stack,
+        "frame_stack_0":  frame_stack_0,
+        "frame_stack_1":  frame_stack_1,
         "action_buffer": action_buffer,
         "linacc_buffer": linacc_buffer,
         "linvel_buffer": linvel_buffer,

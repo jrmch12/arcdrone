@@ -93,17 +93,25 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
 
         info = self._initialize_state_vars(data, rng)
 
-        # Vision: render initial frame and build the frame-stack + action buffer
+
+        # Vision: render initial frames for both cameras and build frame-stacks + action buffer
         render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
         out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
-        rgb = mjx.get_rgb(self._rc_pytree, 0, out[0])
-        gray = jp.mean(rgb, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        frame_stack = jp.repeat(gray, self.cfg.buffer_size, axis=-1)  # (H, W, history)
-        action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
-        info = {**info, "frame_stack": frame_stack, "action_buffer": action_buffer}
 
-        # Build initial obs dict (flat structure, pixels/view_0 key so Brax's
-        # _remove_pixels strips it from the normalizer update)
+        # Camera 0: outer_camera (front)
+        rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
+        gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        frame_stack_0 = jp.repeat(gray0, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+
+        # Camera 1: outer_camera_side (side)
+        rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
+        gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        frame_stack_1 = jp.repeat(gray1, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+
+        action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
+        info = {**info, "frame_stack_0": frame_stack_0, "frame_stack_1": frame_stack_1, "action_buffer": action_buffer}
+
+        # Build initial obs dict (flat structure, pixels/view_0 and view_1 keys)
         value_state = jp.concatenate([
             info["linacc_buffer"].flatten(),
             info["linvel_buffer"].flatten(),
@@ -114,7 +122,8 @@ class ARCDroneRL_VisionLanding(mjx_env.MjxEnv):
             info["pos_buffer"].flatten(),
         ])
         obs = {
-            "pixels/view_0": frame_stack,       # (H, W, history) — excluded from normalizer
+            "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
+            "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
             "propio": action_buffer.flatten(),  # (history * nu,)
             "value_obs": value_state,           # critic obs
         }
