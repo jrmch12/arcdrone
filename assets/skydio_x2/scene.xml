@@ -1,28 +1,41 @@
 <mujoco model="Skydio X2 scene">
+
+  <!-- Same shared assets as cartpole -->
+  <include file="./common/skybox.xml"/>
+  <include file="./common/visual.xml"/>
+  <include file="./common/materials.xml"/>
+
   <include file="x2.xml"/>
 
   <statistic center="0 0 0.1" extent="0.6" meansize=".05"/>
 
-  <visual>
-    <headlight diffuse="0.6 0.6 0.6" ambient="0.3 0.3 0.3" specular="0 0 0"/>
-    <rgba haze="0.15 0.25 0.35 1"/>
-    <global azimuth="-20" elevation="-20" ellipsoidinertia="true"/>
-  </visual>
-
-  <asset>
-    <texture type="skybox" builtin="gradient" rgb1="0.3 0.5 0.7" rgb2="0 0 0" width="512" height="3072"/>
-    <texture type="2d" name="groundplane" builtin="checker" mark="edge" rgb1="0.2 0.3 0.4" rgb2="0.1 0.2 0.3"
-      markrgb="0.8 0.8 0.8" width="300" height="300"/>
-    <material name="groundplane" texture="groundplane" texuniform="true" texrepeat="5 5" reflectance="0.2"/>
-    <texture type="2d" name="fiducial" builtin="checker" rgb1="1 1 1" rgb2="0 0 0" width="512" height="512"/>
-    <material name="fiducial" texture="fiducial" texuniform="true" texrepeat="6 6"/>
-  </asset>
-
   <worldbody>
-    <light pos="0 0 1.5" dir="0 0 -1" directional="true"/>
-    <camera name="outer_camera" pos="-10 0 4" xyaxes="0 -1 0 0.37139 0 0.92848"/>
-    <camera name="outer_camera_side" pos="0 -10 4" xyaxes="1 0 0 0 0.37139 0.92848"/>
-    <geom name="floor" size="0 0 0.05" type="plane" material="groundplane"/>
-    <geom name="fiducial_plate" type="box" pos="0 0 0.002" size="0.3 0.3 0.002" material="fiducial" contype="0" conaffinity="0"/>
+    <!-- Same simple light style as cartpole -->
+    <light name="light" pos="0 0 6"/>
+
+    <body name="origin_target" pos="0 0 0"/>
+
+    <!-- Cameras -->
+    <camera name="outer_camera"      pos="-7 0 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_side" pos="0 -7 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_up"   pos="0 0 11" mode="targetbody" target="origin_target"/>
+
+    <!-- Same floor style as cartpole -->
+    <geom name="floor"
+          type="plane"
+          pos="0 0 -0.05"
+          size="4 4 0.2"
+          material="grid"/>
+
+    <!-- Your fiducial marker -->
+    <geom name="fiducial_plate"
+          type="box"
+          pos="0 0 0.002"
+          size="0.3 0.3 0.002"
+          rgba=".6 .3 .3 1"
+          contype="0"
+          conaffinity="0"/>
+
   </worldbody>
+
 </mujoco>

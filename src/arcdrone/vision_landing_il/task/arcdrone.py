@@ -93,25 +93,36 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
 
         info = self._initialize_state_vars(data, rng)
 
-        # Vision: render initial frames for both cameras and build frame-stacks + action buffer
+        # Vision: render initial frames for all cameras and build frame-stacks + action buffer
         render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
         out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
 
-        # Camera 0: outer_camera (world-fixed, from -X axis)
-        rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
-        gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        frame_stack_0 = jp.repeat(gray0, self.cfg.buffer_size, axis=-1)  # (H, W, history)
 
-        # Camera 1: outer_camera_side (world-fixed, from -Y axis)
+        # Camera 0: outer_camera
+        rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
+        # gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_0 = jp.repeat(gray0, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+        rgb0_norm = rgb0 - 0.5  # (H, W, 3)
+        frame_stack_0 = jp.repeat(rgb0_norm, self.cfg.buffer_size, axis=-1)  # (H, W, 3*history)
+
+        # Camera 1: outer_camera_side
         rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
-        gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        frame_stack_1 = jp.repeat(gray1, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+        # gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_1 = jp.repeat(gray1, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+        rgb1_norm = rgb1 - 0.5
+        frame_stack_1 = jp.repeat(rgb1_norm, self.cfg.buffer_size, axis=-1)
+
+        # Camera 2: outer_camera_up
+        rgb2 = mjx.get_rgb(self._rc_pytree, 2, out[0])
+        # gray2 = jp.mean(rgb2, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_2 = jp.repeat(gray2, self.cfg.buffer_size, axis=-1)  # (H, W, history)
+        rgb2_norm = rgb2 - 0.5
+        frame_stack_2 = jp.repeat(rgb2_norm, self.cfg.buffer_size, axis=-1)
 
         action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
-        info = {**info, "frame_stack_0": frame_stack_0, "frame_stack_1": frame_stack_1, "action_buffer": action_buffer}
+        info = {**info, "frame_stack_0": frame_stack_0, "frame_stack_1": frame_stack_1, "frame_stack_2": frame_stack_2, "action_buffer": action_buffer}
 
-        # Build initial obs dict (flat structure, pixels/view_0 key so Brax's
-        # _remove_pixels strips it from the normalizer update)
+        # Build initial obs dict (flat structure, pixels/view_* keys)
         priviledged_state = jp.concatenate([
             info["linacc_buffer"].flatten(),
             info["linvel_buffer"].flatten(),
@@ -124,6 +135,7 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
         obs = {
             "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
             "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
+            "pixels/view_2": frame_stack_2,     # (H, W, history) — up camera
             "propio": action_buffer.flatten(),  # (history * nu,)
             "value_obs": priviledged_state,           # critic obs
             "teacher_obs": priviledged_state,  
