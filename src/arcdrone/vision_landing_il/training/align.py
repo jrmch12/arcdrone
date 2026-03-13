@@ -85,15 +85,12 @@ def align(
         t_obs, s_obs = data
 
         def loss_fn(student_enc):
-            # teacher_norm / propio_norm are the correct RunningStatisticsState
-            # sub-states — passed directly, no normalizer_select needed.
             teacher_feat = il_network.teacher_decoder.apply(
                 teacher_norm, teacher_dec_params, t_obs
             )
             student_feat = il_network.student_encoder.apply(
                 propio_norm, student_enc, s_obs
             )
-
             embed_loss = jnp.mean(
                 jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat))
             )
@@ -106,12 +103,15 @@ def align(
             action_loss = jnp.mean(
                 jnp.abs(student_logits - jax.lax.stop_gradient(teacher_logits))
             )
-            return embed_loss + action_loss
+            total_loss = embed_loss + action_loss
+            return total_loss, (embed_loss, action_loss)
 
-        loss, grads = jax.value_and_grad(loss_fn)(student_enc)
+        (loss, (embed_loss, action_loss)), grads = jax.value_and_grad(loss_fn, has_aux=True)(student_enc)
         updates, opt_st = optimizer.update(grads, opt_st, student_enc)
         student_enc = optax.apply_updates(student_enc, updates)
-        return (student_enc, opt_st), loss
+        # Stack losses into a single array for scan compatibility
+        losses = jnp.stack([loss, embed_loss, action_loss])
+        return (student_enc, opt_st), losses
 
     # ── One pass over all minibatches ─────────────────────────────────────
     def sgd_step(carry, _):
@@ -122,7 +122,8 @@ def align(
             (mb_teacher_obs, mb_student_obs),
             length=num_minibatches,
         )
-        return (student_enc, opt_st), jnp.mean(losses)
+        # losses: (num_minibatches, 3) [total, embed, action]
+        return (student_enc, opt_st), jnp.mean(losses, axis=0)
 
     # ── Outer loop: repeat align_updates_per_trigger times ────────────────
     (student_enc_params, opt_state), epoch_losses = jax.lax.scan(
@@ -131,5 +132,6 @@ def align(
         None,
         length=align_updates_per_trigger,
     )
-
-    return student_enc_params, opt_state, jnp.mean(epoch_losses)
+    # epoch_losses: (align_updates_per_trigger, 3)
+    mean_total, mean_embed, mean_action = jnp.mean(epoch_losses, axis=0)
+    return student_enc_params, opt_state, mean_total, mean_embed, mean_action

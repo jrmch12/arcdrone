@@ -146,6 +146,8 @@ def main(cfg: DictConfig):
 
         log_dict = {
             "training/align_loss": metrics.get("training/align_loss", 0.0),
+            "training/embed_loss": metrics.get("training/embed_loss", 0.0),
+            "training/action_loss": metrics.get("training/action_loss", 0.0),
             "training/sps": metrics.get("training/sps", 0.0),
             "training/walltime": metrics.get("training/walltime", 0.0),
             "eval/episode_reward": metrics.get("eval/episode_reward", 0.0),

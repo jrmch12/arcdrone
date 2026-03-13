@@ -17,19 +17,25 @@ np.set_printoptions(precision=3, suppress=True, linewidth=100)
 from mujoco_playground import wrapper
 from mujoco_playground import dm_control_suite
 from hydra import compose, initialize_config_dir
-from arcdrone.controller.rl.task.vision_mode.arcdrone import ARCDroneRL_VisionLanding
+from omegaconf import OmegaConf
+OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=True)
 
 
 
-CFG_DIR = '/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controller/cfg'
 
+CFG_DIR = '/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/vision_landing_il/cfg'
+from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
 
 
 # ===========================================================================
 
-# No Madrona env vars needed — warp renderer is built into mjx
-# Optional: limit JAX memory if needed alongside warp
-# os.environ["XLA_PYTHON_CLIENT_MEM_FRACTION"] = "0.6"
+# Enable Triton GEMM for better GPU utilisation (recommended for warp impl)
+xla_flags = os.environ.get("XLA_FLAGS", "")
+xla_flags += " --xla_gpu_triton_gemm_any=True"
+os.environ["XLA_FLAGS"] = xla_flags
+# Let warp manage its own GPU memory — do NOT pre-allocate JAX memory
+os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
+os.environ["MUJOCO_GL"] = "egl"
 
 # ===========================================================================
 
@@ -68,15 +74,12 @@ CFG_DIR = '/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/controll
 
 # For our hydra pipeline
 # Env import:
-task_name = "vision"
-initialize_config_dir(
-    config_dir=str(CFG_DIR), job_name="sitt_evaluate", version_base=None
-)
-cfg = compose(config_name="config", overrides=[f"task={task_name}"])
+initialize_config_dir(config_dir=str(CFG_DIR), job_name="visualize", version_base=None)
+cfg = compose(config_name="config")
 cfg_env = cfg.env
 cfg_train = cfg.train
 
-env = ARCDroneRL_VisionLanding(cfg=cfg_env)
+env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=cfg_env)
 env = wrapper.wrap_for_brax_training(
     env,
     # vision=True,

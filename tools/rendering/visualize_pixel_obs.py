@@ -32,20 +32,41 @@ from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_St
 # ===========================================================================
 # Config
 
-CFG_DIR = Path(__file__).resolve().parent.parent / "src" / "arcdrone" / "vision_landing_il" / "cfg"
+CFG_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "arcdrone" / "vision_landing_il" / "cfg"
 episode_length = 100
 
 # Load config the same way as evaluate.py
 initialize_config_dir(config_dir=str(CFG_DIR), job_name="visualize", version_base=None)
 cfg = compose(config_name="config")
 cfg_env = OmegaConf.to_container(cfg.env, resolve=True)
+
+# Overrides
 cfg_env["vision_config"]["nworld"] = 1
 cfg_env["naconmax"] = cfg_env["njmax"]  # 1 world
+
+# cfg_env["vision_config"]["cam_res"] = [64, 64]
+# cfg_env["vision_config"]["use_textures"] = True
+# cfg_env["vision_config"]["use_shadows"] = False
+# cfg_env["vision_config"]["enabled_geom_groups"] = [0, 1, 2]
+# cfg_env["vision_config"]["cam_active"] = [True, True, True]
+# cfg_env["vision_config"]["render_rgb"] = [True, True, True]
+# cfg_env["vision_config"]["render_depth"] = [False, False, False]
 
 # ===========================================================================
 # Env setup
 
 env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=cfg_env)
+
+# # We have implement this inside the env!
+
+# # Override warp background color: use sky blue instead of dark navy (0.1, 0.1, 0.2)
+# # The warp renderer doesn't support MuJoCo skybox textures — rays that miss all
+# # geometry are filled with background_color. Match the skybox gradient midpoint.
+# # NOTE: must set on _default (the actual warp context), not on the MJX wrapper.
+# from mujoco_warp._src.render_util import pack_rgba_to_uint32
+# _sky_bg = pack_rgba_to_uint32(0.5 * 255.0, 0.7 * 255.0, 0.95 * 255.0, 1.0 * 255.0)
+# for _warp_ctx in env._rc._contexts.values():
+#     _warp_ctx.background_color = _sky_bg
 
 # from mujoco_playground import wrapper
 
