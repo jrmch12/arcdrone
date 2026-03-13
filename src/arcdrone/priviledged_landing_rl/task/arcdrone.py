@@ -14,7 +14,7 @@ from .reward import _get_reward_impl
 from .reward import _check_episode_events_impl  
 from .target import _get_target_impl
 
-
+from arcdrone.utils.math_utils import euler_to_quaternion
 
 
 # @struct.dataclass
@@ -179,42 +179,81 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
 
     # Helper functions =============================================================
     
-    def _sample_initial_state(self, rng: jp.ndarray):
-        """Sample initial position and velocity for the drone.
+    # def _sample_initial_state(self, rng: jp.ndarray):
+    #     """Sample initial position and velocity for the drone.
         
-        Drone starts at ~1.5m above ground with small random perturbation.
+    #     Drone starts at ~1.5m above ground with small random perturbation.
         
-        NOTE: qpos MUST depend on `rng` so that JAX traces it through
-        jax.vmap.  If qpos were a pure constant the warp render output
-        would not carry a batch dimension and mjx.get_rgb would crash
-        with a shape mismatch.
+    #     NOTE: qpos MUST depend on `rng` so that JAX traces it through
+    #     jax.vmap.  If qpos were a pure constant the warp render output
+    #     would not carry a batch dimension and mjx.get_rgb would crash
+    #     with a shape mismatch.
         
-        Args:
-            rng: Random key for sampling
+    #     Args:
+    #         rng: Random key for sampling
             
-        Returns:
-            qpos: (nq,) array — position and orientation quaternion (+ any extra joints)
-            qvel: (nv,) array — linear and angular velocity
-        """
-        rng, rng_pos, rng_vel = jax.random.split(rng, 3)
+    #     Returns:
+    #         qpos: (nq,) array — position and orientation quaternion (+ any extra joints)
+    #         qvel: (nv,) array — linear and angular velocity
+    #     """
+    #     rng, rng_pos, rng_vel = jax.random.split(rng, 3)
 
-        # Nominal pose
-        position = jp.array([0.0, 3.0, 1.5])
-        quaternion = jp.array([1.0, 0.0, 0.0, 0.0])
+    #     # Nominal pose
+    #     position = jp.array([0.0, 3.0, 1.5])
+    #     quaternion = jp.array([1.0, 0.0, 0.0, 0.0])
 
-        # Small random perturbation on xyz (keeps trace alive under vmap
-        # and helps exploration).
-        position = position + 0.01 * jax.random.normal(rng_pos, (3,))
+    #     # Small random perturbation on xyz (keeps trace alive under vmap
+    #     # and helps exploration).
+    #     position = position + 0.01 * jax.random.normal(rng_pos, (3,))
 
-        # Build qpos with correct length (model may define additional joints)
+    #     # Build qpos with correct length (model may define additional joints)
+    #     nq = int(self._mjx_model.nq)
+    #     qpos = jp.zeros(nq)
+    #     qpos = qpos.at[0:3].set(position)
+    #     qpos = qpos.at[3:7].set(quaternion)
+
+    #     # Build qvel with a tiny random kick (also keeps trace alive)
+    #     nv = int(self._mjx_model.nv)
+    #     qvel = 0.001 * jax.random.normal(rng_vel, (nv,))
+
+    #     return qpos, qvel
+
+    def _sample_initial_state(self, rng: jp.ndarray):
+        rng, rng_pos, rng_vel, rng_ang = jax.random.split(rng, 4)
+
+        # Position (start somewhere above pad)
+        position = jp.array([
+            jax.random.uniform(rng_pos, (), minval=-4.0, maxval=4.0),
+            jax.random.uniform(rng_pos, (), minval= -4.0, maxval=4.0),
+            jax.random.uniform(rng_pos, (), minval= 0.5, maxval=6.0),
+        ])
+
+        # Random orientation (small tilt)
+        roll  = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
+        pitch = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
+        yaw   = jax.random.uniform(rng_ang, (), minval=-jp.pi, maxval=jp.pi)
+
+        quaternion = euler_to_quaternion(roll, pitch, yaw)
+
+        # Build qpos
         nq = int(self._mjx_model.nq)
         qpos = jp.zeros(nq)
         qpos = qpos.at[0:3].set(position)
         qpos = qpos.at[3:7].set(quaternion)
 
-        # Build qvel with a tiny random kick (also keeps trace alive)
+        # Random velocities
         nv = int(self._mjx_model.nv)
-        qvel = 0.001 * jax.random.normal(rng_vel, (nv,))
+        qvel = jp.zeros(nv)
+
+        # linear velocity
+        qvel = qvel.at[0:3].set(
+            jax.random.normal(rng_vel, (3,)) * 1.5
+        )
+
+        # angular velocity
+        qvel = qvel.at[3:6].set(
+            jax.random.normal(rng_vel, (3,)) * 3
+        )
 
         return qpos, qvel
 

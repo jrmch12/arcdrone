@@ -25,7 +25,7 @@ env:
   vision_config: # must contain only warp api parameters
     nworld: ${train.num_envs}
     cam_res: [128, 128]
-    use_textures: false
+    use_textures: true
     use_shadows: false
     enabled_geom_groups: [0, 1, 2]
     cam_active: [true, true, true]
@@ -73,7 +73,7 @@ train:
   learning_rate: 3e-4
   # entropy_cost: 1e-3            # PPO only
   # Default number of parallel environments. Task configs can override.
-  num_envs: 4
+  num_envs: 256
   # batch_size: 512               # PPO only
   seed: 0
 

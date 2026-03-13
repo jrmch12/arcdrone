@@ -64,11 +64,18 @@ def _get_obs_impl(self, state, action):
 
     # ── Build obs dict ───────────────────────────────────────────────────────
     # Flat structure: pixels/view_* keys are stripped by Brax's _remove_pixels
+    # Proprio: IMU-like (linacc, angvel, quat) buffers, all flattened
+    proprio = jp.concatenate([
+        action_buffer.flatten(),
+        linacc_buffer.flatten(),
+        angvel_buffer.flatten(),
+        quat_buffer.flatten(),
+    ])
     obs = {
         "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
         "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
         "pixels/view_2": frame_stack_2,     # (H, W, history) — up camera
-        "propio": action_buffer.flatten(),  # (history * nu,)
+        "propio": proprio,  # (history * (3+3+4),)
         "value_obs": priviledged_state,           # critic obs
         "teacher_obs": priviledged_state,  #  
     }

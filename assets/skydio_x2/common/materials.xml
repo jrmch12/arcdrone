@@ -19,5 +19,13 @@ for example receiving a positive reward.
     <material name="target_default" rgba=".6 .3 .3 1"/>
     <material name="target_highlight" rgba=".6 .3 .3 .4"/>
     <material name="site" rgba=".5 .5 .5 .3"/>
+
+
+
+    <texture type="2d" name="fiducial" builtin="checker" rgb1="1 1 1" rgb2="0 0 0" width="512" height="512"/>
+    <material name="fiducial" texture="fiducial" texuniform="true" texrepeat="6 6"/>
+
+
+    
   </asset>
 </mujoco>

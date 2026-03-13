@@ -383,7 +383,7 @@ def train(
         # 2. Alignment: student encoder learns to match frozen teacher decoder.
         # All teacher constants (norm, dec_params, action_head) are pre-bound
         # in align_fn via functools.partial — not in the training state.
-        student_enc, align_opt_state, align_loss = align_fn(
+        student_enc, align_opt_state, align_loss, embed_loss, action_loss = align_fn(
             training_state.student_enc_params,
             training_state.align_opt_state,
             data.observation,              # teacher_obs (teacher_obs_key extracted inside)
@@ -407,6 +407,8 @@ def train(
 
         metrics = {
             "align_loss": align_loss,
+            "embed_loss": embed_loss,
+            "action_loss": action_loss,
         }
         return new_state, env_state, metrics
 
@@ -503,6 +505,8 @@ def train(
             )
             training_metrics_out = {
                 "training/align_loss": float(train_metrics["align_loss"]),
+                "training/embed_loss": float(train_metrics["embed_loss"]),
+                "training/action_loss": float(train_metrics["action_loss"]),
                 "training/sps": sps,
                 "training/walltime": training_walltime,
             }
