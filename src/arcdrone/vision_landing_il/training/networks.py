@@ -61,6 +61,33 @@ class PolicyVisionProprioEncoder(nn.Module):
             activate_final=False,
         )(fused)
 
+class PolicyProprioEncoder(nn.Module):
+    """Debug encoder: ignores pixels, uses only proprio."""
+
+    proprio_proj_hidden_layers: Sequence[int]
+    fusion_hidden_layers: Sequence[int]
+    activation: ActivationFn = nn.relu
+    kernel_init: Initializer = jax.nn.initializers.lecun_uniform()
+
+    @nn.compact
+    def __call__(self, pixels: jnp.ndarray, proprio: jnp.ndarray) -> jnp.ndarray:
+        # pixels intentionally ignored (kept for API compatibility)
+        _ = pixels
+
+        proprio_feats = MLP(
+            layer_sizes=list(self.proprio_proj_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=True,
+        )(proprio)
+
+        return MLP(
+            layer_sizes=list(self.fusion_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=False,
+        )(proprio_feats)
+    
 
 def _split_path(path: str) -> Sequence[str]:
     return tuple(k for k in path.split("/") if k)
@@ -159,15 +186,23 @@ def make_il_networks(
         kernel_init=kernel_init,
         activate_final=True,
     )
-    student_encoder_module = PolicyVisionProprioEncoder(
-        cnn_num_filters=list(cnn_num_filters),
-        cnn_kernel_sizes=list(cnn_kernel_sizes),
-        cnn_strides=list(cnn_strides),
+    # student_encoder_module = PolicyVisionProprioEncoder(
+    #     cnn_num_filters=list(cnn_num_filters),
+    #     cnn_kernel_sizes=list(cnn_kernel_sizes),
+    #     cnn_strides=list(cnn_strides),
+    #     proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
+    #     activation=activation,
+    #     kernel_init=kernel_init,
+    # )
+
+    student_encoder_module = PolicyProprioEncoder(
         proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
         fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
     )
+    
     action_head_mlp = MLP(
         layer_sizes=list(action_hidden_layer_sizes)
             + [parametric_action_distribution.param_size],

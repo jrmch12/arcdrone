@@ -34,7 +34,7 @@ env:
   
   # ==== Task specific ====
 
-  buffer_size: 5
+  buffer_size: 3
 
   # Episode control
   max_episode_steps: ${train.episode_length}
