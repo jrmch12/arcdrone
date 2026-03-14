@@ -278,6 +278,26 @@ def train(
         deterministic=False,
     )
 
+    # # Optionally wrap the frozen teacher policy to inject Gaussian action noise.
+    # def _make_noisy_teacher_policy(base_policy, sigma: float = None, teacher_action_noise_sigma: float = None):
+    #     # Accept either positional `sigma` or keyword `teacher_action_noise_sigma`.
+    #     actual_sigma = sigma if sigma is not None else teacher_action_noise_sigma
+    #     if actual_sigma is None or actual_sigma <= 0.0:
+    #         return base_policy
+
+    #     def policy_with_noise(observations, key_sample):
+    #         action, extras = base_policy(observations, key_sample)
+    #         key_sample, key_noise = jax.random.split(key_sample)
+    #         noise = actual_sigma * jax.random.normal(key_noise, shape=action.shape)
+    #         noisy_action = jnp.clip(action + noise, -1.0, 1.0)
+    #         extras = {**extras, "teacher_noise": noise}
+    #         return noisy_action, extras
+
+    #     return policy_with_noise
+
+    # frozen_teacher_policy = _make_noisy_teacher_policy(frozen_teacher_policy, teacher_action_noise_sigma=0.4)
+    
+
     # ── Student inference factory (action_head baked in as closure) ──────────
     make_student_policy = il_networks.make_student_inference_fn(
         il_network,

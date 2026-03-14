@@ -4,6 +4,7 @@ from pathlib import Path
 import functools
 
 import jax
+import jax.numpy as jnp
 from brax.io import model
 from brax.training.acme import running_statistics
 from hydra import compose, initialize_config_dir
@@ -97,6 +98,27 @@ def evaluate(
 
 	make_policy = ppo_networks.make_inference_fn(ppo_network)
 	inference_fn = make_policy(params)
+
+
+	# # Optionally wrap inference function to add Gaussian action noise for testing.
+	# def _make_noisy_policy(base_policy, sigma: float = 0.1):
+	# 	if sigma is None or sigma <= 0.0:
+	# 		return base_policy
+
+	# 	def policy_with_noise(observations, key_sample):
+	# 		action, extras = base_policy(observations, key_sample)
+	# 		key_sample, key_noise = jax.random.split(key_sample)
+	# 		noise = sigma * jax.random.normal(key_noise, shape=action.shape)
+	# 		noisy_action = jnp.clip(action + noise, -1.0, 1.0)
+	# 		extras = {**extras, "teacher_noise": noise}
+	# 		return noisy_action, extras
+
+	# 	return policy_with_noise
+
+	# # Hardcoded small noise for quick testing — change or disable as needed.
+	# inference_fn = _make_noisy_policy(inference_fn, sigma=0.4)
+
+
 	jit_inference_fn = jax.jit(inference_fn)
 	action, _ = jit_inference_fn(state.obs, rng)
 	print("✓ Inference function compiled successfully")
