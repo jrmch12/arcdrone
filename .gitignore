@@ -79,5 +79,5 @@ wandb/
 madrona_cache/
 # tools/mjo
 # reference/
-# borrador_mjo/
+borrador_mjo/
 EOF

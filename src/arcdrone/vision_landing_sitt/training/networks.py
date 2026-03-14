@@ -61,6 +61,33 @@ class PolicyVisionProprioEncoder(nn.Module):
             activate_final=False,
         )(fused)
 
+class PolicyProprioEncoder(nn.Module):
+    """Debug encoder: ignores pixels, uses only proprio."""
+
+    proprio_proj_hidden_layers: Sequence[int]
+    fusion_hidden_layers: Sequence[int]
+    activation: ActivationFn = nn.relu
+    kernel_init: Initializer = jax.nn.initializers.lecun_uniform()
+
+    @nn.compact
+    def __call__(self, pixels: jnp.ndarray, proprio: jnp.ndarray) -> jnp.ndarray:
+        # pixels intentionally ignored (kept for API compatibility)
+        _ = pixels
+
+        proprio_feats = MLP(
+            layer_sizes=list(self.proprio_proj_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=True,
+        )(proprio)
+
+        return MLP(
+            layer_sizes=list(self.fusion_hidden_layers),
+            activation=self.activation,
+            kernel_init=self.kernel_init,
+            activate_final=False,
+        )(proprio_feats)
+    
 
 def _split_path(path: str) -> Sequence[str]:
     return tuple(k for k in path.split("/") if k)
@@ -86,222 +113,10 @@ def _shape_last_dim(shape_spec: Any) -> int:
     return int(jax.tree_util.tree_flatten(shape_spec)[0][-1])
 
 
-# # ---------------------------------------------------------------------------
-# # Factory
-# # ---------------------------------------------------------------------------
-
-# def make_ppo_networks_vision(
-#     observation_size: types.ObservationSize,
-#     action_size: int,
-#     preprocess_observations_fn: types.PreprocessObservationFn = (
-#         types.identity_observation_preprocessor
-#     ),
-#     # Fusion decoder layers after concatenating CNN and proprio projector features.
-#     policy_dec_hidden_layers: Sequence[int] = (256, 256),
-#     # Proprio projection branch (MLP) before fusion.
-#     policy_propio_proj_hidden_layers: Sequence[int] = (64,),
-#     # Action head on top of the policy backbone features
-#     action_hidden_layer_sizes: Sequence[int] = (64,),
-#     value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
-#     cnn_num_filters: Sequence[int] = (32, 64, 64),
-#     cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
-#     cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
-#     activation: ActivationFn = nn.relu,
-#     # Path to policy group in observation dict (e.g. "policy_obs").
-#     policy_obs_key: str = "policy_obs",
-#     # Key inside policy_obs group for pixel tensor.
-#     policy_pixels_key: str = "pixels",
-#     # Key inside policy_obs group for proprio tensor.
-#     policy_propio_key: str = "propio",
-#     # Path to value vector in observation dict (e.g. "value_obs").
-#     value_obs_key: str = "value_obs",
-# ) -> PPONetworks:
-#     """Build two-stream vision-policy + privileged-state-value PPO networks."""
-
-#     kernel_init = jax.nn.initializers.lecun_uniform()
-
-#     parametric_action_distribution = distribution.NormalTanhDistribution(
-#         event_size=action_size
-#     )
-
-#     # ------------------------------------------------------------------
-#     # Modules
-#     # ------------------------------------------------------------------
-
-#     policy_encoder = PolicyVisionProprioEncoder(
-#         cnn_num_filters=list(cnn_num_filters),
-#         cnn_kernel_sizes=list(cnn_kernel_sizes),
-#         cnn_strides=list(cnn_strides),
-#         proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
-#         fusion_hidden_layers=list(policy_dec_hidden_layers),
-#         activation=activation,
-#         kernel_init=kernel_init,
-#     )
-
-#     policy_action_head = MLP(
-#         layer_sizes=list(action_hidden_layer_sizes)
-#             + [parametric_action_distribution.param_size],
-#         activation=activation,
-#         kernel_init=kernel_init,
-#     )
-
-
-#     value_mlp = MLP(
-#         layer_sizes=list(value_hidden_layer_sizes) + [1],
-#         activation=activation,
-#         kernel_init=kernel_init,
-#     )
-
-
-#     # ------------------------------------------------------------------
-#     # Dummy inputs for init
-#     # ------------------------------------------------------------------
-
-#     policy_obs_size = _get_by_path(observation_size, policy_obs_key)
-#     pixel_shape = tuple(policy_obs_size[policy_pixels_key])
-#     propio_size = _shape_last_dim(policy_obs_size[policy_propio_key])
-#     dummy_pixels = jnp.zeros((1,) + pixel_shape)
-#     dummy_propio = jnp.zeros((1, propio_size))
-
-#     # Value dummy input
-#     value_obs_size = _get_obs_size(_get_by_path(observation_size, value_obs_key), "")
-#     dummy_value_obs = jnp.zeros((1, value_obs_size))
-
-#     # ------------------------------------------------------------------
-#     # Helpers
-#     # ------------------------------------------------------------------
-
-#     def _preprocess_value(obs, pparams):
-#         if isinstance(obs, Mapping):
-#             value_obs = _get_by_path(obs, value_obs_key)
-#             return preprocess_observations_fn(
-#                 value_obs,
-#                 _select_normalizer_by_path(pparams, value_obs_key),
-#             )
-#         return preprocess_observations_fn(obs, pparams)
-
-#     def _extract_policy_obs(obs):
-#         policy_group = _get_by_path(obs, policy_obs_key)
-#         return policy_group[policy_pixels_key], policy_group[policy_propio_key]
-
-#     def _preprocess_policy_propio(obs, pparams):
-#         _, proprio = _extract_policy_obs(obs)
-#         return preprocess_observations_fn(
-#             proprio,
-#             _select_normalizer_by_path(
-#                 pparams, f"{policy_obs_key}/{policy_propio_key}"
-#             ),
-#         )
-
-#     # ------------------------------------------------------------------
-#     # Value network init / apply
-#     # ------------------------------------------------------------------
-
-#     def _value_init(key):
-#         return value_mlp.init(key, dummy_value_obs)
-
-#     def _value_apply(pparams, params, obs):
-#         return jnp.squeeze(
-#             value_mlp.apply(params, _preprocess_value(obs, pparams)),
-#             axis=-1,
-#         )
-    
-#     value_network = FeedForwardNetwork(init=_value_init, apply=_value_apply)
-
-#     # ------------------------------------------------------------------
-#     # Policy network
-#     # Params = (vision_decoder_params, action_head_params)
-#     # apply : (normalizer_params, policy_params, obs_dict) → logits
-#     # ------------------------------------------------------------------
-
-#     def _policy_init(key):
-#         k1, k2 = jax.random.split(key)
-#         dec_params = policy_encoder.init(k1, dummy_pixels, dummy_propio)
-#         feats = policy_encoder.apply(dec_params, dummy_pixels, dummy_propio)
-#         head_params = policy_action_head.init(k2, feats)
-#         return dec_params, head_params
-
-#     def _policy_apply(pparams, params, obs):
-#         pixels, _ = _extract_policy_obs(obs)
-#         proprio = _preprocess_policy_propio(obs, pparams)
-#         feats = policy_encoder.apply(params[0], pixels, proprio)
-#         return policy_action_head.apply(params[1], feats)
-
-#     policy_network = FeedForwardNetwork(init=_policy_init, apply=_policy_apply)
-
-#     # ------------------------------------------------------------------
-
-#     return PPONetworks(
-#         policy_network=policy_network,
-#         value_network=value_network,
-#         parametric_action_distribution=parametric_action_distribution,
-#     )
-
-
-# # ---------------------------------------------------------------------------
-# # Inference helper (standard PPO, no student/proxy)
-# # ---------------------------------------------------------------------------
-
-# def make_inference_fn(ppo_networks: PPONetworks, compute_value: bool = False):
-#     """Returns a policy-factory compatible with brax PPO.
-
-#     Expected params layout passed by brax.ppo.train:
-#         params[0] = normalizer_params
-#         params[1] = policy_params   → (vision_decoder_params, action_head_params)
-#         params[2] = value_params
-#     """
-
-#     def make_policy(
-#         params: types.Params, deterministic: bool = False
-#     ) -> types.Policy:
-
-#         def policy(
-#             observations: types.Observation, key_sample: PRNGKey
-#         ) -> Tuple[types.Action, types.Extra]:
-#             logits = ppo_networks.policy_network.apply(
-#                 params[0], params[1], observations
-#             )
-#             if deterministic:
-#                 return ppo_networks.parametric_action_distribution.mode(logits), {}
-
-#             raw_actions = (
-#                 ppo_networks.parametric_action_distribution
-#                 .sample_no_postprocessing(logits, key_sample)
-#             )
-#             log_prob = ppo_networks.parametric_action_distribution.log_prob(
-#                 logits, raw_actions
-#             )
-#             postprocessed_actions = (
-#                 ppo_networks.parametric_action_distribution.postprocess(raw_actions)
-#             )
-#             extras = {
-#                 "log_prob": log_prob,
-#                 "raw_action": raw_actions,
-#                 "distribution_params": logits,
-#             }
-#             if compute_value:
-#                 extras["value"] = ppo_networks.value_network.apply(
-#                     params[0], params[2], observations
-#                 )
-#             return postprocessed_actions, extras
-
-#         return policy
-
-#     return make_policy
-
 
 # ===========================================================================
 # IL (Imitation Learning) data structures and factory
 # ===========================================================================
-
-@flax.struct.dataclass
-class ILNetworkParams:
-    """Params tracked during IL alignment training."""
-    policy: Any               # (teacher_dec_params, action_head_params) — frozen from teacher ckpt
-    value: Any                # value_params — frozen
-    student_enc_params: Any   # PolicyVisionProprioEncoder flax params — trained
-    proxy_dec_params: Any     # proxy MLP flax params — trained
-
 
 @flax.struct.dataclass
 class ILNetworks:
@@ -315,10 +130,9 @@ class ILNetworks:
     teacher_network: FeedForwardNetwork        # flat state  → logits  (frozen, for rollouts)
     student_network: FeedForwardNetwork        # vision obs  → logits  (student inference)
     value_network: FeedForwardNetwork          # flat state  → scalar  (frozen)
-    # Decoder-only adapters used in alignment
+    # Adapters used in alignment
     teacher_decoder: FeedForwardNetwork        # flat state  → features
     student_encoder: FeedForwardNetwork        # vision obs  → features
-    proxy_decoder: FeedForwardNetwork          # flat state  → proxy features
     action_head: FeedForwardNetwork            # features    → logits
     parametric_action_distribution: distribution.ParametricDistribution
 
@@ -333,9 +147,8 @@ def make_il_networks(
     preprocess_observations_fn: types.PreprocessObservationFn = (
         types.identity_observation_preprocessor
     ),
-    # Teacher / proxy MLP decoder
+    # Teacher MLP decoder (frozen from checkpoint)
     teacher_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
-    proxy_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
     # Student (vision) encoder — same architecture as vision RL student
     policy_dec_hidden_layers: Sequence[int] = (256, 256),
     policy_propio_proj_hidden_layers: Sequence[int] = (64,),
@@ -349,6 +162,8 @@ def make_il_networks(
     activation: ActivationFn = nn.relu,
     # Student vision obs keys (flat dict: e.g. 'pixels/view_0', 'propio')
     policy_pixels_key: str = "pixels/view_0",
+    policy_pixels_key_1: str = "pixels/view_1",
+    policy_pixels_key_2: str = "pixels/view_2",
     policy_propio_key: str = "propio",
     # Teacher / value obs key (flat privileged state)
     teacher_obs_key: str = "teacher_obs",
@@ -371,21 +186,23 @@ def make_il_networks(
         kernel_init=kernel_init,
         activate_final=True,
     )
-    proxy_decoder_mlp = MLP(
-        layer_sizes=list(proxy_dec_hidden_layers),
-        activation=activation,
-        kernel_init=kernel_init,
-        activate_final=True,
-    )
-    student_encoder_module = PolicyVisionProprioEncoder(
-        cnn_num_filters=list(cnn_num_filters),
-        cnn_kernel_sizes=list(cnn_kernel_sizes),
-        cnn_strides=list(cnn_strides),
+    # student_encoder_module = PolicyVisionProprioEncoder(
+    #     cnn_num_filters=list(cnn_num_filters),
+    #     cnn_kernel_sizes=list(cnn_kernel_sizes),
+    #     cnn_strides=list(cnn_strides),
+    #     proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
+    #     activation=activation,
+    #     kernel_init=kernel_init,
+    # )
+
+    student_encoder_module = PolicyProprioEncoder(
         proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
         fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
     )
+    
     action_head_mlp = MLP(
         layer_sizes=list(action_hidden_layer_sizes)
             + [parametric_action_distribution.param_size],
@@ -420,9 +237,13 @@ def make_il_networks(
     value_obs_size = _shape_last_dim(value_obs_raw)
     dummy_value_obs = jnp.zeros((1, value_obs_size))
 
-    # Student vision obs — flat keys: obs["pixels/view_0"], obs["propio"]
-    # Use direct dict access because "pixels/view_0" contains a slash but is a single top-level key.
-    pixel_shape = tuple(observation_size[policy_pixels_key])
+    # Student vision obs — flat keys: obs["pixels/view_0"], obs["pixels/view_1"], obs["pixels/view_2"], obs["propio"]
+    # All camera frame stacks are concatenated along the channel axis before the CNN.
+    pixel_shape_0 = tuple(observation_size[policy_pixels_key])
+    pixel_shape_1 = tuple(observation_size[policy_pixels_key_1])
+    pixel_shape_2 = tuple(observation_size[policy_pixels_key_2])
+    # Concatenate: (H, W, h) + (H, W, h) + (H, W, h) → (H, W, 3*h)
+    pixel_shape = pixel_shape_0[:-1] + (pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],)
     propio_size = _shape_last_dim(observation_size[policy_propio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
     dummy_propio = jnp.zeros((1, propio_size))
@@ -436,13 +257,14 @@ def make_il_networks(
     # ------------------------------------------------------------------
 
     def _preprocess_teacher(obs, pparams):
-        """Normalise teacher (policy) obs using its own normalizer sub-state."""
-        if isinstance(obs, Mapping):
-            teacher_obs = obs[teacher_obs_key]
-            return preprocess_observations_fn(
-                teacher_obs, normalizer_select(pparams, teacher_obs_key)
-            )
-        return preprocess_observations_fn(obs, pparams)
+        """Normalise teacher (policy) obs.
+
+        ``pparams`` is already the per-key sub-state (extracted from the full
+        teacher checkpoint normalizer via normalizer_select before training),
+        so we do NOT call normalizer_select here — just apply it directly.
+        """
+        teacher_obs = obs[teacher_obs_key] if isinstance(obs, Mapping) else obs
+        return preprocess_observations_fn(teacher_obs, pparams)
 
     def _preprocess_value(obs, pparams):
         """Normalise value obs using its own normalizer sub-state (may differ from teacher)."""
@@ -454,14 +276,21 @@ def make_il_networks(
         return preprocess_observations_fn(obs, pparams)
 
     def _extract_student_obs(obs):
-        # Direct access: "pixels/view_0" is a flat top-level key (not a nested path)
-        return obs[policy_pixels_key], obs[policy_propio_key]
+        # Concatenate all camera frame stacks along channel axis: (H, W, 3*history)
+        pixels = jnp.concatenate([
+            obs[policy_pixels_key],
+            obs[policy_pixels_key_1],
+            obs[policy_pixels_key_2],
+        ], axis=-1)
+        return pixels, obs[policy_propio_key]
 
     def _preprocess_student_propio(obs, pparams):
-        proprio = obs[policy_propio_key]
-        return preprocess_observations_fn(
-            proprio, normalizer_select(pparams, policy_propio_key)
-        )
+        """Normalise proprio obs.
+
+        ``pparams`` is the propio RunningStatisticsState directly — not a dict.
+        """
+        proprio = obs[policy_propio_key] if isinstance(obs, Mapping) else obs
+        return preprocess_observations_fn(proprio, pparams)
 
     # ------------------------------------------------------------------
     # Decoder-only FeedForwardNetworks (used in align.py)
@@ -471,13 +300,6 @@ def make_il_networks(
     teacher_decoder_net = FeedForwardNetwork(
         init=lambda key: teacher_decoder_mlp.init(key, dummy_teacher_obs),
         apply=lambda pparams, params, obs: teacher_decoder_mlp.apply(
-            params, _preprocess_teacher(obs, pparams)
-        ),
-    )
-
-    proxy_decoder_net = FeedForwardNetwork(
-        init=lambda key: proxy_decoder_mlp.init(key, dummy_teacher_obs),
-        apply=lambda pparams, params, obs: proxy_decoder_mlp.apply(
             params, _preprocess_teacher(obs, pparams)
         ),
     )
@@ -550,7 +372,6 @@ def make_il_networks(
         value_network=value_network,
         teacher_decoder=teacher_decoder_net,
         student_encoder=student_encoder_net,
-        proxy_decoder=proxy_decoder_net,
         action_head=action_head_net,
         parametric_action_distribution=parametric_action_distribution,
     )
@@ -560,56 +381,71 @@ def make_il_networks(
 # IL inference helpers
 # ---------------------------------------------------------------------------
 
-def make_teacher_inference_fn(il_networks: ILNetworks, compute_value: bool = False):
-    """Teacher policy factory.
+def make_frozen_teacher_policy(
+    il_networks: ILNetworks,
+    teacher_norm_params: Any,
+    teacher_policy_params: Any,
+    deterministic: bool = False,
+) -> types.Policy:
+    """Returns a ``policy(obs, key)`` with all teacher params baked in as constants.
 
-    Expected params tuple:
-        params[0] = normalizer_params
-        params[1] = (teacher_dec_params, action_head_params)
-        params[2] = value_params
+    Nothing is passed at call time — teacher norm and policy params are closed
+    over here so they never appear in the JAX training state.
     """
 
-    def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
+    def policy(
+        observations: types.Observation, key_sample: PRNGKey
+    ) -> Tuple[types.Action, types.Extra]:
+        logits = il_networks.teacher_network.apply(
+            teacher_norm_params, teacher_policy_params, observations
+        )
+        if deterministic:
+            return il_networks.parametric_action_distribution.mode(logits), {}
+        raw_actions = (
+            il_networks.parametric_action_distribution
+            .sample_no_postprocessing(logits, key_sample)
+        )
+        log_prob = il_networks.parametric_action_distribution.log_prob(
+            logits, raw_actions
+        )
+        postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
+        return postprocessed, {
+            "log_prob": log_prob,
+            "raw_action": raw_actions,
+            "distribution_params": logits,
+        }
 
-        def policy(observations: types.Observation, key_sample: PRNGKey):
-            logits = il_networks.teacher_network.apply(params[0], params[1], observations)
-            if deterministic:
-                return il_networks.parametric_action_distribution.mode(logits), {}
-            raw_actions = il_networks.parametric_action_distribution.sample_no_postprocessing(
-                logits, key_sample
-            )
-            log_prob = il_networks.parametric_action_distribution.log_prob(logits, raw_actions)
-            postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
-            extras = {"log_prob": log_prob, "raw_action": raw_actions, "distribution_params": logits}
-            if compute_value:
-                extras["value"] = il_networks.value_network.apply(params[0], params[2], observations)
-            return postprocessed, extras
-
-        return policy
-
-    return make_policy
+    return policy
 
 
-def make_student_inference_fn(il_networks: ILNetworks):
+def make_student_inference_fn(il_networks: ILNetworks, action_head_params: Any):
     """Student (vision) policy factory.
 
-    Expected params tuple:
-        params[0] = normalizer_params
-        params[1] = teacher policy params (ignored by student — kept for uniform signature)
-        params[2] = value_params         (ignored by student)
-        params[3] = (student_enc_params, action_head_params)
+    ``action_head_params`` is a frozen constant from the teacher checkpoint,
+    closed over here so it is never part of the JAX training state.
+
+    Expected params at call time (from _pack_student_params):
+        params[0] = propio_norm        (RunningStatisticsState)
+        params[1] = student_enc_params
     """
 
     def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
+        propio_norm, student_enc = params
 
         def policy(observations: types.Observation, key_sample: PRNGKey):
-            logits = il_networks.student_network.apply(params[0], params[3], observations)
+            # Pass propio_norm directly — _preprocess_student_propio uses it as-is.
+            logits = il_networks.student_network.apply(
+                propio_norm, (student_enc, action_head_params), observations
+            )
             if deterministic:
                 return il_networks.parametric_action_distribution.mode(logits), {}
-            raw_actions = il_networks.parametric_action_distribution.sample_no_postprocessing(
-                logits, key_sample
+            raw_actions = (
+                il_networks.parametric_action_distribution
+                .sample_no_postprocessing(logits, key_sample)
             )
-            log_prob = il_networks.parametric_action_distribution.log_prob(logits, raw_actions)
+            log_prob = il_networks.parametric_action_distribution.log_prob(
+                logits, raw_actions
+            )
             postprocessed = il_networks.parametric_action_distribution.postprocess(raw_actions)
             return postprocessed, {
                 "log_prob": log_prob,
