@@ -1,4 +1,4 @@
-task_name: vision_landing_il
+task_name: vision_landing_sitt
 
 defaults:
   - override hydra/job_logging: default  
@@ -20,7 +20,7 @@ env:
   ctrl_dt: 0.02
   action_repeat: 1
   naconmax: ${mul:${env.njmax},${train.num_envs}}
-  njmax: 250
+  njmax: 300
   vision: true
   vision_config: # must contain only warp api parameters
     nworld: ${train.num_envs}
@@ -105,8 +105,10 @@ train:
   policy_propio_key: "propio"
   value_obs_key: "value_obs"
   teacher_obs_key: "teacher_obs"
-  # IL extras
+  # SITT extras
   teacher_dec_hidden_layers: [512, 512, 256, 128]
+  proxy_hidden_layers: [512, 512, 256, 128]
+  policy_obs_key: "policy_obs"
 
   # Train from checkpoint (for continuing training)
   # restore_params_path: null     # PPO only
@@ -115,7 +117,7 @@ train:
 
   # WandB Configuration
   wandb_project: "brax-training"
-  wandb_run_name: "arcdrone_vision_landing_il_run"
+  wandb_run_name: "arcdrone_vision_landing_sitt_run"
   use_wandb: false
 
 
