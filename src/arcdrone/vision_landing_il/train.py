@@ -6,13 +6,8 @@ No PPO — pure supervised feature/action matching.
 
 Example::
 
-    python src/arcdrone/vision_landing_il/train.py \\
-        train.teacher_checkpoint_path=/path/to/teacher.pkl \\
-        train.num_envs=512 train.unroll_length=16 \\
-        train.batch_size=256 train.num_minibatches=4 \\
-        train.num_il_epochs=200 train.align_updates_per_trigger=4 \\
-        train.num_evals=32 train.num_eval_envs=128 \\
-        train.use_wandb=true
+python src/arcdrone/vision_landing_il/train.py train.teacher_checkpoint_path='checkpoints/teacher/from A40/rgb/trained_model.pkl' train.num_envs=256 train.unroll_length=4 train.batch_size=128 train.num_minibatches=2 train.align_updates_per_trigger=4 train.num_il_epochs=300 train.num_evals=32 train.num_eval_envs=32 train.use_wandb=true env.buffer_size=3
+
 """
 
 from datetime import datetime

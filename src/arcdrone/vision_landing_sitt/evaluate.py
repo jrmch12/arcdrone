@@ -21,14 +21,14 @@ from arcdrone.vision_landing_il.training import networks as il_networks
 
 
 def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
-	"""Find the latest trained_model.pkl file in the outputs directory."""
+	"""Find the latest student_model.pkl file in the outputs directory."""
 	outputs_path = Path(outputs_dir)
 	if not outputs_path.exists():
 		raise FileNotFoundError(f"Outputs directory not found: {outputs_dir}")
 
-	pkl_files = list(outputs_path.rglob("trained_model.pkl"))
+	pkl_files = list(outputs_path.rglob("student_model.pkl"))
 	if not pkl_files:
-		raise FileNotFoundError(f"No trained_model.pkl files found in {outputs_dir}")
+		raise FileNotFoundError(f"No student_model.pkl files found in {outputs_dir}")
 
 	latest_pkl = max(pkl_files, key=lambda path: path.stat().st_mtime)
 	return str(latest_pkl)
@@ -117,8 +117,6 @@ def evaluate(
 
 	print("Loading trained model...")
 	params = model.load_params(model_path)
-	# Checkpoint format (new): (propio_norm, (student_enc, action_head)) — self-contained.
-	# Checkpoint format (old): (propio_norm, student_enc)                — needs teacher ckpt.
 	if isinstance(params[1], tuple) and len(params[1]) == 2:
 		action_head_params = params[1][1]
 		student_params = (params[0], params[1][0])
