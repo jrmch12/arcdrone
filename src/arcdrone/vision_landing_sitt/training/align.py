@@ -41,7 +41,7 @@ def align(
     opt_state: optax.OptState,
     teacher_obs,
     student_obs,
-    propio_norm,
+    proprio_norm,
     *,
     teacher_dec_params,
     action_head_params,
@@ -61,8 +61,8 @@ def align(
             ``(batch_size * num_minibatches, T, ...)``.
         student_obs: same shape / content as ``teacher_obs`` (both are the
             full student env obs dict; each network extracts its keys).
-        propio_norm: live RunningStatisticsState for propio normalisation
-            (or normalizer_select(..., "policy_obs") since propio == policy_obs).
+        proprio_norm: live RunningStatisticsState for proprio normalisation
+            (or normalizer_select(..., "policy_obs") since proprio == policy_obs).
         teacher_dec_params: frozen teacher decoder params (pre-bound).
         action_head_params: frozen action head params (pre-bound).
         teacher_norm: frozen teacher normaliser sub-state (pre-bound).
@@ -94,7 +94,7 @@ def align(
                 teacher_norm, teacher_dec_params, t_obs
             )
             student_feat = sitt_network.student_encoder.apply(
-                propio_norm, student_enc, s_obs
+                proprio_norm, student_enc, s_obs
             )
             proxy_feat = sitt_network.proxy_decoder.apply(
                 teacher_norm, proxy_dec, t_obs

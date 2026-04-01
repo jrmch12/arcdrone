@@ -12,6 +12,9 @@ hydra:
 
 
 env:
+
+  # DEBUG Debugging flags
+  enable_vision_obs: true  # set to true to turn off this debugger. To debug with no rendering do this together with manually changing the student network to the one with no CNN in networks.py.
   
   # ==== MJXEnvs / mujoco_playground flags ====
   xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
@@ -38,7 +41,7 @@ env:
 
   # Episode control
   max_episode_steps: ${train.episode_length}
-  success_threshold: 0.02
+  success_threshold: 0.08
   success_steps_required: 10
   
   # Reward function
@@ -49,11 +52,10 @@ env:
   action_chattering_weight: 0.001
   action_penalty_weight: 0.0001
   time_penalty: 0.01 
-  success_bonus: 500.0
+  success_bonus: 0.5
   ground_penalty_weight: 10.0  
-  ground_threshold_event: 0.15  
+  ground_threshold_event: 0.2  
   ground_threshold_penalty: 0.5 
-
 
 train:
 
@@ -65,7 +67,7 @@ train:
   normalize_observations: true
   action_repeat: 1
   unroll_length: 10
-  learning_rate: 3e-4
+  learning_rate: 1e-3
   num_envs: 256
   seed: 0
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
@@ -80,7 +82,7 @@ train:
 
   # Network Architecture
   policy_dec_hidden_layers: [256, 128]
-  policy_propio_proj_hidden_layers: [64]
+  policy_proprio_proj_hidden_layers: [64]
   action_hidden_layers: [512, 512, 256, 128]
   value_hidden_layers: [512, 512, 256, 128]
   cnn_num_filters: [32, 64, 64]
@@ -88,16 +90,15 @@ train:
   cnn_strides: [[4, 4], [2, 2], [1, 1]]
   policy_pixels_key: "pixels/view_0"
   policy_pixels_key_1: "pixels/view_1"
-  policy_propio_key: "propio"
+  policy_proprio_key: "proprio_obs"
   value_obs_key: "value_obs"
   teacher_obs_key: "teacher_obs"
   # IL extras
   teacher_dec_hidden_layers: [512, 512, 256, 128]
 
   # Train from checkpoint (for continuing training)
-  # restore_params_path: null     # PPO only
-  # restore_value_fn: true        # PPO only
-  # frompreviouscheckpoint: 0     # PPO only
+  restore_params_path: null
+  frompreviouscheckpoint: 0
 
   # WandB Configuration
   wandb_project: "brax-training"
@@ -109,8 +110,6 @@ train:
 
 
   
-
-
 
 
 

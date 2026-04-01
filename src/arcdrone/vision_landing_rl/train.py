@@ -5,6 +5,7 @@
 
 from datetime import datetime
 from pathlib import Path
+from typing import Any, Mapping
 import functools
 import os
 import glob
@@ -17,6 +18,12 @@ from hydra.core.hydra_config import HydraConfig
 import numpy as np
 
 from mujoco_playground import wrapper
+
+
+def _remove_pixels(obs: Any) -> Any:
+    if not isinstance(obs, Mapping):
+        return obs
+    return {k: v for k, v in obs.items() if not k.startswith("pixels/")}
 
 
 @hydra.main(config_name="config", config_path="./cfg", version_base=None)
@@ -33,15 +40,17 @@ def main(cfg: DictConfig):
     # Import JAX-related modules after setting environment variables
     from brax.training.agents.ppo import train as ppo
     from brax.io import model
+    from brax.training.acme import running_statistics
     from arcdrone.utils.wandb_logger import WandbLogger
-    from arcdrone.vision_landing_rl.task.arcdrone import ARCDroneRL_VisionLanding
+    from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
     from arcdrone.vision_landing_rl.training.networks import make_ppo_networks_vision
+    import jax
 
     # =========== Environment ===========
 
     env_cfg = cfg.env
     print("Instantiating ARCDroneRL_VisionLanding...")
-    env = ARCDroneRL_VisionLanding(cfg=env_cfg)
+    env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=env_cfg)
 
     print("Environment instantiated successfully")
 
@@ -74,14 +83,16 @@ def main(cfg: DictConfig):
     network_factory = functools.partial(
         make_ppo_networks_vision,
         policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
+        policy_proprio_proj_hidden_layers=cfg.policy_proprio_proj_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
         cnn_num_filters=cfg.cnn_num_filters,
         cnn_kernel_sizes=cfg.cnn_kernel_sizes,
         cnn_strides=cfg.cnn_strides,
         policy_pixels_key=cfg.policy_pixels_key,
-        policy_propio_key=cfg.policy_propio_key,
+        policy_pixels_key_1=cfg.policy_pixels_key_1,
+        policy_pixels_key_2=cfg.policy_pixels_key_2,
+        policy_proprio_key=cfg.policy_proprio_key,
         value_obs_key=cfg.value_obs_key,
     )
 
@@ -112,6 +123,87 @@ def main(cfg: DictConfig):
         print(f"Loading parameters from: {restore_path}")
         restore_params = model.load_params(restore_path)
         print("Parameters loaded successfully!")
+        # Always rebuild normalizer stats from the current env to avoid shape mismatches.
+        # Build obs shapes from config to avoid observation_size (which eval_shapes reset).
+        cam_res = None
+        buffer_size = None
+        try:
+            cam_res = tuple(env_cfg.vision_config.cam_res)
+            buffer_size = int(env_cfg.buffer_size)
+        except Exception:
+            cam_res = None
+
+        if cam_res is None or buffer_size is None:
+            sample_state = env.reset(jax.random.PRNGKey(cfg.seed))
+            obs_shape = jax.tree_util.tree_map(lambda x: x.shape[1:], sample_state.obs)
+        else:
+            height, width = cam_res
+            action_size = int(env.action_size)
+            pixel_channels = buffer_size * 3
+            value_dim = buffer_size * (19 + action_size)
+            proprio_dim = buffer_size * (10 + action_size)
+            obs_shape = {
+                "pixels/view_0": (height, width, pixel_channels),
+                "pixels/view_1": (height, width, pixel_channels),
+                "pixels/view_2": (height, width, pixel_channels),
+                "proprio_obs": (proprio_dim,),
+                "value_obs": (value_dim,),
+                "teacher_obs": (value_dim,),
+            }
+
+        if isinstance(obs_shape, Mapping):
+            obs_shape = {
+                key: ((shape,) if isinstance(shape, int) else tuple(shape))
+                for key, shape in obs_shape.items()
+            }
+        else:
+            obs_shape = (obs_shape,) if isinstance(obs_shape, int) else tuple(obs_shape)
+
+        normalize = (
+            running_statistics.normalize
+            if cfg.normalize_observations
+            else (lambda x, y: x)
+        )
+        ppo_network = network_factory(
+            obs_shape, env.action_size, preprocess_observations_fn=normalize
+        )
+        key_init = jax.random.PRNGKey(cfg.seed)
+        _, k2 = jax.random.split(key_init)
+        init_value_params = ppo_network.value_network.init(k2)
+
+        is_student_ckpt = (
+            isinstance(restore_params, tuple)
+            and len(restore_params) == 2
+            and isinstance(restore_params[1], tuple)
+            and len(restore_params[1]) == 2
+        )
+
+        # NOTE: fresh-normalizer fallback is intentionally disabled for now.
+        # Restore is strict and must come from PPO-shaped checkpoints.
+        if is_student_ckpt:
+            raise ValueError(
+                "Student checkpoint detected. For vision RL warmstart, use a PPO-shaped checkpoint "
+                "(normalizer, policy, value), e.g. visionrl_warmstart.pkl from converter script."
+            )
+        elif isinstance(restore_params, tuple) and len(restore_params) >= 3:
+            policy_params = restore_params[1]
+            value_params = (
+                restore_params[2] if cfg.restore_value_fn else init_value_params
+            )
+            selected_normalizer = restore_params[0]
+            print(f"[Restore] Policy params <- {restore_path}[1]")
+            if cfg.restore_value_fn:
+                print(f"[Restore] Value params <- {restore_path}[2]")
+            else:
+                print("[Restore] Value params <- fresh init (restore_value_fn=false)")
+            print(f"[Restore] Normalizer <- {restore_path}[0]")
+        else:
+            raise ValueError(
+                "Unsupported checkpoint format for strict restore. Expected PPO tuple "
+                "(normalizer, policy, value)."
+            )
+
+        restore_params = (selected_normalizer, policy_params, value_params)
 
 
 
@@ -120,6 +212,7 @@ def main(cfg: DictConfig):
         episode_length=cfg.episode_length, normalize_observations=cfg.normalize_observations, action_repeat=cfg.action_repeat,
         unroll_length=cfg.unroll_length, num_minibatches=cfg.num_minibatches, num_updates_per_batch=cfg.num_updates_per_batch,
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
+        learning_rate_schedule=cfg.learning_rate_schedule, desired_kl=cfg.desired_kl, max_grad_norm=cfg.max_grad_norm, clipping_epsilon=cfg.clipping_epsilon,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
         restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,num_eval_envs=cfg.num_eval_envs,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
@@ -211,4 +304,4 @@ if __name__ == '__main__':
 
 # How to use?
 #
-# python src/arcdrone/vision_landing_rl/train.py train.num_envs=512 train.unroll_length=16 train.batch_size=256 train.num_minibatches=4 train.num_updates_per_batch=16 train.num_timesteps=10000000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=128 
+# python src/arcdrone/vision_landing_rl/train.py train.num_envs=128 train.unroll_length=4 train.batch_size=64 train.num_minibatches=2 train.num_updates_per_batch=16 train.num_timesteps=100000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=64 train.restore_params_path='outputs/2026-03-21/10-18-23/trained_model.pkl' 

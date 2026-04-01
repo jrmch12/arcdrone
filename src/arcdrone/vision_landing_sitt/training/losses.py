@@ -160,6 +160,7 @@ def compute_ppo_loss(
 
     # SITT: auxiliary alignment loss (teacher feat vs proxy feat)
     rl_align_loss = jnp.array(0.0)
+    sitt_align_coef = 1.0 # HACK hardcoded for now
     if use_sitt:
         teacher_feat = ppo_network.policy_decoder.apply(
             normalizer_params, params.policy[0], data.observation
@@ -170,8 +171,8 @@ def compute_ppo_loss(
         proxy_feat_detached = jax.lax.stop_gradient(proxy_feat)
         rl_align_loss = jnp.mean(jnp.abs(teacher_feat - proxy_feat_detached))
         rl_align_loss = rl_align_loss * sitt_align_coef
-        # total_loss = total_loss + rl_align_loss
-        total_loss = total_loss
+        total_loss = total_loss + rl_align_loss
+        # total_loss = total_loss
 
     return total_loss, {
         "total_loss": total_loss,

@@ -6,12 +6,8 @@ on a separate student env.
 
 Example::
 
-python src/arcdrone/vision_landing_sitt/train.py \
-  train.num_timesteps=50000000 train.num_envs=1024 train.unroll_length=32 \
-  train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4 \
-  train.align_num_epochs=300 train.align_batch_size=256 train.align_num_minibatches=4 \
-  train.align_updates_per_trigger=4 train.num_evals=30 train.num_eval_envs=128 \
-  train.use_wandb=true env.buffer_size=3
+python src/arcdrone/vision_landing_sitt/train.py   train.num_timesteps=100000000 train.num_envs=1024 train.unroll_length=32   train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4  train.align_num_epochs=300 train.align_num_splits=30 train.align_num_envs=256 train.align_unroll_length=8 train.align_batch_size=128 train.align_num_minibatches=4   train.align_updates_per_trigger=4 train.num_evals=20 train.num_eval_envs=128   train.use_wandb=true env.buffer_size=3
+
 """
 
 from datetime import datetime
@@ -64,7 +60,11 @@ def main(cfg: DictConfig):
     # =========== Student Environment (Alignment) ===========
 
     print("Instantiating student env (ARCDroneRL_VisionLanding_StudentTeacher)...")
-    student_env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=env_cfg)
+    student_env_cfg = OmegaConf.to_container(env_cfg, resolve=True)
+    student_env_cfg["num_envs"] = cfg.train.align_num_envs      # TODO: propose a better fix than this!
+    student_env_cfg["vision_config"]["nworld"] = cfg.train.align_num_envs
+    student_env_cfg["naconmax"] = student_env_cfg["njmax"] * cfg.train.align_num_envs
+    student_env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=student_env_cfg)
     student_env = wrapper.wrap_for_brax_training(
         student_env,
         action_repeat=cfg.train.action_repeat,
@@ -85,6 +85,70 @@ def main(cfg: DictConfig):
 
     cfg = cfg.train
     assert cfg.num_envs > cfg.num_eval_envs, "num_envs must be > num_eval_envs"
+    assert cfg.align_num_envs > 0, "align_num_envs must be > 0"
+
+    # =========== Handle auto-restore from previous SITT checkpoint ===========
+
+    from_prev = int(getattr(cfg, "frompreviouscheckpoint", 0))
+    restore_path = getattr(cfg, "restore_params_path", None)
+    # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
+    if from_prev and (not restore_path or restore_path == ""):
+        outputs_path = Path("outputs")
+        # Prefer teacher checkpoints from SITT runs.
+        pkl_files = list(outputs_path.rglob("teacher_model.pkl"))
+        if not pkl_files:
+            pkl_files = list(outputs_path.rglob("trained_model.pkl"))
+        if pkl_files:
+            pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
+            if len(pkl_files) >= from_prev:
+                chosen_pkl = pkl_files[-from_prev]
+                cfg.restore_params_path = str(chosen_pkl)
+                print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
+            else:
+                print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
+        else:
+            print("[Auto-restore] No SITT checkpoints found in outputs/")
+
+    def _load_restore_trio(path_or_dir: str):
+        target = Path(path_or_dir)
+        run_dir = target if target.is_dir() else target.parent
+        teacher_file = run_dir / "teacher_model.pkl"
+        student_file = run_dir / "student_model.pkl"
+        proxy_file = run_dir / "proxy_model.pkl"
+
+        if teacher_file.exists() and student_file.exists() and proxy_file.exists():
+            print(f"Loading SITT restore trio from: {run_dir}")
+            teacher_ckpt = model.load_params(str(teacher_file))
+            student_ckpt = model.load_params(str(student_file))
+            proxy_ckpt = model.load_params(str(proxy_file))
+
+            teacher_norm = teacher_ckpt[0]
+            teacher_policy = teacher_ckpt[1]
+            teacher_value = teacher_ckpt[2]
+            student_norm, student_payload = student_ckpt
+            student_enc = student_payload[0]
+
+            return (
+                teacher_norm,
+                teacher_policy,
+                teacher_value,
+                proxy_ckpt,
+                student_enc,
+                student_norm,
+            )
+        return None
+
+    restore_params = None
+    restore_path = getattr(cfg, "restore_params_path", None)
+    if restore_path:
+        restore_params = _load_restore_trio(restore_path)
+        if restore_params is not None:
+            print("SITT restore parameters loaded from teacher/student/proxy checkpoints.")
+        else:
+            # Backward compatibility: allow a single-file full restore tuple.
+            print(f"Loading SITT restore parameters from: {restore_path}")
+            restore_params = model.load_params(restore_path)
+            print("SITT restore parameters loaded.")
 
     # =========== Load teacher checkpoint (optional) ===========
 
@@ -95,7 +159,10 @@ def main(cfg: DictConfig):
         teacher_params = model.load_params(teacher_path)
         print("Teacher parameters loaded.")
     else:
-        print("No teacher checkpoint provided — PPO will train teacher from scratch.")
+        if restore_params is None:
+            print("No teacher checkpoint provided — PPO will train teacher from scratch.")
+        else:
+            print("No teacher checkpoint provided — using restore checkpoint state.")
 
     # =========== Network factory ===========
 
@@ -103,7 +170,7 @@ def main(cfg: DictConfig):
         sitt_networks.make_sitt_networks,
         teacher_dec_hidden_layers=cfg.teacher_dec_hidden_layers,
         policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
+        policy_proprio_proj_hidden_layers=cfg.policy_proprio_proj_hidden_layers,
         proxy_hidden_layers=cfg.proxy_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
@@ -115,7 +182,7 @@ def main(cfg: DictConfig):
         teacher_obs_key=cfg.teacher_obs_key,
         policy_pixels_key=cfg.policy_pixels_key,
         policy_pixels_key_1=cfg.policy_pixels_key_1,
-        policy_propio_key=cfg.policy_propio_key,
+        policy_proprio_key=cfg.policy_proprio_key,
     )
 
     # =========== Build train_fn ===========
@@ -136,11 +203,17 @@ def main(cfg: DictConfig):
         # PPO hyperparams
         learning_rate=cfg.learning_rate,
         entropy_cost=cfg.entropy_cost,
+        learning_rate_schedule=cfg.learning_rate_schedule,
+        desired_kl=cfg.desired_kl,
+        max_grad_norm=cfg.max_grad_norm,
         discounting=cfg.discounting,
         reward_scaling=cfg.reward_scaling,
         normalize_observations=cfg.normalize_observations,
         # SITT alignment
         align_num_epochs=cfg.align_num_epochs,
+        align_num_splits=cfg.align_num_splits,
+        align_num_envs=cfg.align_num_envs,
+        align_unroll_length=cfg.align_unroll_length,
         align_batch_size=cfg.align_batch_size,
         align_num_minibatches=cfg.align_num_minibatches,
         align_updates_per_trigger=cfg.align_updates_per_trigger,
@@ -152,9 +225,14 @@ def main(cfg: DictConfig):
         num_envs=cfg.num_envs,
         episode_length=cfg.episode_length,
         action_repeat=cfg.action_repeat,
+        policy_proprio_key=cfg.policy_proprio_key,
+        policy_obs_key=cfg.policy_obs_key,
         seed=cfg.seed,
         deterministic_eval=True,
         wrap_env=False,
+        ppo_off=cfg.ppo_off,
+        restore_params=restore_params,
+        restore_value_fn=cfg.restore_value_fn,
     )
 
     # =========== Progress callback ===========
@@ -219,7 +297,7 @@ def main(cfg: DictConfig):
     # =========== Train ===========
 
     times = [datetime.now()]
-    make_inference_fn, make_student_inference_fn, teacher_params, student_params, final_metrics = train_fn(progress_fn=progress)
+    make_inference_fn, make_student_inference_fn, teacher_params, student_params, proxy_params, final_metrics = train_fn(progress_fn=progress)
     times.append(datetime.now())
 
     print(f"time to jit: {times[1] - times[0]}")
@@ -237,6 +315,10 @@ def main(cfg: DictConfig):
     student_model_path = os.path.join(hydra_run_dir, "student_model.pkl")
     model.save_params(student_model_path, student_params)
     print(f"Student parameters saved to {student_model_path}")
+
+    proxy_model_path = os.path.join(hydra_run_dir, "proxy_model.pkl")
+    model.save_params(proxy_model_path, proxy_params)
+    print(f"Proxy parameters saved to {proxy_model_path}")
 
     metrics_path = os.path.join(hydra_run_dir, "training_metrics.npz")
     np.savez(metrics_path, **{k: np.asarray(v) for k, v in final_metrics.items()})

@@ -60,7 +60,7 @@ class ILTrainingState:
     """
     align_opt_state: optax.OptState
     student_enc_params: Any   # PolicyVisionProprioEncoder — the only trainable params
-    normalizer_params: Any    # running stats for non-pixel obs (propio updated; others frozen)
+    normalizer_params: Any    # running stats for non-pixel obs (proprio updated; others frozen)
     env_steps: Any            # jnp scalar (uint32)
 
 
@@ -119,6 +119,8 @@ def train(
     run_evals: bool = True,
     wrap_env: bool = False,
     wrap_env_fn: Optional[Callable[[Any], Any]] = None,
+    # --- restore ---
+    restore_params: Optional[Any] = None,
 ):
     """Pure IL training loop.
 
@@ -126,6 +128,8 @@ def train(
         teacher_params: 3-tuple ``(normalizer, policy, value)`` loaded from a
             priviledged_landing_rl PPO checkpoint.  Only the teacher policy
             weights are used for rollouts; student encoder is re-initialised.
+        restore_params: optional student checkpoint ``(proprio_norm, (student_enc, action_head))``
+            to resume training from a previous IL run.
         num_il_epochs: total number of collect-then-align cycles.
         num_evals: how often to evaluate (spread across ``num_il_epochs``).
         unroll_length: number of env steps per unroll segment.
@@ -266,7 +270,7 @@ def train(
     action_head_params    = teacher_policy_params[1]
 
     # Extract per-key sub-states (Python constants — never enter JAX training state).
-    # Teacher checkpoint was trained with keys "policy_obs" and "value_obs".
+    # TODO: Update priviledged RL keys... Teacher checkpoint was trained with keys "policy_obs" and "value_obs".
     teacher_obs_norm = _nsel(teacher_norm_params, "policy_obs")
     value_obs_norm   = _nsel(teacher_norm_params, "value_obs")  # noqa: F841
 
@@ -307,7 +311,7 @@ def train(
     def _pack_student_params(ts: ILTrainingState):
         """Pack replicated-only tensors for evaluator + _unpmap.
 
-        Returns (propio_norm, student_enc_params) — both are part of
+        Returns (proprio_norm, student_enc_params) — both are part of
         ILTrainingState and are correctly replicated across devices, so
         _unpmap (x[0]) is safe on their leaves.
 
@@ -332,19 +336,25 @@ def train(
     # ── Fresh student encoder ──────────────────────────────────────────────
     student_enc_params = il_network.student_encoder.init(key_il)
 
-    # ── Normalizer: propio only ────────────────────────────────────────────
+    # ── Normalizer: proprio only ────────────────────────────────────────────
     # teacher_obs_norm and value_obs_norm are Python-level constants closed
     # over by the network apply functions — they never go into ILTrainingState.
-    # Only propio stats are dynamic and need to be tracked.
-    propio_spec = specs.Array(
-        env_state.obs["propio"].shape[2:], jnp.dtype("float32")
+    # Only proprio stats are dynamic and need to be tracked.
+    proprio_spec = specs.Array(
+        env_state.obs["proprio_obs"].shape[2:], jnp.dtype("float32")
     )
-    propio_norm = running_statistics.init_state(propio_spec)
+    proprio_norm = running_statistics.init_state(proprio_spec)
+
+    if restore_params is not None:
+        restored_norm, (restored_student_enc, _) = restore_params
+        student_enc_params = restored_student_enc
+        proprio_norm = restored_norm
+        logging.info("Restored student encoder + proprio norm from checkpoint.")
 
     training_state = ILTrainingState(
         align_opt_state=align_optimizer.init(student_enc_params),
         student_enc_params=student_enc_params,
-        normalizer_params=propio_norm,
+        normalizer_params=proprio_norm,
         env_steps=jnp.uint32(0),
     )
 
@@ -407,15 +417,15 @@ def train(
             training_state.student_enc_params,
             training_state.align_opt_state,
             data.observation,              # teacher_obs (teacher_obs_key extracted inside)
-            data.observation,              # student_obs (propio + pixels extracted inside)
-            training_state.normalizer_params,  # live propio_norm
+            data.observation,              # student_obs (proprio + pixels extracted inside)
+            training_state.normalizer_params,  # live proprio_norm
         )
 
-        # 3. Update propio running stats from collected batch.
+        # 3. Update proprio running stats from collected batch.
         normalizer_params = training_state.normalizer_params
         if normalize_observations:
             normalizer_params = running_statistics.update(
-                normalizer_params, data.observation["propio"],
+                normalizer_params, data.observation["proprio_obs"],
             )
 
         new_state = ILTrainingState(
@@ -460,7 +470,7 @@ def train(
 
     evaluator = acting.Evaluator(
         eval_env_resolved,
-        make_student_policy,   # factory: params=(propio_norm, student_enc_params)
+        make_student_policy,   # factory: params=(proprio_norm, student_enc_params)
         num_eval_envs=num_eval_envs,
         episode_length=episode_length,
         action_repeat=action_repeat,
@@ -552,6 +562,6 @@ def train(
     logging.info("IL training complete — total env steps: %d", current_step)
     # Build a self-contained checkpoint: include action_head_params so the
     # saved file does not require the teacher checkpoint at evaluation time.
-    # Layout: (propio_norm, (student_enc_params, action_head_params))
+    # Layout: (proprio_norm, (student_enc_params, action_head_params))
     checkpoint_params = (params[0], (params[1], action_head_params))
     return (make_student_policy, checkpoint_params, metrics)

@@ -123,7 +123,7 @@ class ILNetworks:
     """All networks needed for vision IL (student–teacher alignment).
 
     Teacher : flat privileged state  → MLP decoder → features → action head → logits
-    Student : pixels + propio        → CNN+MLP encoder → features → action head → logits
+    Student : pixels + proprio        → CNN+MLP encoder → features → action head → logits
     (action head is shared / frozen from teacher checkpoint)
     """
     # Full rollout networks
@@ -151,7 +151,7 @@ def make_il_networks(
     teacher_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
     # Student (vision) encoder — same architecture as vision RL student
     policy_dec_hidden_layers: Sequence[int] = (256, 256),
-    policy_propio_proj_hidden_layers: Sequence[int] = (64,),
+    policy_proprio_proj_hidden_layers: Sequence[int] = (64,),
     cnn_num_filters: Sequence[int] = (32, 64, 64),
     cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
     cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
@@ -159,12 +159,12 @@ def make_il_networks(
     action_hidden_layer_sizes: Sequence[int] = (64,),
     # Value MLP (frozen from teacher ckpt)
     value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
-    activation: ActivationFn = nn.relu,
-    # Student vision obs keys (flat dict: e.g. 'pixels/view_0', 'propio')
+    activation: ActivationFn = nn.tanh,
+    # Student vision obs keys (flat dict: e.g. 'pixels/view_0', 'proprio')
     policy_pixels_key: str = "pixels/view_0",
     policy_pixels_key_1: str = "pixels/view_1",
     policy_pixels_key_2: str = "pixels/view_2",
-    policy_propio_key: str = "propio",
+    policy_proprio_key: str = "proprio_obs",
     # Teacher / value obs key (flat privileged state)
     teacher_obs_key: str = "teacher_obs",
     value_obs_key: str = "value_obs",
@@ -186,22 +186,22 @@ def make_il_networks(
         kernel_init=kernel_init,
         activate_final=True,
     )
-    # student_encoder_module = PolicyVisionProprioEncoder(
-    #     cnn_num_filters=list(cnn_num_filters),
-    #     cnn_kernel_sizes=list(cnn_kernel_sizes),
-    #     cnn_strides=list(cnn_strides),
-    #     proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
-    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
-    #     activation=activation,
-    #     kernel_init=kernel_init,
-    # )
-
-    student_encoder_module = PolicyProprioEncoder(
-        proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+    student_encoder_module = PolicyVisionProprioEncoder(
+        cnn_num_filters=list(cnn_num_filters),
+        cnn_kernel_sizes=list(cnn_kernel_sizes),
+        cnn_strides=list(cnn_strides),
+        proprio_proj_hidden_layers=list(policy_proprio_proj_hidden_layers),
         fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
     )
+
+    # student_encoder_module = PolicyProprioEncoder(
+    #     proprio_proj_hidden_layers=list(policy_proprio_proj_hidden_layers),
+    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
+    #     activation=activation,
+    #     kernel_init=kernel_init,
+    # )
     
     action_head_mlp = MLP(
         layer_sizes=list(action_hidden_layer_sizes)
@@ -237,16 +237,16 @@ def make_il_networks(
     value_obs_size = _shape_last_dim(value_obs_raw)
     dummy_value_obs = jnp.zeros((1, value_obs_size))
 
-    # Student vision obs — flat keys: obs["pixels/view_0"], obs["pixels/view_1"], obs["pixels/view_2"], obs["propio"]
+    # Student vision obs — flat keys: obs["pixels/view_0"], obs["pixels/view_1"], obs["pixels/view_2"], obs["proprio"]
     # All camera frame stacks are concatenated along the channel axis before the CNN.
     pixel_shape_0 = tuple(observation_size[policy_pixels_key])
     pixel_shape_1 = tuple(observation_size[policy_pixels_key_1])
     pixel_shape_2 = tuple(observation_size[policy_pixels_key_2])
     # Concatenate: (H, W, h) + (H, W, h) + (H, W, h) → (H, W, 3*h)
     pixel_shape = pixel_shape_0[:-1] + (pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],)
-    propio_size = _shape_last_dim(observation_size[policy_propio_key])
+    proprio_size = _shape_last_dim(observation_size[policy_proprio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
-    dummy_propio = jnp.zeros((1, propio_size))
+    dummy_proprio = jnp.zeros((1, proprio_size))
 
     # Feature dummy (needed to init action head)
     _tmp_params = teacher_decoder_mlp.init(jax.random.PRNGKey(0), dummy_teacher_obs)
@@ -282,14 +282,14 @@ def make_il_networks(
             obs[policy_pixels_key_1],
             obs[policy_pixels_key_2],
         ], axis=-1)
-        return pixels, obs[policy_propio_key]
+        return pixels, obs[policy_proprio_key]
 
-    def _preprocess_student_propio(obs, pparams):
+    def _preprocess_student_proprio(obs, pparams):
         """Normalise proprio obs.
 
-        ``pparams`` is the propio RunningStatisticsState directly — not a dict.
+        ``pparams`` is the proprio RunningStatisticsState directly — not a dict.
         """
-        proprio = obs[policy_propio_key] if isinstance(obs, Mapping) else obs
+        proprio = obs[policy_proprio_key] if isinstance(obs, Mapping) else obs
         return preprocess_observations_fn(proprio, pparams)
 
     # ------------------------------------------------------------------
@@ -305,11 +305,11 @@ def make_il_networks(
     )
 
     student_encoder_net = FeedForwardNetwork(
-        init=lambda key: student_encoder_module.init(key, dummy_pixels, dummy_propio),
+        init=lambda key: student_encoder_module.init(key, dummy_pixels, dummy_proprio),
         apply=lambda pparams, params, obs: student_encoder_module.apply(
             params,
             _extract_student_obs(obs)[0],                    # pixels  — no normalisation needed
-            _preprocess_student_propio(obs, pparams),        # normalised propio
+            _preprocess_student_proprio(obs, pparams),        # normalised proprio
         ),
     )
 
@@ -342,14 +342,14 @@ def make_il_networks(
     # params[1] = action_head_mlp params  (shared from teacher, frozen at inference)
     def _student_net_init(key):
         k1, k2 = jax.random.split(key)
-        enc_params = student_encoder_module.init(k1, dummy_pixels, dummy_propio)
-        feats = student_encoder_module.apply(enc_params, dummy_pixels, dummy_propio)
+        enc_params = student_encoder_module.init(k1, dummy_pixels, dummy_proprio)
+        feats = student_encoder_module.apply(enc_params, dummy_pixels, dummy_proprio)
         head_params = action_head_mlp.init(k2, feats)
         return enc_params, head_params
 
     def _student_net_apply(pparams, params, obs):
         pixels, _ = _extract_student_obs(obs)
-        proprio = _preprocess_student_propio(obs, pparams)
+        proprio = _preprocess_student_proprio(obs, pparams)
         feats = student_encoder_module.apply(params[0], pixels, proprio)
         return action_head_mlp.apply(params[1], feats)
 
@@ -425,17 +425,17 @@ def make_student_inference_fn(il_networks: ILNetworks, action_head_params: Any):
     closed over here so it is never part of the JAX training state.
 
     Expected params at call time (from _pack_student_params):
-        params[0] = propio_norm        (RunningStatisticsState)
+        params[0] = proprio_norm        (RunningStatisticsState)
         params[1] = student_enc_params
     """
 
     def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
-        propio_norm, student_enc = params
+        proprio_norm, student_enc = params
 
         def policy(observations: types.Observation, key_sample: PRNGKey):
-            # Pass propio_norm directly — _preprocess_student_propio uses it as-is.
+            # Pass proprio_norm directly — _preprocess_student_proprio uses it as-is.
             logits = il_networks.student_network.apply(
-                propio_norm, (student_enc, action_head_params), observations
+                proprio_norm, (student_enc, action_head_params), observations
             )
             if deterministic:
                 return il_networks.parametric_action_distribution.mode(logits), {}

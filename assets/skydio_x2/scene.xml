@@ -10,9 +10,15 @@
   <statistic center="0 0 0.1" extent="0.6" meansize=".05"/>
 
   <asset>
-    <material name="fake_sky"
-              rgba="0.85 0.95 1.0 1"
-              emission="1"/>
+      <material name="fake_sky"
+                  rgba="0.85 0.95 1.0 1"
+                  emission="1"/>
+      <mesh name="fiducial_mesh"
+            vertex="-0.3 -0.3 0   0.3 -0.3 0   0.3 0.3 0   -0.3 0.3 0
+                        -0.3 -0.3 0.004   0.3 -0.3 0.004   0.3 0.3 0.004   -0.3 0.3 0.004"
+            face="0 1 2  0 2 3   4 5 6  4 6 7
+                  0 1 5  0 5 4   1 2 6  1 6 5
+                  2 3 7  2 7 6   3 0 4  3 4 7"/>
   </asset>
 
   <worldbody>
@@ -52,7 +58,13 @@
     <!-- Your fiducial marker -->
      <!-- <geom name="fiducial_plate" type="box" pos="0 0 0.002" size="0.3 0.3 0.002" material="fiducial" contype="0" conaffinity="0"/> -->
      <geom name="fiducial_plate" type="plane" pos="0 0 0.002" size="0.3 0.3 0.002" material="fiducial"/>
-
+    <!-- <geom name="fiducial_plate"
+          type="mesh"
+          mesh="fiducial_mesh"
+          pos="0 0 0.002"
+          material="fiducial"
+          contype="0"
+          conaffinity="0"/> -->
 
 
     <!-- giant background box acting like a sky -->

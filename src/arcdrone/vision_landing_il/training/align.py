@@ -34,7 +34,7 @@ def align(
     opt_state: optax.OptState,
     teacher_obs,
     student_obs,
-    propio_norm,
+    proprio_norm,
     *,
     teacher_dec_params,
     action_head_params,
@@ -55,7 +55,7 @@ def align(
         opt_state: optax state for ``student_enc_params``.
         teacher_obs: dict of obs, shape ``(batch_size * num_minibatches, T, ...)``.
         student_obs: same shape as ``teacher_obs``.
-        propio_norm: live ``RunningStatisticsState`` for proprio normalisation.
+        proprio_norm: live ``RunningStatisticsState`` for proprio normalisation.
         teacher_dec_params: frozen teacher decoder params (pre-bound via partial).
         action_head_params: frozen action head params (pre-bound via partial).
         teacher_norm: frozen teacher normaliser sub-state (pre-bound via partial).
@@ -89,7 +89,7 @@ def align(
                 teacher_norm, teacher_dec_params, t_obs
             )
             student_feat = il_network.student_encoder.apply(
-                propio_norm, student_enc, s_obs
+                proprio_norm, student_enc, s_obs
             )
             embed_loss = jnp.mean(
                 jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat))

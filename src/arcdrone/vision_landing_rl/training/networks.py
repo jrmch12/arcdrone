@@ -52,7 +52,11 @@ class PolicyVisionProprioEncoder(nn.Module):
             activation=self.activation,
             use_bias=False,
         )(pixels)
-        cnn_feats = jnp.mean(cnn_out, axis=(-2, -3))
+        # Previous implementation (CNN trainable):
+        # cnn_feats = jnp.mean(cnn_out, axis=(-2, -3))
+
+        # Freeze CNN branch during PPO updates (useful when warm-starting from a checkpoint).
+        cnn_feats = jax.lax.stop_gradient(jnp.mean(cnn_out, axis=(-2, -3)))
 
         proprio_feats = MLP(
             layer_sizes=list(self.proprio_proj_hidden_layers),
@@ -82,6 +86,11 @@ def _get_by_path(tree: Mapping[str, Any], path: str):
 
 
 def _select_normalizer_by_path(pparams: Any, path: str):
+    # Backwards-compat: older checkpoints may store a flat RunningStatisticsState
+    # instead of a dict keyed by obs name. In that case, just return as-is.
+    mean = getattr(pparams, "mean", None)
+    if not isinstance(mean, Mapping):
+        return pparams
     selected = pparams
     for key in _split_path(path):
         selected = normalizer_select(selected, key)
@@ -107,18 +116,20 @@ def make_ppo_networks_vision(
     # Fusion decoder layers after concatenating CNN and proprio projector features.
     policy_dec_hidden_layers: Sequence[int] = (256, 256),
     # Proprio projection branch (MLP) before fusion.
-    policy_propio_proj_hidden_layers: Sequence[int] = (64,),
+    policy_proprio_proj_hidden_layers: Sequence[int] = (64,),
     # Action head on top of the policy backbone features
     action_hidden_layer_sizes: Sequence[int] = (64,),
     value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
     cnn_num_filters: Sequence[int] = (32, 64, 64),
     cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
     cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
-    activation: ActivationFn = nn.relu,
+    activation: ActivationFn = nn.tanh,
     # Top-level key for pixel tensor (must start with 'pixels/' for Brax normalizer compat).
     policy_pixels_key: str = "pixels/view_0",
+    policy_pixels_key_1: str = "pixels/view_1",
+    policy_pixels_key_2: str = "pixels/view_2",
     # Top-level key for proprio tensor.
-    policy_propio_key: str = "propio",
+    policy_proprio_key: str = "proprio_obs",
     # Top-level key for value vector.
     value_obs_key: str = "value_obs",
 ) -> PPONetworks:
@@ -138,7 +149,7 @@ def make_ppo_networks_vision(
         cnn_num_filters=list(cnn_num_filters),
         cnn_kernel_sizes=list(cnn_kernel_sizes),
         cnn_strides=list(cnn_strides),
-        proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+        proprio_proj_hidden_layers=list(policy_proprio_proj_hidden_layers),
         fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
@@ -163,11 +174,16 @@ def make_ppo_networks_vision(
     # Dummy inputs for init
     # ------------------------------------------------------------------
 
-    # Flat obs structure: pixels and propio are top-level keys
-    pixel_shape = tuple(observation_size[policy_pixels_key])
-    propio_size = _shape_last_dim(observation_size[policy_propio_key])
+    # Flat obs structure: pixels/view_* and proprio_obs are top-level keys
+    pixel_shape_0 = tuple(observation_size[policy_pixels_key])
+    pixel_shape_1 = tuple(observation_size[policy_pixels_key_1])
+    pixel_shape_2 = tuple(observation_size[policy_pixels_key_2])
+    pixel_shape = pixel_shape_0[:-1] + (
+        pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],
+    )
+    proprio_obs_size = _shape_last_dim(observation_size[policy_proprio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
-    dummy_propio = jnp.zeros((1, propio_size))
+    dummy_proprio_obs = jnp.zeros((1, proprio_obs_size))
 
     # Value dummy input
     value_obs_size = _get_obs_size(_get_by_path(observation_size, value_obs_key), "")
@@ -187,14 +203,19 @@ def make_ppo_networks_vision(
         return preprocess_observations_fn(obs, pparams)
 
     def _extract_policy_obs(obs):
-        # Flat structure: pixels and propio are top-level keys
-        return obs[policy_pixels_key], obs[policy_propio_key]
+        # Flat structure: concatenate pixels/view_* along channel axis
+        pixels = jnp.concatenate([
+            obs[policy_pixels_key],
+            obs[policy_pixels_key_1],
+            obs[policy_pixels_key_2],
+        ], axis=-1)
+        return pixels, obs[policy_proprio_key]
 
-    def _preprocess_policy_propio(obs, pparams):
+    def _preprocess_policy_proprio_obs(obs, pparams):
         _, proprio = _extract_policy_obs(obs)
         return preprocess_observations_fn(
             proprio,
-            _select_normalizer_by_path(pparams, policy_propio_key),
+            _select_normalizer_by_path(pparams, policy_proprio_key),
         )
 
     # ------------------------------------------------------------------
@@ -220,14 +241,14 @@ def make_ppo_networks_vision(
 
     def _policy_init(key):
         k1, k2 = jax.random.split(key)
-        dec_params = policy_encoder.init(k1, dummy_pixels, dummy_propio)
-        feats = policy_encoder.apply(dec_params, dummy_pixels, dummy_propio)
+        dec_params = policy_encoder.init(k1, dummy_pixels, dummy_proprio_obs)
+        feats = policy_encoder.apply(dec_params, dummy_pixels, dummy_proprio_obs)
         head_params = policy_action_head.init(k2, feats)
         return dec_params, head_params
 
     def _policy_apply(pparams, params, obs):
         pixels, _ = _extract_policy_obs(obs)
-        proprio = _preprocess_policy_propio(obs, pparams)
+        proprio = _preprocess_policy_proprio_obs(obs, pparams)
         feats = policy_encoder.apply(params[0], pixels, proprio)
         return policy_action_head.apply(params[1], feats)
 
