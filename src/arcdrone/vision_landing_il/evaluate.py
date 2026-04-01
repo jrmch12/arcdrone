@@ -2,6 +2,7 @@
 """Evaluation script for trained ARCDrone vision-landing IL student."""
 
 from pathlib import Path
+from typing import Optional
 import functools
 
 import jax
@@ -38,8 +39,6 @@ def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
 CFG_DIR = Path(__file__).resolve().parent / "cfg"
 _project_root = Path(__file__).resolve().parent.parent.parent.parent
 MUJOCO_PATH = str(_project_root / "assets" / "skydio_x2" / "scene.xml")
-CHECKPOINT_PATH = find_latest_checkpoint(str(_project_root / "outputs"))
-print(f"Latest checkpoint found: {CHECKPOINT_PATH}")
 
 
 
@@ -49,12 +48,13 @@ def _squeeze(tree):
 
 
 def evaluate(
-	model_path: str = CHECKPOINT_PATH,
+	model_path: Optional[str] = None,
+	policy: str = "student",
 	num_episodes: int = 20,
 	max_steps: int = 200,
-	teacher_checkpoint_path: str = "checkpoints/trained_model.pkl",
+	teacher_checkpoint_path: Optional[str] = None,
 ):
-	"""Evaluate a trained vision-landing IL student policy."""
+	"""Evaluate a trained vision-landing IL policy (student or frozen teacher)."""
 	initialize_config_dir(
 		config_dir=str(CFG_DIR), job_name="il_evaluate", version_base=None
 	)
@@ -62,10 +62,24 @@ def evaluate(
 	cfg_env = cfg.env
 	cfg_train = cfg.train
 
-	print("=" * 60)
-	print("ARCDrone Vision Landing IL Evaluation")
-	print("=" * 60)
-	print(f"Model path: {model_path}")
+	policy = policy.lower()
+	if policy not in {"student", "teacher"}:
+		raise ValueError("policy must be either 'student' or 'teacher'")
+
+	if policy == "student":
+		if model_path is None:
+			model_path = find_latest_checkpoint(str(_project_root / "outputs"))
+		print("=" * 60)
+		print("ARCDrone Vision Landing IL Evaluation")
+		print("=" * 60)
+		print(f"Model path: {model_path}")
+	else:
+		if not teacher_checkpoint_path:
+			raise ValueError("policy 'teacher' requires --teacher_checkpoint_path")
+		print("=" * 60)
+		print("ARCDrone Vision Landing IL Evaluation (Teacher)")
+		print("=" * 60)
+		print(f"Teacher checkpoint: {teacher_checkpoint_path}")
 	print(f"Episodes: {num_episodes}")
 	print("=" * 60)
 
@@ -99,9 +113,14 @@ def evaluate(
 	action_size = env._mj_model.nu
 	network_factory = functools.partial(
 		il_networks.make_il_networks,
+		preprocess_observations_fn=(
+			running_statistics.normalize
+			if cfg_train.normalize_observations
+			else (lambda x, y: x)
+		),
 		teacher_dec_hidden_layers=cfg_train.teacher_dec_hidden_layers,
 		policy_dec_hidden_layers=cfg_train.policy_dec_hidden_layers,
-		policy_propio_proj_hidden_layers=cfg_train.policy_propio_proj_hidden_layers,
+		policy_proprio_proj_hidden_layers=cfg_train.policy_proprio_proj_hidden_layers,
 		action_hidden_layer_sizes=cfg_train.action_hidden_layers,
 		value_hidden_layer_sizes=cfg_train.value_hidden_layers,
 		cnn_num_filters=cfg_train.cnn_num_filters,
@@ -109,26 +128,38 @@ def evaluate(
 		cnn_strides=cfg_train.cnn_strides,
 		policy_pixels_key=cfg_train.policy_pixels_key,
 		policy_pixels_key_1=cfg_train.policy_pixels_key_1,
-		policy_propio_key=cfg_train.policy_propio_key,
+		policy_proprio_key=cfg_train.policy_proprio_key,
 		teacher_obs_key=cfg_train.teacher_obs_key,
 		value_obs_key=cfg_train.value_obs_key,
 	)
 	il_net = network_factory(obs_shape, action_size)
 
-	print("Loading trained model...")
-	params = model.load_params(model_path)
-	# Checkpoint format (new): (propio_norm, (student_enc, action_head)) — self-contained.
-	# Checkpoint format (old): (propio_norm, student_enc)                — needs teacher ckpt.
-	if isinstance(params[1], tuple) and len(params[1]) == 2:
+	if policy == "student":
+		print("Loading trained student checkpoint...")
+		params = model.load_params(model_path)
 		action_head_params = params[1][1]
 		student_params = (params[0], params[1][0])
+		make_policy = il_networks.make_student_inference_fn(il_net, action_head_params=action_head_params)
+		inference_fn = make_policy(student_params, deterministic=True)
 	else:
-		print(f"Old-format checkpoint — loading action_head from: {teacher_checkpoint_path}")
-		teacher_params = model.load_params(teacher_checkpoint_path)
-		action_head_params = teacher_params[1][1]  # (norm, (dec, action_head), value)
-		student_params = (params[0], params[1])
-	make_policy = il_networks.make_student_inference_fn(il_net, action_head_params=action_head_params)
-	inference_fn = make_policy(student_params, deterministic=True)
+		print("Loading frozen teacher checkpoint...")
+		teacher_ckpt = model.load_params(teacher_checkpoint_path)
+		try:
+			teacher_norm = il_networks._select_normalizer_by_path(
+				teacher_ckpt[0], cfg_train.teacher_obs_key
+			)
+		except KeyError:
+			# TODO: Update priviledged RL keys... Fallback: use policy_obs stats if teacher_obs key missing
+			policy_obs_key = getattr(cfg_train, "policy_obs_key", "policy_obs")
+			teacher_norm = il_networks._select_normalizer_by_path(
+				teacher_ckpt[0], policy_obs_key
+			)
+		inference_fn = il_networks.make_frozen_teacher_policy(
+			il_net,
+			teacher_norm_params=teacher_norm,
+			teacher_policy_params=teacher_ckpt[1],
+			deterministic=True,
+		)
 	jit_inference_fn = jax.jit(inference_fn)
 	# Warm-up compile on single-env obs
 	action, _ = jit_inference_fn(_squeeze(state.obs), rng)
@@ -170,19 +201,25 @@ def main():
 	import argparse
 
 	parser = argparse.ArgumentParser(
-		description="Evaluate trained ARCDrone vision-landing IL student"
+		description="Evaluate trained ARCDrone vision-landing IL policy"
+	)
+	parser.add_argument(
+		"--policy",
+		choices=["student", "teacher"],
+		default="student",
+		help="Policy to evaluate",
 	)
 	parser.add_argument(
 		"--model_path",
 		type=str,
-		default=CHECKPOINT_PATH,
-		help="Path to trained model checkpoint (trained_model.pkl)",
+		default=None,
+		help="Path to trained student checkpoint (trained_model.pkl); defaults to the latest output.",
 	)
 	parser.add_argument(
 		"--teacher_checkpoint_path",
 		type=str,
-		default="checkpoints/trained_model.pkl",
-		help="Teacher checkpoint for loading action_head (only needed for old-format student checkpoints)",
+		default=None,
+		help="Path to the frozen teacher checkpoint (required when --policy teacher and for old-format student checkpoints).",
 	)
 	parser.add_argument(
 		"--episodes",
@@ -200,6 +237,7 @@ def main():
 
 	evaluate(
 		model_path=args.model_path,
+		policy=args.policy,
 		num_episodes=args.episodes,
 		max_steps=args.steps,
 		teacher_checkpoint_path=args.teacher_checkpoint_path,
@@ -210,5 +248,5 @@ if __name__ == "__main__":
 	main()
 
 # how to use:
-# python src/arcdrone/vision_landing_il/evaluate.py
-# python src/arcdrone/vision_landing_il/evaluate.py --model_path outputs/2026-03-10/12-00-00/trained_model.pkl
+# python src/arcdrone/vision_landing_il/evaluate.py --policy student
+# python src/arcdrone/vision_landing_il/evaluate.py --policy teacher --teacher_checkpoint_path checkpoints/teacher/frozen_model.pkl

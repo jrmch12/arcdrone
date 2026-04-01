@@ -9,12 +9,13 @@
       <motor ctrlrange="0 13"/>
       <mesh scale="0.01 0.01 0.01"/>
       <default class="visual">
-        <geom group="2" type="mesh" contype="0" conaffinity="0"/>
+        <geom group="3" type="mesh" contype="0" conaffinity="0"/>
       </default>
       <default class="collision">
-        <geom group="3" type="box"/>
+        <geom group="2" type="box"/>
         <default class="rotor">
           <geom type="ellipsoid" size=".13 .13 .01"/>
+          <!-- <geom type="mesh" mesh="x2_rotor_cyl_013_010"/> -->
         </default>
       </default>
       <site group="5"/>
@@ -27,6 +28,13 @@
     <material name="invisible" rgba="0 0 0 0"/>
 
     <mesh class="x2" file="X2_lowpoly.obj"/>
+    <!-- <mesh name="X2_lowpoly" class="x2" file="X2_lowpoly_convex_hull.stl"/> -->
+    <!-- <mesh name="X2_lowpoly" class="x2" file="X2_lowpoly_200.obj"/> -->
+    <!-- <mesh name="x2_collision_box_060_027_020" file="collision/x2_collision_box_060_027_020.obj"/>
+    <mesh name="x2_collision_box_050_027_020" file="collision/x2_collision_box_050_027_020.obj"/>
+    <mesh name="x2_collision_box_023_017_010" file="collision/x2_collision_box_023_017_010.obj"/>
+    <mesh name="x2_rotor_cyl_013_010" file="collision/x2_rotor_cyl_013_010.obj"/> -->
+
   </asset>
 
   <worldbody>
@@ -46,6 +54,10 @@
       </body> -->
       <site name="imu" pos="0 0 .02"/>
       <geom material="phong3SG" mesh="X2_lowpoly" class="visual" quat="0 0 1 1"/>
+      <!-- <geom class="collision" type="mesh" mesh="x2_collision_box_060_027_020" pos=".04 0 .02"/>
+      <geom class="collision" type="mesh" mesh="x2_collision_box_060_027_020" pos=".04 0 .06"/>
+      <geom class="collision" type="mesh" mesh="x2_collision_box_050_027_020" pos="-.07 0 .065"/>
+      <geom class="collision" type="mesh" mesh="x2_collision_box_023_017_010" pos="-.137 .008 .065" quat="1 0 0 1"/> -->
       <geom class="collision" size=".06 .027 .02" pos=".04 0 .02"/>
       <geom class="collision" size=".06 .027 .02" pos=".04 0 .06"/>
       <geom class="collision" size=".05 .027 .02" pos="-.07 0 .065"/>

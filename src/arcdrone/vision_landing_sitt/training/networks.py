@@ -2,7 +2,7 @@
 
 Provides networks for both:
   - PPO training on teacher env (flat privileged obs)
-  - Alignment on student env (pixels + propio → teacher feature matching)
+  - Alignment on student env (pixels + proprio → teacher feature matching)
 
 The underlying Flax modules are shared; PPO-side and align-side
 FeedForwardNetworks differ only in their obs-key extraction and
@@ -138,7 +138,7 @@ class SITTNetworks:
         policy_decoder:     teacher_dec → features (for rl_align_loss)
         ppo_proxy_decoder:  proxy_dec → features (for KL reward shaping)
 
-    Align side — operates on student env obs (pixels, propio, teacher_obs):
+    Align side — operates on student env obs (pixels, proprio, teacher_obs):
         teacher_network:    teacher_dec + action_head → logits
         teacher_decoder:    teacher_dec → features
         student_network:    student_enc + action_head → logits
@@ -181,7 +181,7 @@ def make_sitt_networks(
     teacher_dec_hidden_layers: Sequence[int] = (512, 512, 256, 128),
     # Student (vision) encoder
     policy_dec_hidden_layers: Sequence[int] = (256, 256),
-    policy_propio_proj_hidden_layers: Sequence[int] = (64,),
+    policy_proprio_proj_hidden_layers: Sequence[int] = (64,),
     cnn_num_filters: Sequence[int] = (32, 64, 64),
     cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
     cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
@@ -191,16 +191,16 @@ def make_sitt_networks(
     action_hidden_layer_sizes: Sequence[int] = (64,),
     # Value MLP
     value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
-    activation: ActivationFn = nn.relu,
+    activation: ActivationFn = nn.tanh,
     # PPO obs keys (teacher env: {policy_obs, value_obs})
     policy_obs_key: str = "policy_obs",
     value_obs_key: str = "value_obs",
-    # Align obs keys (student env: {pixels/view_*, propio, teacher_obs, value_obs})
+    # Align obs keys (student env: {pixels/view_*, proprio, teacher_obs, value_obs})
     teacher_obs_key: str = "teacher_obs",
     policy_pixels_key: str = "pixels/view_0",
     policy_pixels_key_1: str = "pixels/view_1",
     policy_pixels_key_2: str = "pixels/view_2",
-    policy_propio_key: str = "propio",
+    policy_proprio_key: str = "proprio_obs",
 ) -> SITTNetworks:
     """Build all networks for SITT training.
 
@@ -234,22 +234,22 @@ def make_sitt_networks(
         activate_final=True,
     )
 
-    # student_encoder_module = PolicyVisionProprioEncoder(
-    #     cnn_num_filters=list(cnn_num_filters),
-    #     cnn_kernel_sizes=list(cnn_kernel_sizes),
-    #     cnn_strides=list(cnn_strides),
-    #     proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
-    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
-    #     activation=activation,
-    #     kernel_init=kernel_init,
-    # )
-
-    student_encoder_module = PolicyProprioEncoder(
-        proprio_proj_hidden_layers=list(policy_propio_proj_hidden_layers),
+    student_encoder_module = PolicyVisionProprioEncoder(
+        cnn_num_filters=list(cnn_num_filters),
+        cnn_kernel_sizes=list(cnn_kernel_sizes),
+        cnn_strides=list(cnn_strides),
+        proprio_proj_hidden_layers=list(policy_proprio_proj_hidden_layers),
         fusion_hidden_layers=list(policy_dec_hidden_layers),
         activation=activation,
         kernel_init=kernel_init,
     )
+
+    # student_encoder_module = PolicyProprioEncoder(
+    #     proprio_proj_hidden_layers=list(policy_proprio_proj_hidden_layers),
+    #     fusion_hidden_layers=list(policy_dec_hidden_layers),
+    #     activation=activation,
+    #     kernel_init=kernel_init,
+    # )
 
     action_head_mlp = MLP(
         layer_sizes=list(action_hidden_layer_sizes)
@@ -290,14 +290,14 @@ def make_sitt_networks(
         pixel_shape = pixel_shape_0[:-1] + (
             pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],
         )
-        propio_size = _shape_last_dim(student_observation_size[policy_propio_key])
+        proprio_size = _shape_last_dim(student_observation_size[policy_proprio_key])
     else:
-        # Fallback: infer from teacher obs size (propio == policy_obs dimension)
+        # Fallback: infer from teacher obs size (proprio == policy_obs dimension)
         pixel_shape = (64, 64, 9)  # placeholder
-        propio_size = teacher_obs_size
+        proprio_size = teacher_obs_size
 
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
-    dummy_propio = jnp.zeros((1, propio_size))
+    dummy_proprio = jnp.zeros((1, proprio_size))
 
     # Feature dummy (for action head init)
     _tmp_params = teacher_decoder_mlp.init(jax.random.PRNGKey(0), dummy_teacher_obs)
@@ -337,11 +337,11 @@ def make_sitt_networks(
             obs[policy_pixels_key_1],
             obs[policy_pixels_key_2],
         ], axis=-1)
-        return pixels, obs[policy_propio_key]
+        return pixels, obs[policy_proprio_key]
 
-    def _preprocess_student_propio(obs, pparams):
-        """pparams is the propio RunningStatisticsState directly."""
-        proprio = obs[policy_propio_key] if isinstance(obs, Mapping) else obs
+    def _preprocess_student_proprio(obs, pparams):
+        """pparams is the proprio RunningStatisticsState directly."""
+        proprio = obs[policy_proprio_key] if isinstance(obs, Mapping) else obs
         return preprocess_observations_fn(proprio, pparams)
 
     # ==================================================================
@@ -423,25 +423,25 @@ def make_sitt_networks(
 
     # ─ Student encoder → features ─
     align_student_encoder = FeedForwardNetwork(
-        init=lambda key: student_encoder_module.init(key, dummy_pixels, dummy_propio),
+        init=lambda key: student_encoder_module.init(key, dummy_pixels, dummy_proprio),
         apply=lambda pparams, params, obs: student_encoder_module.apply(
             params,
             _extract_student_obs(obs)[0],
-            _preprocess_student_propio(obs, pparams),
+            _preprocess_student_proprio(obs, pparams),
         ),
     )
 
     # ─ Student network (enc + head) → logits ─
     def _student_net_init(key):
         k1, k2 = jax.random.split(key)
-        enc_params = student_encoder_module.init(k1, dummy_pixels, dummy_propio)
-        feats = student_encoder_module.apply(enc_params, dummy_pixels, dummy_propio)
+        enc_params = student_encoder_module.init(k1, dummy_pixels, dummy_proprio)
+        feats = student_encoder_module.apply(enc_params, dummy_pixels, dummy_proprio)
         head_params = action_head_mlp.init(k2, feats)
         return enc_params, head_params
 
     def _student_net_apply(pparams, params, obs):
         pixels, _ = _extract_student_obs(obs)
-        proprio = _preprocess_student_propio(obs, pparams)
+        proprio = _preprocess_student_proprio(obs, pparams)
         feats = student_encoder_module.apply(params[0], pixels, proprio)
         return action_head_mlp.apply(params[1], feats)
 
@@ -579,19 +579,19 @@ def make_student_inference_fn(
     """Student (vision) policy factory.
 
     ``action_head_params`` is a frozen constant closed over here.
-    Expected params at call time: ``(propio_norm, student_enc_params)``.
+    Expected params at call time: ``(proprio_norm, student_enc_params)``.
     """
 
     def make_policy(
         params: types.Params, deterministic: bool = False
     ) -> types.Policy:
-        propio_norm, student_enc = params
+        proprio_norm, student_enc = params
 
         def policy(
             observations: types.Observation, key_sample: PRNGKey
         ):
             logits = sitt_networks.student_network.apply(
-                propio_norm, (student_enc, action_head_params), observations
+                proprio_norm, (student_enc, action_head_params), observations
             )
             if deterministic:
                 return sitt_networks.parametric_action_distribution.mode(logits), {}

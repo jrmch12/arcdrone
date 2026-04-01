@@ -60,24 +60,37 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
         self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
-        # Vision setup (warp-based rendering pipeline)
-        vision_kwargs = self.cfg.vision_config.to_dict()
-        # OmegaConf/YAML always deserializes as lists; warp API needs tuples
-        for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
-            if k in vision_kwargs and isinstance(vision_kwargs[k], list):
-                vision_kwargs[k] = tuple(vision_kwargs[k])
-        self._rc = mjx.create_render_context(
-            mjm=self._mj_model,
-            **vision_kwargs,
-        )
-        # Warp doesn't support MuJoCo skybox textures — rays that miss geometry
-        # are filled with background_color. Override to match the skybox gradient.
-        from mujoco_warp._src.render_util import pack_rgba_to_uint32
-        _sky_bg = pack_rgba_to_uint32(0.5 * 255.0, 0.7 * 255.0, 0.95 * 255.0, 1.0 * 255.0)
-        for _warp_ctx in self._rc._contexts.values():
-            _warp_ctx.background_color = _sky_bg
-        self._rc_pytree = self._rc.pytree()
+        # Vision setup (warp-based rendering pipeline).
+        # This flag is static for a given run, so python-side branching is safe.
+        self._vision_enabled = self.cfg.enable_vision_obs
+        
+        if self._vision_enabled:
+            vision_kwargs = self.cfg.vision_config.to_dict()
+            # OmegaConf/YAML always deserializes as lists; warp API needs tuples
+            for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
+                if k in vision_kwargs and isinstance(vision_kwargs[k], list):
+                    vision_kwargs[k] = tuple(vision_kwargs[k])
+            self._rc = mjx.create_render_context(
+                mjm=self._mj_model,
+                **vision_kwargs,
+            )
+            # Warp doesn't support MuJoCo skybox textures — rays that miss geometry
+            # are filled with background_color. Override to match the skybox gradient.
+            from mujoco_warp._src.render_util import pack_rgba_to_uint32
+            _sky_bg = pack_rgba_to_uint32(0.5 * 255.0, 0.7 * 255.0, 0.95 * 255.0, 1.0 * 255.0)
+            for _warp_ctx in self._rc._contexts.values():
+                _warp_ctx.background_color = _sky_bg
+            self._rc_pytree = self._rc.pytree()
+        else:
+            self._rc = None
+            self._rc_pytree = None
 
+        cam_res = self.cfg.vision_config.cam_res
+        if not self._vision_enabled:
+            cam_res = (8, 8)
+        cam_h, cam_w = int(cam_res[0]), int(cam_res[1])
+        self._pixel_stack_shape = (cam_h, cam_w, 3 * int(self.cfg.buffer_size))
+        self._dummy_frame_stack = jp.zeros(self._pixel_stack_shape, dtype=jp.float32)
 
 
     # Main methods =================================================================
@@ -100,34 +113,42 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
 
         info = self._initialize_state_vars(data, rng)
 
-        # Vision: render initial frames for all cameras and build frame-stacks + action buffer
-        render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
-        out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
+        if self._vision_enabled:
+            # Vision: render initial frames for all cameras and build frame-stacks
+            render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
+            out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
 
+            # Camera 0: outer_camera
+            rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
+            # gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+            # frame_stack_0 = jp.tile(gray0, (1, 1, self.cfg.buffer_size))  # (H, W, history)
+            rgb0_norm = rgb0 - 0.5  # (H, W, 3)  # kept for easy revert
+            frame_stack_0 = jp.tile(rgb0_norm, (1, 1, self.cfg.buffer_size))  # (H, W, 3*history)
 
-        # Camera 0: outer_camera
-        rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
-        # gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        # frame_stack_0 = jp.tile(gray0, (1, 1, self.cfg.buffer_size))  # (H, W, history)
-        rgb0_norm = rgb0 - 0.5  # (H, W, 3)  # kept for easy revert
-        frame_stack_0 = jp.tile(rgb0_norm, (1, 1, self.cfg.buffer_size))  # (H, W, 3*history)
+            # Camera 1: outer_camera_side
+            rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
+            # gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+            # frame_stack_1 = jp.tile(gray1, (1, 1, self.cfg.buffer_size))  # (H, W, history)
+            rgb1_norm = rgb1 - 0.5  # kept for easy revert
+            frame_stack_1 = jp.tile(rgb1_norm, (1, 1, self.cfg.buffer_size))
 
-        # Camera 1: outer_camera_side
-        rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
-        # gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        # frame_stack_1 = jp.tile(gray1, (1, 1, self.cfg.buffer_size))  # (H, W, history)
-        rgb1_norm = rgb1 - 0.5  # kept for easy revert
-        frame_stack_1 = jp.tile(rgb1_norm, (1, 1, self.cfg.buffer_size))
+            # Camera 2: outer_camera_up
+            rgb2 = mjx.get_rgb(self._rc_pytree, 2, out[0])
+            # gray2 = jp.mean(rgb2, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+            # frame_stack_2 = jp.tile(gray2, (1, 1, self.cfg.buffer_size))  # (H, W, history)
+            rgb2_norm = rgb2 - 0.5  # kept for easy revert
+            frame_stack_2 = jp.tile(rgb2_norm, (1, 1, self.cfg.buffer_size))
+        else:
+            frame_stack_0 = self._dummy_frame_stack
+            frame_stack_1 = self._dummy_frame_stack
+            frame_stack_2 = self._dummy_frame_stack
 
-        # Camera 2: outer_camera_up
-        rgb2 = mjx.get_rgb(self._rc_pytree, 2, out[0])
-        # gray2 = jp.mean(rgb2, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-        # frame_stack_2 = jp.tile(gray2, (1, 1, self.cfg.buffer_size))  # (H, W, history)
-        rgb2_norm = rgb2 - 0.5  # kept for easy revert
-        frame_stack_2 = jp.tile(rgb2_norm, (1, 1, self.cfg.buffer_size))
-
-        action_buffer = jp.zeros((self.cfg.buffer_size, self._mjx_model.nu))
-        info = {**info, "frame_stack_0": frame_stack_0, "frame_stack_1": frame_stack_1, "frame_stack_2": frame_stack_2, "action_buffer": action_buffer}
+        info = {
+            **info,
+            "frame_stack_0": frame_stack_0,
+            "frame_stack_1": frame_stack_1,
+            "frame_stack_2": frame_stack_2,
+        }
 
         # Build initial obs dict (flat structure, pixels/view_* keys)
         priviledged_state = jp.concatenate([
@@ -150,9 +171,9 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
             "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
             "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
             "pixels/view_2": frame_stack_2,     # (H, W, history) — up camera
-            "propio": priviledged_state,  # (history * (3+3+4),)
+            "proprio_obs": proprio,  # (history * (3+3+4),)
             "value_obs": priviledged_state,           # critic obs
-            "teacher_obs": priviledged_state,  #  
+            "teacher_obs": priviledged_state,
         }
 
         state = mjx_env.State(
@@ -253,19 +274,59 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
     #     return qpos, qvel
 
 
+    # def _sample_initial_state(self, rng: jp.ndarray):
+    #     rng, rng_pos, rng_vel, rng_ang = jax.random.split(rng, 4)
+
+    #     # Position (start somewhere above pad)
+    #     position = jp.array([
+    #         jax.random.uniform(rng_pos, (), minval=-1.0, maxval=1.0),
+    #         jax.random.uniform(rng_pos, (), minval= -1.0, maxval=1.0),
+    #         jax.random.uniform(rng_pos, (), minval= 0.5, maxval=2.0),
+    #     ])
+
+    #     # Random orientation (small tilt)
+    #     roll  = jax.random.uniform(rng_ang, (), minval=-0.2, maxval=0.2)
+    #     pitch = jax.random.uniform(rng_ang, (), minval=-0.2, maxval=0.2)
+    #     yaw   = jax.random.uniform(rng_ang, (), minval=-jp.pi, maxval=jp.pi)
+
+    #     quaternion = euler_to_quaternion(roll, pitch, yaw)
+
+    #     # Build qpos
+    #     nq = int(self._mjx_model.nq)
+    #     qpos = jp.zeros(nq)
+    #     qpos = qpos.at[0:3].set(position)
+    #     qpos = qpos.at[3:7].set(quaternion)
+
+    #     # Random velocities
+    #     nv = int(self._mjx_model.nv)
+    #     qvel = jp.zeros(nv)
+
+    #     # linear velocity
+    #     qvel = qvel.at[0:3].set(
+    #         jax.random.normal(rng_vel, (3,)) * 0.5
+    #     )
+
+    #     # angular velocity
+    #     qvel = qvel.at[3:6].set(
+    #         jax.random.normal(rng_vel, (3,)) * 1
+    #     )
+
+    #     return qpos, qvel
+    
+
     def _sample_initial_state(self, rng: jp.ndarray):
         rng, rng_pos, rng_vel, rng_ang = jax.random.split(rng, 4)
 
         # Position (start somewhere above pad)
         position = jp.array([
-            jax.random.uniform(rng_pos, (), minval=-1.0, maxval=1.0),
-            jax.random.uniform(rng_pos, (), minval= -1.0, maxval=1.0),
-            jax.random.uniform(rng_pos, (), minval= 0.5, maxval=2.0),
+            jax.random.uniform(rng_pos, (), minval=-2.0, maxval=2.0),
+            jax.random.uniform(rng_pos, (), minval= -2.0, maxval=2.0),
+            jax.random.uniform(rng_pos, (), minval= 1.0, maxval=2.5),
         ])
 
         # Random orientation (small tilt)
-        roll  = jax.random.uniform(rng_ang, (), minval=-0.2, maxval=0.2)
-        pitch = jax.random.uniform(rng_ang, (), minval=-0.2, maxval=0.2)
+        roll  = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
+        pitch = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
         yaw   = jax.random.uniform(rng_ang, (), minval=-jp.pi, maxval=jp.pi)
 
         quaternion = euler_to_quaternion(roll, pitch, yaw)
@@ -282,15 +343,16 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
 
         # linear velocity
         qvel = qvel.at[0:3].set(
-            jax.random.normal(rng_vel, (3,)) * 0.5
+            jax.random.normal(rng_vel, (3,)) * 1.5
         )
 
         # angular velocity
         qvel = qvel.at[3:6].set(
-            jax.random.normal(rng_vel, (3,)) * 1
+            jax.random.normal(rng_vel, (3,)) * 3
         )
 
         return qpos, qvel
+
 
     def _initialize_metrics(self):
 
@@ -308,6 +370,7 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
             'reward_success_bonus': jp.float32(0.0),
             'reward_ground_penalty': jp.float32(0.0),
             'reward_total': jp.float32(0.0),
+            'reward_crash_penalty': jp.zeros(()),
         }
 
     def _get_obs(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:

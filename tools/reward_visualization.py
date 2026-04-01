@@ -1,16 +1,23 @@
 import os
-os.environ['JAX_PLATFORMS'] = 'cpu'  # Force JAX to use CPU only. We dont need accelerated JAX for this script.
+# os.environ['JAX_PLATFORMS'] = 'cpu'  # Force JAX to use CPU only. We dont need accelerated JAX for this script.
 
 import mujoco
 import mujoco.viewer
 import jax
 from jax import numpy as jp
 from hydra import compose, initialize_config_dir
+from omegaconf import OmegaConf
+OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=True)
 from pathlib import Path
 import numpy as np
 from mujoco import mjx
-from arcdrone import ARCDroneRL_Landing, ARCDroneRL_Hover
 from arcdrone.utils.plotjuggler import PlotJugglerLogger
+
+
+CFG_DIR = '/home/jrmch12f/Documents/code/borrador_braxenvs/src/arcdrone/vision_landing_il/cfg'
+MOCAP_XML = "assets/skydio_x2/mocap/scene_mocap.xml"
+PORT = 9872  # Match other PlotJuggler tools
+from arcdrone.priviledged_landing_rl.task.arcdrone import ARCDroneRL_Landing
 
 
 class RewardAnalyzer:
@@ -24,26 +31,25 @@ class RewardAnalyzer:
     def __init__(self, cfg, task_name: str = 'landing', layout_file: str = None):
         # Load configuration from composed Hydra config
         self.cfg = cfg.env
-        
-        # 1. Create MuJoCo model (for GUI interaction)
-        self.mj_model = mujoco.MjModel.from_xml_path("assets/skydio_x2/mocap/scene_mocap.xml")
-        self.mj_data = mujoco.MjData(self.mj_model)
+        # Force the pure-MJX backend for this debug tool to avoid CUDA checks.
+        self.cfg.impl = "jax"
+        # Use the mocap scene for GUI interaction and disable vision by default.
+        self.cfg.xml_path_rel = MOCAP_XML
+        self.cfg.vision = False
 
-        # 2. Create RL task instance (for reward computation)
-        ENV_CLASSES = {
-            'hover': ARCDroneRL_Hover,
-            'landing': ARCDroneRL_Landing,
-        }
-        if task_name not in ENV_CLASSES:
-            raise ValueError(f"Unknown task '{task_name}'. Available: {list(ENV_CLASSES.keys())}")
-        env_class = ENV_CLASSES[task_name]
-        self.rl_task = env_class(cfg=self.cfg)
+        # 1. Create RL task instance (for reward computation)
+        self.rl_task = ARCDroneRL_Landing(cfg=self.cfg)
+
+        # 2. Create MuJoCo model/data (for GUI interaction)
+        # Use the same model instance as the RL task to keep MJX data shapes aligned.
+        self.mj_model = self.rl_task.mj_model
+        self.mj_data = mujoco.MjData(self.mj_model)
         
         # 3. Create PlotJuggler logger for real-time visualization
         if layout_file and os.path.exists(layout_file):
-            self.pj = PlotJugglerLogger(layout_file=layout_file)
+            self.pj = PlotJugglerLogger(port=PORT, layout_file=layout_file)
         else:
-            self.pj = PlotJugglerLogger()
+            self.pj = PlotJugglerLogger(port=PORT)
         
         # 4. Initialize custom state with random goal
         rng = jax.random.PRNGKey(0)
@@ -65,14 +71,14 @@ class RewardAnalyzer:
     def _update_state_from_mujoco(self):
         """Update state with current MuJoCo GUI state.
         
-        Syncs the RL task's pipeline_state with the manually controlled
+        Syncs the RL task's MJX data with the manually controlled
         MuJoCo simulation, allowing reward computation on GUI interactions.
         """
         # Convert MuJoCo data to MJX format
         mjx_data = mjx.put_data(self.mj_model, self.mj_data)
         
-        # Update pipeline state with current MuJoCo data
-        state = self.state.replace(pipeline_state=mjx_data)
+        # Update MJX state with current MuJoCo data (mjx_env uses `data`)
+        state = self.state.replace(data=mjx_data)
         
         return state
     
@@ -153,8 +159,8 @@ class RewardAnalyzer:
 
         # Add termination/debug signals
         metrics['done'] = float(state.done)
-        metrics['goal_achieved'] = float(state.state_vars.get('goal_achieved', 0.0))
-        metrics['steps_within_success'] = float(state.state_vars.get('steps_within_success', 0.0))
+        metrics['goal_achieved'] = float(state.info.get('goal_achieved', 0.0))
+        metrics['steps_within_success'] = float(state.info.get('steps_within_success', 0.0))
         
         return metrics
     
@@ -171,11 +177,11 @@ class RewardAnalyzer:
                 self.state = self._update_state_from_mujoco()
                 
                 # 2. Compute rewards --> for this I will recreate run the env_step except the action and pipeline step logic
-                action = jp.zeros(self.rl_task.sys.nu)
+                action = jp.zeros(self.rl_task.mjx_model.nu)
                 self.state = self.rl_task._get_target(self.state)
                 self.state = self.rl_task._get_obs(self.state, action)
                 self.state = self.rl_task._get_reward(self.state, action)
-                self.state = self.rl_task._check_termination(self.state)
+                self.state = self.rl_task._check_episode_events(self.state)
                 
                 # 4. Stream to PlotJuggler for visualization
                 metrics_to_log = self._prepare_metrics_for_logging(self.state)
@@ -191,28 +197,14 @@ def main():
     import argparse
 
     parser = argparse.ArgumentParser(description='Analyze reward components in real-time')
-    parser.add_argument(
-        '--task',
-        type=str,
-        default='landing',
-        choices=['hover', 'landing'],
-        help='Task/environment to analyze (hover, landing, vel)'
-    )
-    parser.add_argument(
-        '--layout',
-        type=str,
-        default=None,
-        help='Path to PlotJuggler layout file (auto-launches if exists)'
-    )
     args = parser.parse_args()
 
-    cfg_dir = Path(__file__).resolve().parent.parent / 'src' / 'arcdrone' / 'controller' / 'cfg'
-    initialize_config_dir(
-        config_dir=str(cfg_dir), job_name='reward_visualization', version_base=None
-    )
-    cfg = compose(config_name='config', overrides=[f'task={args.task}'])
+    initialize_config_dir(config_dir=str(CFG_DIR), job_name="visualize", version_base=None)
+    cfg = compose(config_name="config")
 
-    analyzer = RewardAnalyzer(cfg, task_name=args.task, layout_file=args.layout)
+    
+
+    analyzer = RewardAnalyzer(cfg)
     analyzer.run()
 
 

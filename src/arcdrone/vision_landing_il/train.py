@@ -91,13 +91,39 @@ def main(cfg: DictConfig):
     teacher_params = model.load_params(teacher_path)
     print("Teacher parameters loaded successfully!")
 
+    # =========== Handle auto-restore from previous checkpoint ===========
+    from_prev = int(getattr(cfg, 'frompreviouscheckpoint', 0))
+    restore_path = getattr(cfg, 'restore_params_path', None)
+    # Only override if frompreviouscheckpoint > 0 and restore_params_path is not set
+    if from_prev and (not restore_path or restore_path == ""):
+        outputs_path = Path("outputs")
+        # Find all trained_model.pkl files recursively
+        pkl_files = list(outputs_path.rglob("trained_model.pkl"))
+        if pkl_files:
+            pkl_files = sorted(pkl_files, key=lambda p: p.stat().st_mtime)
+            if len(pkl_files) >= from_prev:
+                chosen_pkl = pkl_files[-from_prev]
+                cfg.restore_params_path = str(chosen_pkl)
+                print(f"[Auto-restore] Using checkpoint: {chosen_pkl}")
+            else:
+                print(f"[Auto-restore] Not enough checkpoints found for frompreviouscheckpoint={from_prev}")
+        else:
+            print("[Auto-restore] No trained_model.pkl files found in outputs/")
+
+    restore_params = None
+    restore_path = getattr(cfg, 'restore_params_path', None)
+    if restore_path:
+        print(f"Loading student parameters from: {restore_path}")
+        restore_params = model.load_params(restore_path)
+        print("Student parameters loaded successfully!")
+
     # =========== Network factory ===========
 
     network_factory = functools.partial(
         il_networks.make_il_networks,
         teacher_dec_hidden_layers=cfg.teacher_dec_hidden_layers,
         policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
-        policy_propio_proj_hidden_layers=cfg.policy_propio_proj_hidden_layers,
+        policy_proprio_proj_hidden_layers=cfg.policy_proprio_proj_hidden_layers,
         action_hidden_layer_sizes=cfg.action_hidden_layers,
         value_hidden_layer_sizes=cfg.value_hidden_layers,
         cnn_num_filters=cfg.cnn_num_filters,
@@ -105,7 +131,7 @@ def main(cfg: DictConfig):
         cnn_strides=cfg.cnn_strides,
         policy_pixels_key=cfg.policy_pixels_key,
         policy_pixels_key_1=cfg.policy_pixels_key_1,
-        policy_propio_key=cfg.policy_propio_key,
+        policy_proprio_key=cfg.policy_proprio_key,
         teacher_obs_key=cfg.teacher_obs_key,
         value_obs_key=cfg.value_obs_key,
     )
@@ -116,6 +142,7 @@ def main(cfg: DictConfig):
         il_train,
         env=env,
         teacher_params=teacher_params,
+        restore_params=restore_params,
         num_il_epochs=cfg.num_il_epochs,
         num_evals=cfg.num_evals,
         num_eval_envs=cfg.num_eval_envs,
@@ -193,4 +220,3 @@ def main(cfg: DictConfig):
 
 if __name__ == "__main__":
     main()
-

@@ -1,73 +1,132 @@
 from jax import numpy as jp
 
 
+# def _check_episode_events_impl(self, state):
+#     """Check if episode should terminate and some event flags needed for the reward fn."""
+
+#     target = state.info['target_buffer'][0]
+#     current_pos = state.info['pos_buffer'][0]
+#     # Compute position error and reduce to a scalar (Euclidean norm)
+#     pos_error_current = current_pos - target
+#     pos_error_norm = jp.linalg.norm(pos_error_current)
+#     # goal_achieved is a scalar boolean: True if within threshold
+#     goal_achieved = pos_error_norm < self.cfg.success_threshold
+#     # steps_within_success should be a scalar int (not an array per axis)
+#     steps_within_success = jp.where(
+#         goal_achieved,
+#         state.info['steps_within_success'] + 1,
+#         jp.array(0, dtype=state.info['steps_within_success'].dtype),
+#     )
+
+
+#     z_position = state.data.qpos[2]  # z-coordinate of drone position
+#     xy_radius = jp.linalg.norm(current_pos[0:2])
+#     in_landing_cylinder = xy_radius <= 0.25  # diameter 0.5 m centered at (0, 0)
+
+#     ground_violation_raw = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
+#     ground_violation = jp.where(in_landing_cylinder, 0.0, ground_violation_raw)
+
+  
+#     # Check termination conditions
+#     done = jp.logical_or(
+#         steps_within_success >= self.cfg.success_steps_required,
+#         state.info.get('step', 0) >= self.cfg.max_episode_steps,
+#     )
+
+#     # Add ground collision termination (disabled inside the landing cylinder)
+#     ground_collision = jp.logical_and(
+#         z_position <= self.cfg.ground_threshold_event,
+#         jp.logical_not(in_landing_cylinder),
+#     )
+#     done = jp.logical_or(done, ground_collision)
+
+
+#     # Update dynamic vars with reward-related state
+#     state_info = state.info.copy()
+#     state_info.update({
+#         'goal_achieved': goal_achieved.astype(jp.float32),
+#         'steps_within_success': steps_within_success,
+#         'ground_violation': ground_violation,
+#     })
+
+
+#     return state.replace(done=done.astype(jp.float32),
+#         info=state_info,
+#     )
+
+
 def _check_episode_events_impl(self, state):
     """Check if episode should terminate and some event flags needed for the reward fn."""
 
     target = state.info['target_buffer'][0]
     current_pos = state.info['pos_buffer'][0]
-    # Compute position error and reduce to a scalar (Euclidean norm)
-    pos_error_current = current_pos - target
-    pos_error_norm = jp.linalg.norm(pos_error_current)
-    # goal_achieved is a scalar boolean: True if within threshold
-    goal_achieved = pos_error_norm < self.cfg.success_threshold
-    # steps_within_success should be a scalar int (not an array per axis)
-    steps_within_success = jp.where(
-        goal_achieved,
-        state.info['steps_within_success'] + 1,
-        jp.array(0, dtype=state.info['steps_within_success'].dtype),
-    )
 
-
-    z_position = state.data.qpos[2]  # z-coordinate of drone position
+    z_position = state.data.qpos[2]
     xy_radius = jp.linalg.norm(current_pos[0:2])
-    in_landing_cylinder = xy_radius <= 0.25  # diameter 0.5 m centered at (0, 0)
+    in_landing_cylinder = xy_radius <= 0.4 # TODO: is defined twice on this script
 
     ground_violation_raw = jp.maximum(0.0, self.cfg.ground_threshold_penalty - z_position)
     ground_violation = jp.where(in_landing_cylinder, 0.0, ground_violation_raw)
 
-  
-    # # Check termination conditions
+    # ── Contact with fiducial plate ───────────────────────────────
+    # MJX Data may not expose `contact` (unlike MuJoCo CPU). Fall back to
+    # a geometric heuristic when contact info is unavailable.
+    
+    # Fiducial mesh in scene_mocap.xml spans [-0.3, 0.3] in x/y and
+    # is offset to z=0.002 with thickness 0.004 -> top at z=0.006.
+    plate_half_size = getattr(self.cfg, "fiducial_half_size", 0.3)
+    plate_top_z = getattr(self.cfg, "fiducial_top_z", 0.006)
+    contact_tol = getattr(self.cfg, "fiducial_contact_tol", 0.05)
+    touching_fiducial = jp.logical_and(
+        jp.logical_and(
+            jp.abs(current_pos[0]) <= plate_half_size,
+            jp.abs(current_pos[1]) <= plate_half_size,
+        ),
+        z_position <= plate_top_z + contact_tol,
+    )
+
+
+    # ── Consecutive steps touching fiducial ───────────────────────
+    # steps_within_success = jp.where(
+    #     touching_fiducial,
+    #     state.info['steps_within_success'] + 1,
+    #     jp.array(0, dtype=state.info['steps_within_success'].dtype),
+    # )
+    goal_achieved = touching_fiducial  # for logging/reward use
+
+    # ── Termination conditions ────────────────────────────────────
     # done = jp.logical_or(
     #     steps_within_success >= self.cfg.success_steps_required,
     #     state.info.get('step', 0) >= self.cfg.max_episode_steps,
     # )
-    
-    # # Add ground collision termination (disabled inside the landing cylinder)
-    # ground_collision = jp.logical_and(
-    #     z_position <= self.cfg.ground_threshold_event,
-    #     jp.logical_not(in_landing_cylinder),
-    # )
-    # done = jp.logical_or(done, ground_collision)
-
-
-    # Check termination conditions
     done = state.info.get('step', 0) >= self.cfg.max_episode_steps
 
-    # Add ground collision termination (disabled inside the landing cylinder)
+    # Ground collision outside landing cylinder
     ground_collision = jp.logical_and(
         z_position <= self.cfg.ground_threshold_event,
         jp.logical_not(in_landing_cylinder),
     )
     done = jp.logical_or(done, ground_collision)
 
-
-    # Update dynamic vars with reward-related state
+    # ── Update state info ─────────────────────────────────────────
     state_info = state.info.copy()
     state_info.update({
         'goal_achieved': goal_achieved.astype(jp.float32),
-        'steps_within_success': steps_within_success,
+        'steps_within_success': jp.zeros_like(state.info['steps_within_success']),
         'ground_violation': ground_violation,
     })
 
-
-    return state.replace(done=done.astype(jp.float32),
+    return state.replace(
+        done=done.astype(jp.float32),
         info=state_info,
     )
+
 
 def _get_reward_impl(self, state, action):
     """Calculate reward from current state."""
     
+
+
     # ==== Extract data from MuJoCo and state ====
     
     # Current and target velocities
@@ -132,9 +191,12 @@ def _get_reward_impl(self, state, action):
 
     # Lets add three conservative rewards. A reward or penalty that encourage the drone to have a horizontal attitude. And a reward or penalty that the drone to have low angular and linear velocities.
 
+
     attitude_weight = 0.15
-    angvel_weight = 0.02
-    linvel_weight = 0.01
+    angvel_weight = 0.005
+    linvel_weight = 0.003
+
+
 
     quat = state.info['quat_buffer'][0]
     quat = quat / jp.maximum(jp.linalg.norm(quat), 1e-8)
@@ -149,7 +211,7 @@ def _get_reward_impl(self, state, action):
 
     # reward for low velocity at low altitudes, to smooth landing
     # only active inside the landing cylinder (r <= 0.25 m from origin)
-    in_landing_cylinder = jp.linalg.norm(current_pos[0:2]) <= 0.25
+    in_landing_cylinder = jp.linalg.norm(current_pos[0:2]) <= 0.4
 
     z = state.data.qpos[2]                  # height
     vz = state.info['linvel_buffer'][0][2]  # vertical velocity
@@ -169,8 +231,8 @@ def _get_reward_impl(self, state, action):
 
 
     # Soft landing reward — only inside landing cylinder
-    k       = 5.0    # height sharpness (0 at z=1m, 1 at z=0m)
-    weight  = 20    # max reward magnitude
+    k       = 20.0    # height sharpness (0 at z=1m, 1 at z=0m)
+    soft_weight  = 0.25    # max reward magnitude
 
     exp_k       = jp.exp(-k)
     height_term = (jp.exp(-k * z) - exp_k) / (1.0 - exp_k)
@@ -185,7 +247,7 @@ def _get_reward_impl(self, state, action):
     vel_xy_term = jp.exp(-c_vxy * vxy**2)
     vel_term    = vel_z_term * vel_xy_term
 
-    r_soft_landing = jp.where(in_landing_cylinder, weight * height_term * vel_term, 0.0)
+    r_soft_landing = jp.where(in_landing_cylinder, soft_weight * height_term * vel_term, 0.0)
 
 
     # ==== Ground penalty ====
@@ -197,26 +259,27 @@ def _get_reward_impl(self, state, action):
     # ==== Goal success bonus ====
 
 
-    steps_within_success = state.info['steps_within_success']
+    # steps_within_success = state.info['steps_within_success']
+    goal_achieved = state.info.get('goal_achieved', jp.array(0.0, dtype=jp.float32))
     success_bonus = jp.where(
-        steps_within_success >= self.cfg.success_steps_required,
+        goal_achieved,
         self.cfg.success_bonus,
         0.0
     )
     
-    # Testing !
+    # # Testing !
 
-    # Hard crash penalty — penalize fast descent near ground inside landing cylinder
-    _IMPACT_TOL    = 0.3   # m/s downward speed allowed before penalty kicks in
-    _CRASH_Z       = 0.15  # m altitude below which penalty is active
-    _CRASH_WEIGHT  = 20  # penalty scale
+    # # Hard crash penalty — penalize fast descent near ground inside landing cylinder
+    # _IMPACT_TOL    = 0.3   # m/s downward speed allowed before penalty kicks in
+    # _CRASH_Z       = 0.15  # m altitude below which penalty is active
+    # _CRASH_WEIGHT  = 20  # penalty scale
 
-    impact_speed = jp.maximum(0.0, -vz - _IMPACT_TOL)
-    r_crash_penalty = jp.where(
-        jp.logical_and(in_landing_cylinder, z < _CRASH_Z),
-        -_CRASH_WEIGHT * impact_speed,
-        0.0
-    )
+    # impact_speed = jp.maximum(0.0, -vz - _IMPACT_TOL)
+    # r_crash_penalty = jp.where(
+    #     jp.logical_and(in_landing_cylinder, z < _CRASH_Z),
+    #     -_CRASH_WEIGHT * impact_speed,
+    #     0.0
+    # )
 
 
 
@@ -234,7 +297,7 @@ def _get_reward_impl(self, state, action):
         + r_low_linvel
         + r_soft_landing
         + r_ground
-        # + success_bonus
+        + success_bonus
         # + r_crash_penalty
     )
     
@@ -258,7 +321,7 @@ def _get_reward_impl(self, state, action):
         'reward_soft_landing': r_soft_landing,
         'reward_ground_penalty': r_ground,
         'reward_success_bonus': success_bonus,
-        'reward_crash_penalty': r_crash_penalty,
+        'reward_crash_penalty': 0.0,
         'reward_total': total_reward,
         
     })

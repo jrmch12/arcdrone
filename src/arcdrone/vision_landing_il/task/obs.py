@@ -6,33 +6,38 @@ def _get_obs_impl(self, state, action):
     """Render two frames (front + side camera), shift frame stacks + sensor buffers, return pixel obs."""
     data = state.data
 
-    # ── Pixels: three cameras ──
-    render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
-    out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
+    prev_stack_0 = state.info["frame_stack_0"]
+    prev_stack_1 = state.info["frame_stack_1"]
+    prev_stack_2 = state.info["frame_stack_2"]
+    frame_stack_0 = prev_stack_0
+    frame_stack_1 = prev_stack_1
+    frame_stack_2 = prev_stack_2
 
-    # Camera 0: outer_camera
-    rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
-    prev_stack_0 = state.info["frame_stack_0"]  # (H, W, history)
-    # gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-    # frame_stack_0 = jp.concatenate([prev_stack_0[..., 1:], gray0], axis=-1)
-    rgb0_norm = rgb0 - 0.5  # (H, W, 3)  # kept for easy revert
-    frame_stack_0 = jp.concatenate([prev_stack_0[..., 3:], rgb0_norm], axis=-1)  # RGB revert
+    if self._vision_enabled:
+        # ── Pixels: three cameras ──
+        render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
+        out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
 
-    # Camera 1: outer_camera_side
-    rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
-    prev_stack_1 = state.info["frame_stack_1"]  # (H, W, history)
-    # gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-    # frame_stack_1 = jp.concatenate([prev_stack_1[..., 1:], gray1], axis=-1)
-    rgb1_norm = rgb1 - 0.5  # kept for easy revert
-    frame_stack_1 = jp.concatenate([prev_stack_1[..., 3:], rgb1_norm], axis=-1)  # RGB revert
+        # Camera 0: outer_camera
+        rgb0 = mjx.get_rgb(self._rc_pytree, 0, out[0])
+        # gray0 = jp.mean(rgb0, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_0 = jp.concatenate([prev_stack_0[..., 1:], gray0], axis=-1)
+        rgb0_norm = rgb0 - 0.5  # (H, W, 3)  # kept for easy revert
+        frame_stack_0 = jp.concatenate([prev_stack_0[..., 3:], rgb0_norm], axis=-1)  # RGB revert
 
-    # Camera 2: outer_camera_up
-    rgb2 = mjx.get_rgb(self._rc_pytree, 2, out[0])
-    prev_stack_2 = state.info["frame_stack_2"]  # (H, W, history)
-    # gray2 = jp.mean(rgb2, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
-    # frame_stack_2 = jp.concatenate([prev_stack_2[..., 1:], gray2], axis=-1)
-    rgb2_norm = rgb2 - 0.5  # kept for easy revert
-    frame_stack_2 = jp.concatenate([prev_stack_2[..., 3:], rgb2_norm], axis=-1)  # RGB revert
+        # Camera 1: outer_camera_side
+        rgb1 = mjx.get_rgb(self._rc_pytree, 1, out[0])
+        # gray1 = jp.mean(rgb1, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_1 = jp.concatenate([prev_stack_1[..., 1:], gray1], axis=-1)
+        rgb1_norm = rgb1 - 0.5  # kept for easy revert
+        frame_stack_1 = jp.concatenate([prev_stack_1[..., 3:], rgb1_norm], axis=-1)  # RGB revert
+
+        # Camera 2: outer_camera_up
+        rgb2 = mjx.get_rgb(self._rc_pytree, 2, out[0])
+        # gray2 = jp.mean(rgb2, axis=-1, keepdims=True) - 0.5  # (H, W, 1)
+        # frame_stack_2 = jp.concatenate([prev_stack_2[..., 1:], gray2], axis=-1)
+        rgb2_norm = rgb2 - 0.5  # kept for easy revert
+        frame_stack_2 = jp.concatenate([prev_stack_2[..., 3:], rgb2_norm], axis=-1)  # RGB revert
 
     # ── Priviledged ──────────────────────────
     action_buffer = state.info["action_buffer"]   # (history, nu)
@@ -78,9 +83,9 @@ def _get_obs_impl(self, state, action):
         "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
         "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
         "pixels/view_2": frame_stack_2,     # (H, W, history) — up camera
-        "propio": priviledged_state,  # (history * (3+3+4),)
+        "proprio_obs": proprio,  # (history * (3+3+4),)
         "value_obs": priviledged_state,           # critic obs
-        "teacher_obs": priviledged_state,  #  
+        "teacher_obs": priviledged_state,
     }
 
     info = {

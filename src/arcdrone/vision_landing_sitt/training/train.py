@@ -7,7 +7,7 @@ teacher decoder features.
 
 The two phases use **separate environments**:
   - teacher env: ARCDroneRL_Landing (flat privileged obs)
-  - student env: ARCDroneRL_VisionLanding_StudentTeacher (pixels + propio)
+  - student env: ARCDroneRL_VisionLanding_StudentTeacher (pixels + proprio)
 
 Parameters are shared: the teacher_dec_params and action_head_params trained
 by PPO are the same ones used as frozen targets during alignment.
@@ -60,6 +60,7 @@ class TrainingState:
     # Align
     align_opt_state: optax.OptState        # for (student_enc, proxy_dec)
     student_enc_params: Any
+    student_proprio_norm: running_statistics.RunningStatisticsState
     align_env_steps: jnp.int32             # align env steps (separate counter)
 
 
@@ -96,9 +97,8 @@ def _pack_ppo_inference_params(ts: TrainingState) -> InferenceParams:
 
 
 def _pack_student_params(ts: TrainingState) -> Tuple:
-    """For student evaluator: (propio_norm, student_enc_params)."""
-    propio_norm = normalizer_select(ts.normalizer_params, "policy_obs")
-    return (propio_norm, ts.student_enc_params)
+    """For student evaluator: (proprio_norm, student_enc_params)."""
+    return (ts.student_proprio_norm, ts.student_enc_params)
 
 
 # ── Main ───────────────────────────────────────────────────────────
@@ -132,12 +132,17 @@ def train(
     learning_rate_schedule: Optional[Union[str, ppo_optimizer.LRSchedule]] = None,
     # SITT alignment schedule
     align_num_epochs: int = 200,
+    align_num_splits: int = 10,
+    align_num_envs: int = 256,
     align_batch_size: int = 256,
     align_num_minibatches: int = 4,
     align_updates_per_trigger: int = 4,
     align_learning_rate: float = 3e-4,
     proxy_kl_coef: float = 1.9,
     sitt_align_coef: float = 0.01,
+    align_unroll_length: int = 10,
+    policy_proprio_key: str = "proprio_obs",
+    policy_obs_key: str = "policy_obs",
     # Networks
     network_factory = sitt_networks.make_sitt_networks,
     # Environment
@@ -154,6 +159,7 @@ def train(
     seed: int = 0,
     max_devices_per_host: Optional[int] = None,
     log_training_metrics: bool = False,
+    ppo_off: bool = False,
     # Callbacks
     progress_fn: Callable[[int, Metrics], None] = lambda *args: None,
     policy_params_fn: Callable[..., None] = lambda *args: None,
@@ -167,7 +173,7 @@ def train(
 
     Args:
         teacher_env: wrapped teacher env (flat obs: policy_obs, value_obs).
-        student_env: wrapped student env (pixels, propio, teacher_obs, value_obs).
+        student_env: wrapped student env (pixels, proprio, teacher_obs, value_obs).
         teacher_params: 3-tuple ``(normalizer, policy, value)`` from the
             privileged_landing_rl PPO checkpoint.  Used to initialise the
             teacher decoder, action head, and value network.
@@ -218,20 +224,32 @@ def train(
         )
     ).astype(int)
     ppo_unrolls_per_step = batch_size * num_minibatches // num_envs
+    num_envs_per_device = num_envs // device_count
 
     # ======================== align schedule ===========================
 
-    # Spread alignment epochs across PPO eval periods.
-    align_epochs_per_eval = max(align_num_epochs // num_evals_after_init, 1)
+    if align_num_splits <= 0:
+        raise ValueError("align_num_splits must be > 0")
+    num_align_splits = min(align_num_splits, num_evals_after_init)
+    align_split_indices = np.linspace(
+        0, num_evals_after_init - 1, num=num_align_splits, dtype=int
+    )
+    align_split_indices = np.unique(align_split_indices)
+    align_base = align_num_epochs // len(align_split_indices) if align_num_epochs > 0 else 0
+    align_remainder = align_num_epochs % len(align_split_indices) if align_num_epochs > 0 else 0
+    align_epochs_by_iter = {
+        int(idx): align_base + (1 if i < align_remainder else 0)
+        for i, idx in enumerate(align_split_indices)
+    }
 
     # Env steps per alignment epoch (student env).
-    assert num_envs % device_count == 0
-    num_envs_per_device = num_envs // device_count
+    assert align_num_envs % device_count == 0
+    align_num_envs_per_device = align_num_envs // device_count
     align_unrolls_per_epoch = (
-        align_batch_size * align_num_minibatches // num_envs_per_device
+        align_batch_size * align_num_minibatches // align_num_envs_per_device
     )
     align_env_steps_per_epoch = (
-        align_batch_size * unroll_length * align_num_minibatches * action_repeat
+        align_batch_size * align_unroll_length * align_num_minibatches * action_repeat
     )
 
     # ======================== keys ====================================
@@ -248,6 +266,7 @@ def train(
 
     assert num_envs % device_count == 0
     assert batch_size * num_minibatches % num_envs == 0
+    assert align_num_envs % device_count == 0
 
     # ======================== reset teacher env =======================
 
@@ -260,7 +279,7 @@ def train(
 
     # ======================== reset student env =======================
 
-    key_envs_s = jax.random.split(key_student_env, num_envs // process_count)
+    key_envs_s = jax.random.split(key_student_env, align_num_envs // process_count)
     key_envs_s = jnp.reshape(
         key_envs_s, (local_devices_to_use, -1) + key_envs_s.shape[1:]
     )
@@ -349,6 +368,21 @@ def train(
         key_sitt, 4
     )
 
+    # Student proprio normalizer (separate from teacher PPO normalizer).
+    student_proprio_spec = specs.Array(
+        student_env_state.obs[policy_proprio_key].shape[2:], jnp.dtype("float32")
+    )
+    student_proprio_norm = running_statistics.init_state(
+        student_proprio_spec,
+        std_eps=normalize_observations_std_eps,
+        mode=normalize_observations_mode,
+    )
+
+    if ppo_off and teacher_params is None:
+        logging.warning(
+            "ppo_off=True but no teacher checkpoint provided; PPO params will stay random."
+        )
+
     if teacher_params is not None:
         # Warm-start: decompose teacher checkpoint (norm, policy=(dec,head), value)
         teacher_norm_params = teacher_params[0]
@@ -402,16 +436,20 @@ def train(
         env_steps=jnp.int32(0),
         align_opt_state=align_opt_state,
         student_enc_params=student_enc_params,
+        student_proprio_norm=student_proprio_norm,
         align_env_steps=jnp.int32(0),
     )
 
     # Optionally restore from a previous SITT checkpoint
     if restore_params is not None:
         logging.info("Restoring SITT TrainingState from restore_params.")
-        # Expected layout: (norm, policy, value, proxy_dec, student_enc)
+        # Expected layout: (norm, policy, value, proxy_dec, student_enc, student_proprio_norm)
         value_p = restore_params[2] if restore_value_fn else init_ppo_params.value
         proxy_p = restore_params[3] if len(restore_params) > 3 else proxy_dec_params
         student_p = restore_params[4] if len(restore_params) > 4 else student_enc_params
+        student_norm_p = (
+            restore_params[5] if len(restore_params) > 5 else student_proprio_norm
+        )
         training_state = training_state.replace(
             normalizer_params=restore_params[0],
             params=training_state.params.replace(
@@ -420,6 +458,7 @@ def train(
                 proxy_dec_params=proxy_p,
             ),
             student_enc_params=student_p,
+            student_proprio_norm=student_norm_p,
         )
 
     # ======================== PPO training fns =========================
@@ -523,12 +562,17 @@ def train(
             ),
             axis=-1,
         )
-        reward_align = jnp.mean(proxy_kl_coef * kl)
+        # ── reward_align as episode-return metric ────────────────────
+        kl_per_step = proxy_kl_coef * kl  # (num_envs_per_device * ppo_unrolls_per_step, unroll_length)
+        total_steps = ppo_unrolls_per_step * unroll_length
+        kl_reshaped = jnp.reshape(kl_per_step, (num_envs_per_device, total_steps))
+        metric_reward_align = -jnp.mean(jnp.sum(kl_reshaped, axis=-1))  # mean over envs, sum over steps
+     
         data = types.Transition(
             observation=data.observation,
             action=data.action,
-            # reward=data.reward + proxy_kl_coef * kl,
-            reward=data.reward,
+            reward=data.reward - proxy_kl_coef * kl,
+            # reward=data.reward,
             discount=data.discount,
             next_observation=data.next_observation,
             extras=data.extras,
@@ -575,7 +619,7 @@ def train(
 
         metrics = {
             **metrics,
-            "reward_align": reward_align,
+            "reward_align": metric_reward_align,
         }
 
         new_ts = TrainingState(
@@ -585,6 +629,7 @@ def train(
             env_steps=training_state.env_steps + jnp.int32(env_step_per_training_step),
             align_opt_state=training_state.align_opt_state,
             student_enc_params=training_state.student_enc_params,
+            student_proprio_norm=training_state.student_proprio_norm,
             align_env_steps=training_state.align_env_steps,
         )
         return (new_ts, state, new_key), metrics
@@ -607,7 +652,7 @@ def train(
             s, k = carry
             k, nk = jax.random.split(k)
             ns, data = acting.generate_unroll(
-                student_env, s, policy, k, unroll_length,
+                student_env, s, policy, k, align_unroll_length,
                 extra_fields=("truncation", "episode_metrics", "episode_done"),
             )
             return (ns, nk), data
@@ -625,7 +670,8 @@ def train(
         key_rollout, key_next = jax.random.split(key)
 
         # Build teacher policy from current PPO params (align-side teacher_network)
-        teacher_norm = normalizer_select(ts.normalizer_params, "policy_obs")
+        teacher_norm = normalizer_select(ts.normalizer_params, policy_obs_key)
+        student_proprio_norm = ts.student_proprio_norm
 
         def _teacher_policy(observations, key_sample):
             logits = sitt_network.teacher_network.apply(
@@ -656,6 +702,13 @@ def train(
         n_completed = jnp.maximum(jnp.sum(completed_mask), 1.0)
         student_ep_reward = jnp.sum(ep_reward * completed_mask) / n_completed
 
+        # Update student proprio normalizer with latest rollout data.
+        student_proprio_norm = running_statistics.update(
+            student_proprio_norm,
+            data.observation[policy_proprio_key],
+            pmap_axis_name=_PMAP_AXIS_NAME,
+        )
+
         # Run alignment: train student_enc and proxy_dec
         (
             student_enc, proxy_dec, align_opt_state,
@@ -665,8 +718,8 @@ def train(
             ts.params.proxy_dec_params,
             ts.align_opt_state,
             data.observation,            # teacher_obs (teacher_obs_key extracted inside)
-            data.observation,            # student_obs (propio + pixels extracted inside)
-            teacher_norm,                # propio_norm (same as teacher norm)
+            data.observation,            # student_obs (proprio + pixels extracted inside)
+            student_proprio_norm,        # proprio_norm (student-specific stats)
             teacher_dec_params=ts.params.policy[0],   # frozen during align
             action_head_params=ts.params.policy[1],   # frozen during align
             teacher_norm=teacher_norm,
@@ -676,6 +729,7 @@ def train(
             student_enc_params=student_enc,
             params=ts.params.replace(proxy_dec_params=proxy_dec),
             align_opt_state=align_opt_state,
+            student_proprio_norm=student_proprio_norm,
             align_env_steps=ts.align_env_steps + jnp.int32(align_env_steps_per_epoch),
         )
 
@@ -737,33 +791,40 @@ def train(
         logging.info("SITT iteration %d/%d  (%.1fs)", it + 1, num_evals_after_init, time.time() - xt)
 
         # ── PPO epoch ─────────────────────────────────────────────────
-        for _ in range(max(num_resets_per_eval, 1)):
-            t0 = time.time()
-            epoch_key, local_key = jax.random.split(local_key)
-            epoch_keys = jax.random.split(epoch_key, local_devices_to_use)
+        ppo_metrics = {}
+        ppo_epoch_time = 0.0
+        if not ppo_off:
+            for _ in range(max(num_resets_per_eval, 1)):
+                t0 = time.time()
+                epoch_key, local_key = jax.random.split(local_key)
+                epoch_keys = jax.random.split(epoch_key, local_devices_to_use)
 
-            training_state, teacher_env_state = _strip_weak_type(
-                (training_state, teacher_env_state)
-            )
-            training_state, teacher_env_state, ppo_metrics = training_epoch_pmap(
-                training_state, teacher_env_state, epoch_keys,
-            )
-            ppo_metrics = jax.tree_util.tree_map(jnp.mean, ppo_metrics)
-            jax.tree_util.tree_map(lambda x: x.block_until_ready(), ppo_metrics)
+                training_state, teacher_env_state = _strip_weak_type(
+                    (training_state, teacher_env_state)
+                )
+                training_state, teacher_env_state, ppo_metrics = training_epoch_pmap(
+                    training_state, teacher_env_state, epoch_keys,
+                )
+                ppo_metrics = jax.tree_util.tree_map(jnp.mean, ppo_metrics)
+                jax.tree_util.tree_map(lambda x: x.block_until_ready(), ppo_metrics)
 
-            ppo_epoch_time = time.time() - t0
-            training_walltime += ppo_epoch_time
+                ppo_epoch_time = time.time() - t0
+                training_walltime += ppo_epoch_time
+                current_step = int(_unpmap(training_state.env_steps))
+
+            ppo_sps = (
+                num_training_steps_per_epoch
+                * env_step_per_training_step
+                * max(num_resets_per_eval, 1)
+            ) / max(ppo_epoch_time, 1e-9)
+        else:
+            ppo_sps = 0.0
             current_step = int(_unpmap(training_state.env_steps))
-
-        ppo_sps = (
-            num_training_steps_per_epoch
-            * env_step_per_training_step
-            * max(num_resets_per_eval, 1)
-        ) / max(ppo_epoch_time, 1e-9)
 
         # ── Align epochs ──────────────────────────────────────────────
         align_metrics_agg = {}
-        for align_ep in range(align_epochs_per_eval):
+        align_epochs_now = align_epochs_by_iter.get(it, 0)
+        for align_ep in range(align_epochs_now):
             t0 = time.time()
             align_key, local_key = jax.random.split(local_key)
             align_keys = jax.random.split(align_key, local_devices_to_use)
@@ -825,7 +886,8 @@ def train(
                 align_metrics_agg.get("align_loss", 0.0),
                 ppo_sps,
             )
-            progress_fn(current_step, metrics)
+            log_step = current_align_step if ppo_off else current_step
+            progress_fn(log_step, metrics)
 
     # ======================== done ====================================
 
@@ -840,15 +902,25 @@ def train(
         ppo_params[2],   # value
     )
 
-    # Student checkpoint: (propio_norm, (student_enc_params, action_head_params))
+    # Student checkpoint: (proprio_norm, (student_enc_params, action_head_params))
     student_checkpoint_params = (
-        student_params[0],                                 # propio_norm
+        student_params[0],                                 # student proprio_norm
         (student_params[1], action_head_params),           # (student_enc, action_head)
     )
+
+    # Proxy checkpoint: proxy decoder params only.
+    proxy_checkpoint_params = _unpmap(training_state.params.proxy_dec_params)
 
     logging.info(
         "SITT training complete — ppo_steps: %d, align_steps: %d",
         current_step, current_align_step,
     )
     pmap.synchronize_hosts()
-    return (make_ppo_policy, make_student_policy, teacher_checkpoint_params, student_checkpoint_params, metrics)
+    return (
+        make_ppo_policy,
+        make_student_policy,
+        teacher_checkpoint_params,
+        student_checkpoint_params,
+        proxy_checkpoint_params,
+        metrics,
+    )

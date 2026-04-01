@@ -122,6 +122,7 @@ def main(cfg: DictConfig):
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
         restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,num_eval_envs=cfg.num_eval_envs,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
+        learning_rate_schedule=cfg.learning_rate_schedule, desired_kl=cfg.desired_kl, max_grad_norm=cfg.max_grad_norm,
     )
 
     # =========== Define custom progress function ===========
@@ -210,4 +211,4 @@ if __name__ == '__main__':
 
 # How to use?
 #
-# python src/arcdrone/priviledged_landing_rl/train.py train.num_envs=512 train.unroll_length=32 train.batch_size=512 train.num_minibatches=8 train.num_updates_per_batch=16 train.num_timesteps=15000000 train.use_wandb=true train.num_evals=30 train.num_eval_envs=128 train.frompreviouscheckpoint=0
+# python src/arcdrone/priviledged_landing_rl/train.py train.num_envs=1024 train.unroll_length=32 train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4 train.num_timesteps=100000000 train.use_wandb=true train.num_evals=30 train.num_eval_envs=128 
