@@ -1,4 +1,20 @@
-"""PPO networks for vision-based landing RL."""
+"""PPO networks for vision-based landing RL.
+
+**CNN feature-caching changes (arcdrone-specific)**
+
+1. ``extract_cnn_features``  — runs the frozen CNN + global-avg-pool on an
+   obs dict, returning a flat feature vector per sample.  Called *once* per
+   rollout scan iteration inside the forked ``train.py``.
+2. ``compact_obs`` / ``strip_pixels`` — replace pixel tensors in an obs dict
+   with the pre-computed ``cnn_feats`` key so that the Transition accumulated
+   across scan iterations is compact.
+3. ``_policy_apply`` dual-path — if obs contains ``cnn_feats`` (SGD path)
+   skip the CNN and feed features directly into fusion+head.  If obs contains
+   ``pixels/*`` (rollout acting path) run the full encoder as before.
+4. ``stop_gradient`` on the CNN is removed: the CNN is structurally excluded
+   from the differentiable SGD graph since it never runs during loss
+   computation.
+"""
 
 from typing import Any, Callable, Mapping, Sequence, Tuple
 
@@ -52,11 +68,8 @@ class PolicyVisionProprioEncoder(nn.Module):
             activation=self.activation,
             use_bias=False,
         )(pixels)
-        # Previous implementation (CNN trainable):
-        # cnn_feats = jnp.mean(cnn_out, axis=(-2, -3))
-
-        # Freeze CNN branch during PPO updates (useful when warm-starting from a checkpoint).
-        cnn_feats = jax.lax.stop_gradient(jnp.mean(cnn_out, axis=(-2, -3)))
+        
+        cnn_feats = jnp.mean(cnn_out, axis=(-2, -3))
 
         proprio_feats = MLP(
             layer_sizes=list(self.proprio_proj_hidden_layers),
@@ -246,11 +259,55 @@ def make_ppo_networks_vision(
         head_params = policy_action_head.init(k2, feats)
         return dec_params, head_params
 
+    # Previous _policy_apply (always runs CNN on pixels):
+    # def _policy_apply(pparams, params, obs):
+    #     pixels, _ = _extract_policy_obs(obs)
+    #     proprio = _preprocess_policy_proprio_obs(obs, pparams)
+    #     feats = policy_encoder.apply(params[0], pixels, proprio)
+    #     return policy_action_head.apply(params[1], feats)
+
+    def _preprocess_proprio_only(obs, pparams):
+        """Normalize proprio without touching pixel keys."""
+        proprio = obs[policy_proprio_key]
+        return preprocess_observations_fn(
+            proprio,
+            _select_normalizer_by_path(pparams, policy_proprio_key),
+        )
+
     def _policy_apply(pparams, params, obs):
-        pixels, _ = _extract_policy_obs(obs)
-        proprio = _preprocess_policy_proprio_obs(obs, pparams)
-        feats = policy_encoder.apply(params[0], pixels, proprio)
-        return policy_action_head.apply(params[1], feats)
+        """Dual-path policy forward.
+
+        * **Rollout (acting)** — obs contains ``pixels/view_*`` keys.
+          Runs the full CNN encoder.
+        * **SGD (loss)** — obs contains ``cnn_feats`` key (pre-computed).
+          Skips CNN, feeds cached features directly into fusion+head.
+        """
+        if isinstance(obs, Mapping) and "cnn_feats" in obs:
+            # ── Cached-feature path (SGD) ──
+            proprio = _preprocess_proprio_only(obs, pparams)
+            cnn_feats = obs["cnn_feats"]
+            # Fuse with proprio and run through fusion MLP + action head.
+            # This mirrors the tail of PolicyVisionProprioEncoder.__call__.
+            proprio_feats = MLP(
+                layer_sizes=list(policy_encoder.proprio_proj_hidden_layers),
+                activation=policy_encoder.activation,
+                kernel_init=policy_encoder.kernel_init,
+                activate_final=True,
+            ).apply({"params": params[0]["params"]["MLP_0"]}, proprio)  # MLP_0 = proprio proj
+            fused = jnp.concatenate([cnn_feats, proprio_feats], axis=-1)
+            encoder_out = MLP(
+                layer_sizes=list(policy_encoder.fusion_hidden_layers),
+                activation=policy_encoder.activation,
+                kernel_init=policy_encoder.kernel_init,
+                activate_final=False,
+            ).apply({"params": params[0]["params"]["MLP_1"]}, fused)    # MLP_1 = fusion
+        else:
+            # ── Full-encoder path (rollout acting) ──
+            proprio = _preprocess_policy_proprio_obs(obs, pparams)
+            pixels, _ = _extract_policy_obs(obs)
+            encoder_out = policy_encoder.apply(params[0], pixels, proprio)
+
+        return policy_action_head.apply(params[1], encoder_out)
 
     policy_network = FeedForwardNetwork(init=_policy_init, apply=_policy_apply)
 
@@ -261,6 +318,70 @@ def make_ppo_networks_vision(
         value_network=value_network,
         parametric_action_distribution=parametric_action_distribution,
     )
+
+
+# ---------------------------------------------------------------------------
+# CNN feature-caching helpers (used by the forked train loop)
+# ---------------------------------------------------------------------------
+
+def extract_cnn_features(
+    encoder_params,
+    obs: Mapping[str, jnp.ndarray],
+    policy_pixels_key: str = "pixels/view_0",
+    policy_pixels_key_1: str = "pixels/view_1",
+    policy_pixels_key_2: str = "pixels/view_2",
+    cnn_num_filters: Sequence[int] = (32, 64, 64),
+    cnn_kernel_sizes: Sequence[Tuple[int, int]] = ((8, 8), (4, 4), (3, 3)),
+    cnn_strides: Sequence[Tuple[int, int]] = ((4, 4), (2, 2), (1, 1)),
+    activation: ActivationFn = nn.tanh,
+) -> jnp.ndarray:
+    """Run the frozen CNN on pixel observations and return pooled features.
+
+    This is called *once* per rollout scan iteration — never inside the
+    differentiable loss computation.
+
+    Args:
+        encoder_params: The ``params[0]`` policy-encoder Flax params
+            (same tree used by ``PolicyVisionProprioEncoder``).
+        obs: Observation dict containing ``pixels/view_*`` keys.
+
+    Returns:
+        cnn_feats with shape ``(..., num_filters[-1])``.
+    """
+    pixels = jnp.concatenate([
+        obs[policy_pixels_key],
+        obs[policy_pixels_key_1],
+        obs[policy_pixels_key_2],
+    ], axis=-1)
+    cnn_module = CNN(
+        num_filters=list(cnn_num_filters),
+        kernel_sizes=list(cnn_kernel_sizes),
+        strides=list(cnn_strides),
+        activation=activation,
+        use_bias=False,
+    )
+    cnn_out = cnn_module.apply({"params": encoder_params["params"]["CNN_0"]}, pixels)
+    return jnp.mean(cnn_out, axis=(-2, -3))  # global average pool
+
+
+def compact_obs(
+    obs: Mapping[str, jnp.ndarray],
+    cnn_feats: jnp.ndarray,
+) -> Mapping[str, jnp.ndarray]:
+    """Replace pixel tensors with pre-computed CNN features.
+
+    Drops all ``pixels/*`` keys and adds a ``cnn_feats`` key.
+    """
+    return {
+        k: v for k, v in obs.items() if not k.startswith("pixels/")
+    } | {"cnn_feats": cnn_feats}
+
+
+def strip_pixels(
+    obs: Mapping[str, jnp.ndarray],
+) -> Mapping[str, jnp.ndarray]:
+    """Drop pixel keys from the obs dict (used for next_observation)."""
+    return {k: v for k, v in obs.items() if not k.startswith("pixels/")}
 
 
 # ---------------------------------------------------------------------------

@@ -38,7 +38,8 @@ def main(cfg: DictConfig):
     os.environ["MUJOCO_GL"] = "egl"
 
     # Import JAX-related modules after setting environment variables
-    from brax.training.agents.ppo import train as ppo
+    # from brax.training.agents.ppo import train as ppo  # original brax PPO
+    from arcdrone.vision_landing_rl.training import train as ppo  # arcdrone fork with CNN feature caching
     from brax.io import model
     from brax.training.acme import running_statistics
     from arcdrone.utils.wandb_logger import WandbLogger
@@ -214,7 +215,8 @@ def main(cfg: DictConfig):
         discounting=cfg.discounting, learning_rate=cfg.learning_rate, entropy_cost=cfg.entropy_cost, num_envs=cfg.num_envs,
         learning_rate_schedule=cfg.learning_rate_schedule, desired_kl=cfg.desired_kl, max_grad_norm=cfg.max_grad_norm, clipping_epsilon=cfg.clipping_epsilon,
         batch_size=cfg.batch_size, seed=cfg.seed, log_training_metrics=cfg.log_training_metrics,
-        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory,num_eval_envs=cfg.num_eval_envs,
+        restore_params=restore_params, restore_value_fn=cfg.restore_value_fn, network_factory=network_factory, num_eval_envs=cfg.num_eval_envs,
+        frozen_cnn=cfg.frozen_cnn,
         wrap_env=False,  # IMPORTANT: mujoco_playground's wrapper already wrapped the env
     )
 

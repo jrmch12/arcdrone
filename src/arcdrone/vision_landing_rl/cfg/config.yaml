@@ -98,6 +98,11 @@ train:
   policy_proprio_key: "proprio_obs"
   value_obs_key: "value_obs"
 
+  # CNN feature caching — freeze the CNN and pre-compute features once per
+  # rollout scan iteration instead of running the CNN during every SGD step.
+  # Saves VRAM proportional to (pixels_size / cnn_feat_size) ~ 500x.
+  frozen_cnn: false
+
   # Train from checkpoint (for continuing training)
   restore_params_path: null      
   restore_value_fn: true
