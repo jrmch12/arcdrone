@@ -160,10 +160,11 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
             info["action_buffer"].flatten(),
             info["pos_buffer"].flatten(),
         ])
-        # Proprio: IMU-like (linacc, angvel, quat) buffers, all flattened
+        # Proprio: IMU-like (linacc, linvel, angvel, quat) buffers, all flattened
         proprio = jp.concatenate([
             info["action_buffer"].flatten(),
             info["linacc_buffer"].flatten(),
+            info["linvel_buffer"].flatten(),  # TODO: do not forget to delete! this is just for debigguing
             info["angvel_buffer"].flatten(),
             info["quat_buffer"].flatten(),
         ])

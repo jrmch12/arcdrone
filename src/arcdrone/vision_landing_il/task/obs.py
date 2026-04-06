@@ -76,6 +76,7 @@ def _get_obs_impl(self, state, action):
     proprio = jp.concatenate([
         action_buffer.flatten(),
         linacc_buffer.flatten(),
+        linvel_buffer.flatten(),  # TODO: do not forget to delete! this is just for debugging
         angvel_buffer.flatten(),
         quat_buffer.flatten(),
     ])
