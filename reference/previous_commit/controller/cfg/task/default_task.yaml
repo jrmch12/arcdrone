@@ -1,9 +1,0 @@
-# @package _global_
-
-
-# ^^^
-# |||   Tell Hydra to place everything in this YAML file at the root 
-#       of the config instead of under a nested key:
-
-env:
-  hola: 123

@@ -307,3 +307,6 @@ if __name__ == '__main__':
 # How to use?
 #
 # python src/arcdrone/vision_landing_rl/train.py train.num_envs=128 train.unroll_length=4 train.batch_size=64 train.num_minibatches=2 train.num_updates_per_batch=16 train.num_timesteps=100000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=64 train.restore_params_path='outputs/2026-03-21/10-18-23/trained_model.pkl' 
+# 
+# frozen_cnn:
+# python src/arcdrone/vision_landing_rl/train.py train.num_envs=128 train.unroll_length=4 train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4 train.num_timesteps=5000000 train.use_wandb=true train.num_evals=32 train.num_eval_envs=64 train.restore_params_path='outputs/2026-03-21/18-28-17/visionrl_warmstart.pkl' train.frozen_cnn=true
