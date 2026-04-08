@@ -1,0 +1,79 @@
+<mujoco model="Skydio X2 scene IL easy">
+
+  <include file="./common/skybox.xml"/>
+  <include file="./common/visual.xml"/>
+  <include file="./common/materials.xml"/>
+  <include file="x2.xml"/>
+
+  <statistic center="0 0 0.1" extent="0.7" meansize=".05"/>
+
+  <asset>
+    <material name="landing_ring_outer" rgba="1 1 1 1" emission="0.6"/>
+    <material name="landing_ring_inner" rgba="0.15 0.15 0.15 1" emission="0.2"/>
+    <material name="landing_ring_center" rgba="1 0 0 1" emission="0.8"/>
+  </asset>
+
+  <worldbody>
+
+    <light name="ambient" pos="0 0 10"
+      ambient="0.62 0.62 0.62"
+      diffuse="0.62 0.62 0.62"
+      specular="0.1 0.1 0.1"
+      directional="true"
+      castshadow="false"/>
+
+    <light name="key" pos="2 -2 6"
+      ambient="0.28 0.28 0.28"
+      diffuse="0.85 0.85 0.85"
+      specular="0.2 0.2 0.2"/>
+
+    <light name="fill" pos="-2 2 4"
+      ambient="0.2 0.2 0.2"
+      diffuse="0.45 0.45 0.45"
+      castshadow="false"/>
+
+    <body name="origin_target" pos="0 0 0"/>
+
+    <camera name="outer_camera" pos="-6 0 1.4" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_side" pos="0 -6 1.4" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_up" pos="0 0 9" mode="targetbody" target="origin_target"/>
+
+    <geom name="floor" type="plane" size="0 0 0.05" material="grid"/>
+
+    <geom
+      name="landing_ring_outer"
+      type="cylinder"
+      pos="0 0 0.001"
+      size="1.2 0.001"
+      material="landing_ring_outer"
+      contype="0"
+      conaffinity="0"/>
+
+    <geom
+      name="landing_ring_inner"
+      type="cylinder"
+      pos="0 0 0.002"
+      size="0.6 0.001"
+      material="landing_ring_inner"
+      contype="0"
+      conaffinity="0"/>
+
+    <geom
+      name="landing_ring_center"
+      type="cylinder"
+      pos="0 0 0.003"
+      size="0.12 0.001"
+      material="landing_ring_center"
+      contype="0"
+      conaffinity="0"/>
+
+    <geom
+      name="fiducial_plate"
+      type="plane"
+      pos="0 0 0.0035"
+      size="0.3 0.3 0.002"
+      material="fiducial"/>
+
+  </worldbody>
+
+</mujoco>
