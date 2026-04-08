@@ -48,9 +48,9 @@
     <body name="origin_target" pos="0 0 0"/>
 
     <!-- Cameras: side view (height visible) + top-down (xy visible) -->
-    <camera name="outer_camera"      pos="0 -4 1" zaxis="0 -1 0"/>
-    <camera name="outer_camera_side" pos="3 0 1" fovy="60" xyaxes="0 1 0 0 0 1"/>
-    <camera name="outer_camera_up"   pos="0 0 3" fovy="60" xyaxes="1 0 0 0 1 0"/>
+    <camera name="outer_camera"      pos="-7 0 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_side" pos="0 -7 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_up"   pos="0 1 11" mode="targetbody" target="origin_target"/>
 
 
     <geom name="floor"
