@@ -26,13 +26,14 @@ from hydra import compose, initialize_config_dir
 from omegaconf import OmegaConf
 OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=True)
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
-from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
+_REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(_REPO_ROOT / "src"))
+from arcdrone.New_attempt_2.task.arcdrone import ARCDroneVisionLandingIL
 
 # ===========================================================================
 # Config
 
-CFG_DIR = Path(__file__).resolve().parent.parent.parent / "src" / "arcdrone" / "vision_landing_il" / "cfg"
+CFG_DIR = _REPO_ROOT / "src" / "arcdrone" / "New_attempt_2" / "cfg"
 episode_length = 100
 
 # Load config the same way as evaluate.py
@@ -55,7 +56,7 @@ cfg_env["naconmax"] = cfg_env["njmax"]  # 1 world
 # ===========================================================================
 # Env setup
 
-env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=cfg_env)
+env = ARCDroneVisionLandingIL(cfg=cfg_env)
 
 # # We have implement this inside the env!
 

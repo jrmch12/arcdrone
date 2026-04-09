@@ -38,6 +38,7 @@ env:
   
   # ==== Task specific ====
   buffer_size: 3
+  frame_skip: 5          # temporal spacing: frames in the stack are frame_skip steps apart
   landing_radius: 0.4
 
   # Reset randomization — moderate difficulty, drone stays in camera view
