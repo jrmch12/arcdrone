@@ -150,6 +150,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             "frame_stack_0": frame_stack_0,
             "frame_stack_1": frame_stack_1,
             "frame_stack_2": frame_stack_2,
+            "frame_skip_counter": jp.int32(0),
         }
 
         # Build initial obs dict (flat structure, pixels/view_* keys)
@@ -166,7 +167,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         proprio = jp.concatenate([
             info["action_buffer"].flatten(),
             info["linacc_buffer"].flatten(),
-            info["linvel_buffer"].flatten(),  # TODO: do not forget to delete! this is just for debigguing
+            # info["linvel_buffer"].flatten(),  # TODO: do not forget to delete! this is just for debigguing
             info["angvel_buffer"].flatten(),
             info["quat_buffer"].flatten(),
         ])
@@ -320,12 +321,12 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
     def _sample_initial_state(self, rng: jp.ndarray):
         rng, rng_pos, rng_vel, rng_ang, rng_yaw = jax.random.split(rng, 5)
 
-        xy_range = float(getattr(self.cfg, "init_xy_range", 1.2))
-        z_min = float(getattr(self.cfg, "init_z_min", 0.7))
-        z_max = float(getattr(self.cfg, "init_z_max", 2.2))
-        tilt_range = float(getattr(self.cfg, "init_tilt_range", 0.45))
-        linvel_std = float(getattr(self.cfg, "init_linvel_std", 0.7))
-        angvel_std = float(getattr(self.cfg, "init_angvel_std", 1.2))
+        xy_range = float(getattr(self.cfg, "init_xy_range", 2))
+        z_min = float(getattr(self.cfg, "init_z_min", 1))
+        z_max = float(getattr(self.cfg, "init_z_max", 2.5))
+        tilt_range = float(getattr(self.cfg, "init_tilt_range", 2.4))
+        linvel_std = float(getattr(self.cfg, "init_linvel_std", 1.5))
+        angvel_std = float(getattr(self.cfg, "init_angvel_std", 3))
 
         # Position (start above the pad with moderate XY randomization)
         position = jp.array([

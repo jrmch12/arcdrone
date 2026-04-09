@@ -59,8 +59,8 @@
       <geom name="rotor3" class="rotor" pos=".14 .18 .08" mass=".25"/>
       <geom name="rotor4" class="rotor" pos=".14 -.18 .08" mass=".25"/>
       <!-- Bright marker sphere for camera visibility (large for CNN) -->
-      <geom name="drone_marker" type="sphere" size="0.4" pos="0 0 0.15"
-            rgba="1 0 0 1" contype="0" conaffinity="0" mass="0"/>
+      <!-- <geom name="drone_marker" type="sphere" size="0.4" pos="0 0 0.15"
+            rgba="1 0 0 1" contype="0" conaffinity="0" mass="0"/> -->
       <geom size=".16 .04 .02" pos="0 0 0.02" type="box" mass=".325" class="visual" material="invisible"/>
       <site name="thrust1" pos="-.14 -.18 .05"/>
       <site name="thrust2" pos="-.14 .18 .05"/>

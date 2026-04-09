@@ -13,6 +13,14 @@ def _get_obs_impl(self, state, action):
     frame_stack_1 = prev_stack_1
     frame_stack_2 = prev_stack_2
 
+    # Frame skip: only shift the stack every `frame_skip` steps.
+    # This gives the CNN frames spaced frame_skip steps apart for better
+    # velocity inference from pixel differences.
+    frame_skip = int(getattr(self.cfg, 'frame_skip', 1))
+    frame_skip_counter = state.info["frame_skip_counter"]
+    do_shift = (frame_skip_counter % frame_skip) == 0
+    cpf = self._pixel_channels_per_frame
+
     if self._vision_enabled:
         # ── Pixels: three cameras ──
         render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
@@ -20,21 +28,20 @@ def _get_obs_impl(self, state, action):
 
         # Camera 0: outer_camera
         frame0 = self._format_frame(mjx.get_rgb(self._rc_pytree, 0, out[0]))
-        frame_stack_0 = jp.concatenate(
-            [prev_stack_0[..., self._pixel_channels_per_frame :], frame0], axis=-1
-        )
+        shifted_0 = jp.concatenate([prev_stack_0[..., cpf:], frame0], axis=-1)
+        frame_stack_0 = jp.where(do_shift, shifted_0, prev_stack_0.at[..., -cpf:].set(frame0))
 
         # Camera 1: outer_camera_side
         frame1 = self._format_frame(mjx.get_rgb(self._rc_pytree, 1, out[0]))
-        frame_stack_1 = jp.concatenate(
-            [prev_stack_1[..., self._pixel_channels_per_frame :], frame1], axis=-1
-        )
+        shifted_1 = jp.concatenate([prev_stack_1[..., cpf:], frame1], axis=-1)
+        frame_stack_1 = jp.where(do_shift, shifted_1, prev_stack_1.at[..., -cpf:].set(frame1))
 
         # Camera 2: outer_camera_up
         frame2 = self._format_frame(mjx.get_rgb(self._rc_pytree, 2, out[0]))
-        frame_stack_2 = jp.concatenate(
-            [prev_stack_2[..., self._pixel_channels_per_frame :], frame2], axis=-1
-        )
+        shifted_2 = jp.concatenate([prev_stack_2[..., cpf:], frame2], axis=-1)
+        frame_stack_2 = jp.where(do_shift, shifted_2, prev_stack_2.at[..., -cpf:].set(frame2))
+
+    frame_skip_counter = frame_skip_counter + 1
 
     # ── Priviledged ──────────────────────────
     action_buffer = state.info["action_buffer"]   # (history, nu)
@@ -73,7 +80,7 @@ def _get_obs_impl(self, state, action):
     proprio = jp.concatenate([
         action_buffer.flatten(),
         linacc_buffer.flatten(),
-        linvel_buffer.flatten(),  # TODO: do not forget to delete! this is just for debugging
+        # linvel_buffer.flatten(),  # TODO: do not forget to delete! this is just for debugging
         angvel_buffer.flatten(),
         quat_buffer.flatten(),
     ])
@@ -91,6 +98,7 @@ def _get_obs_impl(self, state, action):
         "frame_stack_0":  frame_stack_0,
         "frame_stack_1":  frame_stack_1,
         "frame_stack_2":  frame_stack_2,
+        "frame_skip_counter": frame_skip_counter,
         "action_buffer": action_buffer,
         "linacc_buffer": linacc_buffer,
         "linvel_buffer": linvel_buffer,
