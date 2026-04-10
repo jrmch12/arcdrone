@@ -187,8 +187,6 @@ def make_il_networks(
     value_hidden_layer_sizes: Sequence[int] = (256, 256, 256),
     activation: ActivationFn = nn.tanh,
     policy_pixels_key: str = "pixels/view_0",
-    policy_pixels_key_1: str = "pixels/view_1",
-    policy_pixels_key_2: str = "pixels/view_2",
     policy_proprio_key: str = "proprio_obs",
     teacher_obs_key: str = "teacher_obs",
     value_obs_key: str = "value_obs",
@@ -243,9 +241,7 @@ def make_il_networks(
     dummy_value_obs = jnp.zeros((1, value_obs_size))
 
     pixel_shape_0 = tuple(observation_size[policy_pixels_key])
-    pixel_shape_1 = tuple(observation_size[policy_pixels_key_1])
-    pixel_shape_2 = tuple(observation_size[policy_pixels_key_2])
-    pixel_shape = pixel_shape_0[:-1] + (pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],)
+    pixel_shape = pixel_shape_0
     proprio_size = _shape_last_dim(observation_size[policy_proprio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
     dummy_proprio = jnp.zeros((1, proprio_size))
@@ -266,11 +262,7 @@ def make_il_networks(
         return preprocess_observations_fn(obs, pparams)
 
     def _extract_student_obs(obs):
-        pixels = jnp.concatenate([
-            obs[policy_pixels_key],
-            obs[policy_pixels_key_1],
-            obs[policy_pixels_key_2],
-        ], axis=-1)
+        pixels = obs[policy_pixels_key]
         return pixels, obs[policy_proprio_key]
 
     def _preprocess_student_proprio(obs, pparams):

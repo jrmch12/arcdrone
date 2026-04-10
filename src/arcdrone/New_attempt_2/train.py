@@ -132,8 +132,6 @@ def main(cfg: DictConfig):
         cnn_kernel_sizes=cfg.cnn_kernel_sizes,
         cnn_strides=cfg.cnn_strides,
         policy_pixels_key=cfg.policy_pixels_key,
-        policy_pixels_key_1=cfg.policy_pixels_key_1,
-        policy_pixels_key_2=cfg.policy_pixels_key_2,
         policy_proprio_key=cfg.policy_proprio_key,
         teacher_obs_key=cfg.teacher_obs_key,
         value_obs_key=cfg.value_obs_key,

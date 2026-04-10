@@ -12,6 +12,8 @@ Usage (from repo root):
         --policy teacher \
         --teacher_checkpoint outputs/2026-03-21/18-28-17/teacher_model.pkl \
         --episodes 3
+
+  Camera-target visibility analysis is always printed.
 """
 from __future__ import annotations
 
@@ -44,6 +46,75 @@ OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=Tru
 
 CFG_DIR = _THIS_DIR / "cfg"
 PROJECT_ROOT = _THIS_DIR.parents[2]
+
+
+# ── Camera-target visibility helpers ─────────────────────────────────────────
+
+def _quat_to_rotmat(quat):
+    """MuJoCo quaternion (w, x, y, z) -> 3x3 rotation matrix."""
+    w, x, y, z = quat
+    return np.array([
+        [1 - 2*(y*y + z*z), 2*(x*y - z*w),     2*(x*z + y*w)],
+        [2*(x*y + z*w),     1 - 2*(x*x + z*z), 2*(y*z - x*w)],
+        [2*(x*z - y*w),     2*(y*z + x*w),     1 - 2*(x*x + y*y)],
+    ])
+
+
+def compute_camera_visibility(qpos, target_pos, cam_fovy_deg=70.0, cam_res_h=64,
+                               landing_radius=0.4):
+    """Compute camera-target visibility metrics from drone state.
+
+    The x2_camera is on a tilt joint (hinge around body-Y, range [-π/2, 0]).
+    Default look direction in body frame at tilt=0: (-1, 0, 0) (forward).
+    At tilt = -π/2: (0, 0, -1) (straight down).
+
+    Args:
+        qpos:  full qpos array [x,y,z, qw,qx,qy,qz, tilt_joint, ...]
+        target_pos: (3,) world-frame landing target
+        cam_fovy_deg: vertical FOV in degrees (MuJoCo default 45)
+        cam_res_h: camera resolution height (pixels)
+        landing_radius: radius of the landing pad (metres)
+
+    Returns:  dict with tilt_deg, angle_to_target_deg, in_fov, pad_pixels, ...
+    """
+    drone_pos = qpos[0:3]
+    drone_quat = qpos[3:7]
+    tilt = float(qpos[7])  # camera tilt joint value (radians)
+
+    R_body = _quat_to_rotmat(drone_quat)
+
+    # Camera look direction in body frame after tilt rotation around Y
+    look_body = np.array([-np.cos(tilt), 0.0, np.sin(tilt)])
+    look_world = R_body @ look_body
+
+    # Camera world position (mount offset in body frame)
+    cam_offset_body = np.array([-0.15, 0.0, 0.05])
+    cam_pos = drone_pos + R_body @ cam_offset_body
+
+    # Vector from camera to target
+    to_target = target_pos - cam_pos
+    dist = np.linalg.norm(to_target)
+    to_target_n = to_target / (dist + 1e-8)
+
+    # Angle between camera look direction and direction to target
+    cos_a = np.clip(np.dot(look_world, to_target_n), -1.0, 1.0)
+    angle_deg = float(np.degrees(np.arccos(cos_a)))
+
+    fov_half = cam_fovy_deg / 2.0
+    in_fov = angle_deg < fov_half
+
+    # Approx pad size in pixels (angular subtense mapped to image height)
+    pad_ang = np.degrees(2 * np.arctan(landing_radius / (dist + 1e-8)))
+    pad_px = pad_ang / cam_fovy_deg * cam_res_h
+
+    return {
+        "tilt_deg": float(np.degrees(tilt)),
+        "angle_deg": angle_deg,
+        "in_fov": in_fov,
+        "dist": dist,
+        "pad_px": pad_px,
+        "look_world": look_world,
+    }
 
 
 def _find_latest_checkpoint(outputs_dir: Path) -> str:
@@ -104,8 +175,6 @@ def main():
         cnn_kernel_sizes=cfg_train.cnn_kernel_sizes,
         cnn_strides=cfg_train.cnn_strides,
         policy_pixels_key=cfg_train.policy_pixels_key,
-        policy_pixels_key_1=cfg_train.policy_pixels_key_1,
-        policy_pixels_key_2=cfg_train.policy_pixels_key_2,
         policy_proprio_key=cfg_train.policy_proprio_key,
         teacher_obs_key=cfg_train.teacher_obs_key,
         value_obs_key=cfg_train.value_obs_key,
@@ -169,10 +238,13 @@ def main():
     print("JIT done.\n")
 
     # Header
-    print("=" * 130)
+    print("=" * 160)
     print(f"{'step':>4s}  {'x':>7s} {'y':>7s} {'z':>7s}  {'vx':>7s} {'vy':>7s} {'vz':>7s}  "
-          f"{'wx':>7s} {'wy':>7s} {'wz':>7s}  {'reward':>8s} {'done':>4s}  {'dist':>6s}  actions")
-    print("=" * 130)
+          f"{'wx':>7s} {'wy':>7s} {'wz':>7s}  {'reward':>8s} {'done':>4s}  {'dist':>6s}  "
+          f"{'tilt°':>6s} {'ang°':>6s} {'FOV':>3s} {'pad_px':>6s}  actions")
+    print("=" * 160)
+
+    all_episodes_fov = []  # collect per-episode FOV %
 
     for ep in range(args.episodes):
         rng, reset_key = jax.random.split(rng)
@@ -187,6 +259,12 @@ def main():
               f"target=({target0[0]:.2f}, {target0[1]:.2f}, {target0[2]:.2f})")
 
         total_reward = 0.0
+        # Camera visibility tracking for this episode
+        ep_angles = []
+        ep_in_fov = []
+        ep_tilt = []
+        ep_pad_px = []
+
         for step in range(args.max_steps):
             rng, action_key = jax.random.split(rng)
             obs_0 = jax.tree.map(lambda x: x[0], state.obs)
@@ -206,22 +284,50 @@ def main():
             target = np.array(state.info["target_buffer"][0, 0, :])
             dist = np.linalg.norm(pos[:2] - target[:2])
 
+            # Camera visibility
+            qpos_full = np.array(state.data.qpos[0])
+            vis = compute_camera_visibility(qpos_full, target)
+            ep_angles.append(vis["angle_deg"])
+            ep_in_fov.append(vis["in_fov"])
+            ep_tilt.append(vis["tilt_deg"])
+            ep_pad_px.append(vis["pad_px"])
+
             # Print every 5 steps + first 3 + last + done
             if step % 5 == 0 or step < 3 or d > 0.5 or step == args.max_steps - 1:
                 act_str = "[" + ", ".join(f"{a:+.2f}" for a in act) + "]"
+                fov_str = " Y " if vis["in_fov"] else " N "
                 print(f"{step:4d}  {pos[0]:7.3f} {pos[1]:7.3f} {pos[2]:7.3f}  "
                       f"{vel[0]:7.3f} {vel[1]:7.3f} {vel[2]:7.3f}  "
                       f"{angvel[0]:7.3f} {angvel[1]:7.3f} {angvel[2]:7.3f}  "
-                      f"{r:8.3f} {d:4.0f}  {dist:6.3f}  {act_str}")
+                      f"{r:8.3f} {d:4.0f}  {dist:6.3f}  "
+                      f"{vis['tilt_deg']:6.1f} {vis['angle_deg']:6.1f} {fov_str} {vis['pad_px']:6.1f}  "
+                      f"{act_str}")
 
             if d > 0.5:
                 break
 
         outcome = "SUCCESS" if step < args.max_steps - 1 and pos[2] < 0.1 else "TIMEOUT/CRASH"
+        fov_pct = 100.0 * np.mean(ep_in_fov)
+        all_episodes_fov.append(fov_pct)
         print(f"    --> {outcome}  total_reward={total_reward:.2f}  "
               f"final=({pos[0]:.3f}, {pos[1]:.3f}, {pos[2]:.3f})  "
               f"final_dist={dist:.3f}  steps={step+1}")
+        print(f"    [CAMERA] FOV%={fov_pct:.1f}  "
+              f"mean_angle={np.mean(ep_angles):.1f}°  "
+              f"mean_tilt={np.mean(ep_tilt):.1f}°  "
+              f"mean_pad_px={np.mean(ep_pad_px):.1f}  "
+              f"min_angle={np.min(ep_angles):.1f}°  "
+              f"max_angle={np.max(ep_angles):.1f}°")
 
+    # Global summary
+    print("\n" + "=" * 80)
+    print("CAMERA VISIBILITY SUMMARY ACROSS ALL EPISODES")
+    print("=" * 80)
+    for i, pct in enumerate(all_episodes_fov):
+        bar = "█" * int(pct / 2) + "░" * (50 - int(pct / 2))
+        print(f"  Episode {i+1:2d}: {bar} {pct:5.1f}% in FOV")
+    print(f"  Overall mean FOV%: {np.mean(all_episodes_fov):.1f}%")
+    print("=" * 80)
     print("\nDone.")
 
 

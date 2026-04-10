@@ -99,7 +99,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         self._pixel_stack_shape = (
             cam_h,
             cam_w,
-            self._pixel_channels_per_frame * int(self.cfg.buffer_size),
+            self._pixel_channels_per_frame * int(self.cfg.buffer_size_pixels),
         )
         self._dummy_frame_stack = jp.zeros(self._pixel_stack_shape, dtype=jp.float32)
 
@@ -130,26 +130,18 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         info = self._initialize_state_vars(data, rng)
 
         if self._vision_enabled:
-            # Vision: render initial frames for all cameras and build frame-stacks
+            # Vision: render initial frame from the mounted camera
             render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
             out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
 
             frame0 = self._format_frame(mjx.get_rgb(self._rc_pytree, 0, out[0]))
-            frame1 = self._format_frame(mjx.get_rgb(self._rc_pytree, 1, out[0]))
-            frame2 = self._format_frame(mjx.get_rgb(self._rc_pytree, 2, out[0]))
-            frame_stack_0 = jp.tile(frame0, (1, 1, self.cfg.buffer_size))
-            frame_stack_1 = jp.tile(frame1, (1, 1, self.cfg.buffer_size))
-            frame_stack_2 = jp.tile(frame2, (1, 1, self.cfg.buffer_size))
+            frame_stack_0 = jp.tile(frame0, (1, 1, self.cfg.buffer_size_pixels))
         else:
             frame_stack_0 = self._dummy_frame_stack
-            frame_stack_1 = self._dummy_frame_stack
-            frame_stack_2 = self._dummy_frame_stack
 
         info = {
             **info,
             "frame_stack_0": frame_stack_0,
-            "frame_stack_1": frame_stack_1,
-            "frame_stack_2": frame_stack_2,
             "frame_skip_counter": jp.int32(0),
         }
 
@@ -163,19 +155,19 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             info["action_buffer"].flatten(),
             info["pos_buffer"].flatten(),
         ])
-        # Proprio: IMU-like (linacc, linvel, angvel, quat) buffers, all flattened
+        # Proprio: IMU-like sensors + velocity + altitude + actions
+        # altitude = jp.array([data.qpos[2]])
         proprio = jp.concatenate([
             info["action_buffer"].flatten(),
             info["linacc_buffer"].flatten(),
-            # info["linvel_buffer"].flatten(),  # TODO: do not forget to delete! this is just for debigguing
             info["angvel_buffer"].flatten(),
             info["quat_buffer"].flatten(),
+            #altitude, 
+            # info["linvel_buffer"].flatten(),
         ])
         obs = {
-            "pixels/view_0": frame_stack_0,     # (H, W, history) — front camera
-            "pixels/view_1": frame_stack_1,     # (H, W, history) — side camera
-            "pixels/view_2": frame_stack_2,     # (H, W, history) — up camera
-            "proprio_obs": proprio,  # (history * (3+3+4),)
+            "pixels/view_0": frame_stack_0,     # (H, W, history) — mounted camera
+            "proprio_obs": proprio,  # (history * (nu+3+3+4),)
             "value_obs": priviledged_state,           # critic obs
             "teacher_obs": priviledged_state,
         }
@@ -347,6 +339,9 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         qpos = jp.zeros(nq)
         qpos = qpos.at[0:3].set(position)
         qpos = qpos.at[3:7].set(quaternion)
+        # Camera tilt joint (qpos[7]): start pointing straight down (-π/2)
+        # so the mounted camera sees the landing pad from the first frame.
+        qpos = qpos.at[7].set(-jp.pi / 2)
 
         # Random velocities
         nv = int(self._mjx_model.nv)
@@ -382,6 +377,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             'reward_ground_penalty': jp.float32(0.0),
             'reward_total': jp.float32(0.0),
             'reward_crash_penalty': jp.zeros(()),
+            'reward_camera_alignment': jp.float32(0.0),
         }
 
     def _get_obs(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:

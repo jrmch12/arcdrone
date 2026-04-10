@@ -17,7 +17,7 @@ from arcdrone.utils.plotjuggler import PlotJugglerLogger
 
 
 # ========== Configuration ==========
-MODEL_PATH = "/home/jrmch12/Documents/code/260110_arcdrone_brax_envs/arcdrone/assets/skydio_x2/scene.xml"
+MODEL_PATH = "/home/jrmch12f/Documents/code/arcdrone_folder/borrador_braxenvs/assets/skydio_x2/scene_mounted_cam.xml"
 N_STEPS = 5  # Number of physics steps per control step
 LAYOUT_FILE = None  # Optional: "plotjuggler_layout/viewer_layout.xml"
 PORT = 9872  # Port for PlotJuggler ZMQ JSON connection

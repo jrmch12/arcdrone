@@ -1,6 +1,14 @@
 from jax import numpy as jp
 
 
+def _quat_rotate(quat, vec):
+    """Rotate vec by quaternion (w, x, y, z)."""
+    w = quat[0]
+    xyz = quat[1:4]
+    t = 2.0 * jp.cross(xyz, vec)
+    return vec + w * t + jp.cross(xyz, t)
+
+
 
 def _check_episode_events_impl(self, state):
     """Check if episode should terminate and some event flags needed for the reward fn."""
@@ -231,6 +239,18 @@ def _get_reward_impl(self, state, action):
 
 
 
+    # ==== Camera alignment reward ====
+    cam_alignment_weight = float(getattr(self.cfg, 'camera_alignment_weight', 0.3))
+    pos = state.data.qpos[0:3]
+    body_quat = state.data.qpos[3:7]
+    tilt = state.data.qpos[7]
+    cam_fwd_body = jp.array([-jp.cos(tilt), 0.0, jp.sin(tilt)])
+    cam_fwd_world = _quat_rotate(body_quat, cam_fwd_body)
+    to_target = target - pos
+    to_target_norm = to_target / (jp.linalg.norm(to_target) + 1e-8)
+    alignment = jp.dot(cam_fwd_world, to_target_norm)
+    r_camera = cam_alignment_weight * alignment
+
     # ==== Total reward ====
 
     total_reward = (
@@ -246,6 +266,7 @@ def _get_reward_impl(self, state, action):
         + r_soft_landing
         + r_ground
         + success_bonus
+        + r_camera
         # + r_crash_penalty
     )
     
@@ -270,6 +291,7 @@ def _get_reward_impl(self, state, action):
         'reward_ground_penalty': r_ground,
         'reward_success_bonus': success_bonus,
         'reward_crash_penalty': 0.0,
+        'reward_camera_alignment': r_camera,
         'reward_total': total_reward,
         
     })
