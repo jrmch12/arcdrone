@@ -38,7 +38,7 @@ def find_latest_checkpoint(outputs_dir: str = "outputs") -> str:
 # ========== Configuration ==========
 CFG_DIR = Path(__file__).resolve().parent / "cfg"
 _project_root = Path(__file__).resolve().parent.parent.parent.parent
-MUJOCO_PATH = str(_project_root / "assets" / "skydio_x2" / "scene_il_easy.xml")
+MUJOCO_PATH = str(_project_root / "assets" / "skydio_x2" / "scene_mounted_cam.xml")
 
 
 def _squeeze(tree):
@@ -121,8 +121,8 @@ def evaluate(
         cnn_kernel_sizes=cfg_train.cnn_kernel_sizes,
         cnn_strides=cfg_train.cnn_strides,
         policy_pixels_key=cfg_train.policy_pixels_key,
-        policy_pixels_key_1=cfg_train.policy_pixels_key_1,
-        policy_pixels_key_2=cfg_train.policy_pixels_key_2,
+        # policy_pixels_key_1=cfg_train.policy_pixels_key_1,
+        # policy_pixels_key_2=cfg_train.policy_pixels_key_2,
         policy_proprio_key=cfg_train.policy_proprio_key,
         teacher_obs_key=cfg_train.teacher_obs_key,
         value_obs_key=cfg_train.value_obs_key,

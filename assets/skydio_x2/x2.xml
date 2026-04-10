@@ -42,7 +42,7 @@
       <body name="x2_camera_mount" pos="-0.15 0 0.05" childclass="visual">
         <joint name="x2_camera_tilt" type="hinge" axis="0 1 0" limited="true" range="-1.5708 0" damping="0.5"/>
         <inertial pos="0 0 0" mass="0.001" diaginertia="1e-6 1e-6 1e-6"/>
-        <!-- <camera name="x2_camera" pos="0 0 0" xyaxes="0 1 0 0 0 1"/> -->
+        <camera name="x2_camera" pos="0 0 0" xyaxes="0 1 0 0 0 1" fovy="70"/>
       </body>
       <site name="imu" pos="0 0 .02"/>
       <geom material="phong3SG" mesh="X2_lowpoly" class="visual" quat="0 0 1 1"/>

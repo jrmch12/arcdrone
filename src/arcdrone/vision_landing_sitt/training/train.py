@@ -40,6 +40,9 @@ import jax.numpy as jnp
 import numpy as np
 import optax
 
+logging.set_verbosity(logging.INFO)
+logging.set_stderrthreshold("info")
+
 
 InferenceParams = Any
 Metrics = types.Metrics

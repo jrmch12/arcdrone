@@ -53,7 +53,8 @@ env:
   success_bonus: 0.5
   ground_penalty_weight: 10.0  
   ground_threshold_event: 0.2  
-  ground_threshold_penalty: 0.5 
+  ground_threshold_penalty: 0.5
+  camera_alignment_weight: 3.0
 
 
 train:
@@ -63,7 +64,7 @@ train:
   num_evals: 8
   num_eval_envs: 2
   reward_scaling: 0.01
-  episode_length: 200
+  episode_length: 350
   normalize_observations: true
   action_repeat: 1
   unroll_length: 10

@@ -228,7 +228,7 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
         position = jp.array([
             jax.random.uniform(rng_pos, (), minval=-2.0, maxval=2.0),
             jax.random.uniform(rng_pos, (), minval= -2.0, maxval=2.0),
-            jax.random.uniform(rng_pos, (), minval= 1.0, maxval=2.5),
+            jax.random.uniform(rng_pos, (), minval= 4.0, maxval=6.0),
         ])
 
         # Random orientation (small tilt)
@@ -280,6 +280,7 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
             'reward_ground_penalty': jp.float32(0.0),
             'reward_total': jp.float32(0.0),
             'reward_crash_penalty': jp.zeros(()),
+            'reward_camera_alignment': jp.float32(0.0),
         }
 
     def _get_obs(self, state: mjx_env.State, action: jp.ndarray) -> mjx_env.State:
