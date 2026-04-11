@@ -69,8 +69,22 @@ def _get_obs_impl(self, state, action):
         # altitude,
         # linvel_buffer.flatten(),
     ])
+
+    # Build pixel observation: raw frames + optional diff channels
+    if self._diff_channels > 0:
+        cpf = self._pixel_channels_per_frame
+        diffs = []
+        for i in range(int(self.cfg.buffer_size_pixels) - 1):
+            curr = frame_stack_0[..., i * cpf:(i + 1) * cpf]
+            prev = frame_stack_0[..., (i + 1) * cpf:(i + 2) * cpf]
+            diffs.append(curr - prev)
+        diff_stack = jp.concatenate(diffs, axis=-1)
+        pixel_obs_0 = jp.concatenate([frame_stack_0, diff_stack], axis=-1)
+    else:
+        pixel_obs_0 = frame_stack_0
+
     obs = {
-        "pixels/view_0": frame_stack_0,     # (H, W, history) — mounted camera
+        "pixels/view_0": pixel_obs_0,     # (H, W, history + diffs) — mounted camera
         "proprio_obs": proprio,
         "value_obs": priviledged_state,           # critic obs
         "teacher_obs": priviledged_state,

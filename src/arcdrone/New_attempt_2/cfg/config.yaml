@@ -41,14 +41,15 @@ env:
   
   # ==== Task specific ====
   buffer_size: 3        # depth of the privileged-state buffers (teacher_obs, proprio_obs, etc.)
-  buffer_size_pixels: 5  # depth of the pixel frame stack (student CNN input) — independent of teacher
-  frame_skip: 2          # temporal spacing: frames in the stack are frame_skip steps apart
+  buffer_size_pixels: 7  # depth of the pixel frame stack (student CNN input) — independent of teacher
+  frame_skip: 3          # temporal spacing: frames in the stack are frame_skip steps apart
+  use_frame_diffs: true   # append frame-difference channels (optical flow proxy) to pixel obs
   landing_radius: 0.4
 
   # Reset randomization — wider spread for impressive demo
-  init_xy_range: 2.0
-  init_z_min: 4.0
-  init_z_max: 6.0
+  init_xy_range: 1.5
+  init_z_min: 2.0
+  init_z_max: 4.0
   init_tilt_range: 0.15
   init_linvel_std: 0.3
   init_angvel_std: 0.3
@@ -88,11 +89,11 @@ train:
   seed: 0
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
   teacher_normalizer_key: "policy_obs"
-  num_dagger_epochs: 3000         # number of collect-then-align cycles
+  num_dagger_epochs: 10000         # number of collect-then-align cycles
 
   # DAgger mixing schedule: high beta_end keeps teacher guidance active
-  beta_start: 1.0
-  beta_end: 0.6
+  beta_start: 0.6
+  beta_end: 0.3
   beta_schedule: "cosine"
 
   # Minibatch layout (mirrors PPO / IL):
