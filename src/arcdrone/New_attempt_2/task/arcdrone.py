@@ -96,12 +96,26 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             cam_res = (8, 8)
         cam_h, cam_w = int(cam_res[0]), int(cam_res[1])
         self._pixel_channels_per_frame = 1 if self._grayscale_obs else 3
+
+        # Raw frame stack channels
+        self._raw_pixel_channels = self._pixel_channels_per_frame * int(self.cfg.buffer_size_pixels)
+
+        # Optical flow proxy: frame difference channels
+        self._use_frame_diffs = bool(getattr(self.cfg, 'use_frame_diffs', False))
+        if self._use_frame_diffs and int(self.cfg.buffer_size_pixels) >= 2:
+            self._diff_channels = (int(self.cfg.buffer_size_pixels) - 1) * self._pixel_channels_per_frame
+        else:
+            self._diff_channels = 0
+
+        # Observation shape includes raw + diff channels
         self._pixel_stack_shape = (
             cam_h,
             cam_w,
-            self._pixel_channels_per_frame * int(self.cfg.buffer_size_pixels),
+            self._raw_pixel_channels + self._diff_channels,
         )
-        self._dummy_frame_stack = jp.zeros(self._pixel_stack_shape, dtype=jp.float32)
+        # Internal storage is raw frames only (diffs recomputed each step)
+        self._raw_frame_stack_shape = (cam_h, cam_w, self._raw_pixel_channels)
+        self._dummy_frame_stack = jp.zeros(self._raw_frame_stack_shape, dtype=jp.float32)
 
     def _format_frame(self, rgb):
         if self._grayscale_obs:
@@ -139,6 +153,14 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         else:
             frame_stack_0 = self._dummy_frame_stack
 
+        # Build pixel observation (raw frames + optional diff channels)
+        if self._diff_channels > 0:
+            # All frames identical at reset → diffs are zero
+            diff_zeros = jp.zeros((*frame_stack_0.shape[:2], self._diff_channels), dtype=jp.float32)
+            pixel_obs_0 = jp.concatenate([frame_stack_0, diff_zeros], axis=-1)
+        else:
+            pixel_obs_0 = frame_stack_0
+
         info = {
             **info,
             "frame_stack_0": frame_stack_0,
@@ -166,7 +188,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             # info["linvel_buffer"].flatten(),
         ])
         obs = {
-            "pixels/view_0": frame_stack_0,     # (H, W, history) — mounted camera
+            "pixels/view_0": pixel_obs_0,     # (H, W, history + diffs) — mounted camera
             "proprio_obs": proprio,  # (history * (nu+3+3+4),)
             "value_obs": priviledged_state,           # critic obs
             "teacher_obs": priviledged_state,
