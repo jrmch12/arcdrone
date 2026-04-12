@@ -40,6 +40,12 @@ def _get_obs_impl(self, state, action):
     pos     = data.qpos[0:3]
     target  = state.info.get("target", jp.zeros(3))
 
+    # Camera tilt: actual joint angle + angular velocity
+    tilt_angle = data.qpos[7]        # actual camera tilt (rad)
+    tilt_vel   = data.qvel[6]        # camera tilt angular velocity (rad/s)
+    tilt_state = jp.array([tilt_angle, tilt_vel])
+    tilt_buffer = jp.concatenate([tilt_state[jp.newaxis, :], state.info["tilt_buffer"][:-1, :]], axis=0)
+
     linacc_buffer = jp.concatenate([linacc[jp.newaxis, :], state.info["linacc_buffer"][:-1, :]], axis=0)
     linvel_buffer = jp.concatenate([linvel[jp.newaxis, :], state.info["linvel_buffer"][:-1, :]], axis=0)
     quat_buffer   = jp.concatenate([quat[jp.newaxis, :],   state.info["quat_buffer"][:-1, :]],   axis=0)
@@ -66,6 +72,7 @@ def _get_obs_impl(self, state, action):
         linacc_buffer.flatten(),
         angvel_buffer.flatten(),
         quat_buffer.flatten(),
+        tilt_buffer.flatten(),    # camera tilt angle + velocity history
         # altitude,
         # linvel_buffer.flatten(),
     ])
@@ -89,6 +96,7 @@ def _get_obs_impl(self, state, action):
         "value_obs": priviledged_state,           # critic obs
         "teacher_obs": priviledged_state,
         "aux_linvel": linvel,                     # ground-truth velocity for aux loss
+        "aux_tilt": tilt_buffer.flatten(),         # raw tilt [angle,vel] history → direct input to aux vel head
     }
 
     info = {
@@ -102,5 +110,6 @@ def _get_obs_impl(self, state, action):
         "angvel_buffer": angvel_buffer,
         "pos_buffer":    pos_buffer,
         "target_buffer": target_buffer,
+        "tilt_buffer":   tilt_buffer,
     }
     return state.replace(obs=obs, info=info)

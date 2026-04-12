@@ -133,10 +133,11 @@ def evaluate(
         print("Loading trained student checkpoint...")
         params = model.load_params(model_path)
 
-        # Checkpoint layout: (proprio_norm, (student_enc, student_action_head))
+        # Checkpoint layout: (proprio_norm, (student_enc, action_head, vel_estimator))
         proprio_norm = params[0]
-        student_enc  = params[1][0]
-        action_head  = params[1][1]
+        student_enc    = params[1][0]
+        action_head    = params[1][1]
+        vel_estimator  = params[1][2]
 
         # Guard: if the checkpoint normalizer is dict-shaped (from an older
         # run) or has a mismatched size (e.g. before linvel was added to
@@ -154,10 +155,10 @@ def evaluate(
                 _specs.Array((proprio_size,), jax.numpy.dtype("float32"))
             )
 
-        # DAgger make_student_inference_fn expects a 3-tuple:
-        #   (proprio_norm, student_enc, student_action_head)
+        # DAgger make_student_inference_fn expects a 4-tuple:
+        #   (proprio_norm, student_enc, action_head, vel_estimator)
         make_policy = dagger_networks.make_student_inference_fn(il_net)
-        inference_fn = make_policy((proprio_norm, student_enc, action_head), deterministic=True)
+        inference_fn = make_policy((proprio_norm, student_enc, action_head, vel_estimator), deterministic=True)
     else:
         print("Loading frozen teacher checkpoint...")
         teacher_ckpt = model.load_params(teacher_checkpoint_path)

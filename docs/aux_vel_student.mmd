@@ -1,0 +1,43 @@
+flowchart LR
+  subgraph Inputs
+    P[pixels/view_0]
+    R[proprio_obs]
+    %% tilt history used by vel estimator
+    T[aux_tilt]
+  end
+
+  P --> CNN[CNN encoder]
+  CNN --> CNNFeat[cnn_feats]
+  R --> Proj[Proprio MLP]
+  Proj --> ProprioFeat
+
+  CNNFeat --> Fuse[Concat -> Fusion MLP (PolicyVisionProprioEncoder)]
+  ProprioFeat --> Fuse
+  Fuse --> Encoder[encoder_feats]
+
+  %% Vel estimator (new): takes [encoder_feats, aux_tilt] -> pred_linvel (3D)
+  Encoder --> VEConcat[concat encoder_feats + aux_tilt]
+  T --> VEConcat
+  VEConcat --> VelEst[vel_estimator MLP (pred_linvel 3D)]
+  VelEst --> pred_linvel[pred_linvel (3D)]
+
+  %% Action head now receives [encoder_feats, pred_linvel]
+  Encoder --> ActConcat[concat encoder_feats + pred_linvel]
+  pred_linvel --> ActConcat
+  ActConcat --> ActionHead[Student Action Head (trainable action_head_mlp)]
+  ActionHead --> student_logits[student_logits]
+
+  %% Vel supervision and losses
+  pred_linvel --> AuxLoss[Aux vel loss = MSE(pred_linvel, stop_grad(aux_linvel))]
+
+  %% Teacher (frozen labels) — teacher action head consumes teacher_feats only
+  teacher_feats[(teacher_feat)] -.-> EmbedLoss[Embed loss = |encoder_feats - stop_grad(teacher_feat)|]
+  teacher_logits[(teacher_logits)] -.-> ActionLoss[Action loss = |student_logits - stop_grad(teacher_logits)|]
+
+  EmbedLoss --> Total[Total = embed_coef*embed + action_coef*action + aux_vel_coef*aux]
+  ActionLoss --> Total
+  AuxLoss --> Total
+
+  style VelEst fill:#f9f,stroke:#333,stroke-width:1px
+  style ActionHead fill:#9ff,stroke:#333,stroke-width:1px
+  style Encoder fill:#efe,stroke:#333,stroke-width:1px

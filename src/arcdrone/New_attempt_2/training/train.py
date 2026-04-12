@@ -1,19 +1,10 @@
-"""DAgger (Dataset Aggregation) training loop — trainable action head.
+"""DAgger (Dataset Aggregation) training loop — vel-in-the-loop.
 
-Unlike vision_landing_il, DAgger:
-  1. Rolls out a β-mixture of teacher and student to collect states under the
-     student's own distribution (addressing distribution shift).
-  2. Trains BOTH the student encoder AND the student action head from scratch.
-     The teacher action head is only used to generate action labels.
+The velocity estimator predicts linvel from encoder features + tilt history,
+and that prediction flows INTO the action head at both training and inference.
 
-β follows a configurable decay schedule from ``beta_start`` to ``beta_end``.
-
-Imports:
-  - Networks / align from arcdrone.New_attempt_2.training (own copies)
-  - Task/env from arcdrone.New_attempt_2.task
-
-Checkpoint layout (compatible with evaluate.py):
-    (proprio_norm, (student_enc_params, student_action_head_params))
+Checkpoint layout:
+    (proprio_norm, (student_enc, action_head, vel_estimator))
 """
 
 import functools
@@ -57,14 +48,13 @@ _PMAP_AXIS_NAME = "i"
 class DAggerTrainingState:
     """Mutable state for the DAgger learner.
 
-    Both student_enc_params and action_head_params are trainable.
-    aux_vel_head_params is training-only (not saved to checkpoint).
-    Teacher params are Python-level constants, never in JAX state.
+    student_enc_params, action_head_params, vel_estimator_params are all
+    trainable AND used at inference (vel-in-the-loop architecture).
     """
     align_opt_state: optax.OptState
     student_enc_params: Any
     action_head_params: Any
-    aux_vel_head_params: Any
+    vel_estimator_params: Any
     normalizer_params: Any
     env_steps: Any
 
@@ -248,8 +238,8 @@ def train(
     make_student_policy = dagger_networks.make_student_inference_fn(il_network)
 
     def _pack_student_params(ts: DAggerTrainingState):
-        """Returns (proprio_norm, student_enc, student_action_head)."""
-        return (ts.normalizer_params, ts.student_enc_params, ts.action_head_params)
+        """Returns (proprio_norm, student_enc, action_head, vel_estimator)."""
+        return (ts.normalizer_params, ts.student_enc_params, ts.action_head_params, ts.vel_estimator_params)
 
     # ── Align function — teacher_action_head_params pre-bound as frozen labels ──
     align_fn = functools.partial(
@@ -272,9 +262,9 @@ def train(
     student_enc_params  = il_network.student_encoder.init(key_enc)
     # Fresh student action head (trained from scratch, NOT copied from teacher)
     action_head_params  = il_network.action_head.init(key_head)
-    # Fresh auxiliary velocity head (training-only)
-    key_aux = jax.random.PRNGKey(seed + 99)
-    aux_vel_head_params = il_network.aux_vel_head.init(key_aux)
+    # Fresh velocity estimator (used at inference — vel-in-the-loop)
+    key_vel = jax.random.PRNGKey(seed + 99)
+    vel_estimator_params = il_network.vel_estimator.init(key_vel)
 
     # Normalizer: proprio running stats only
     proprio_spec = specs.Array(
@@ -283,19 +273,27 @@ def train(
     proprio_norm = running_statistics.init_state(proprio_spec)
 
     if restore_params is not None:
-        # Support two checkpoint layouts:
-        #   NEW: (proprio_norm, (student_enc, student_action_head))
-        #   OLD: (proprio_norm, student_enc)   — from IL or pre-trainable-head DAgger
+        # Support checkpoint layouts:
+        #   VEL-IN-LOOP: (proprio_norm, (student_enc, action_head, vel_estimator))
+        #   OLD-2:        (proprio_norm, (student_enc, action_head))
+        #   OLD-1:        (proprio_norm, student_enc)
         restored_norm = restore_params[0]
         restored_policy = restore_params[1]
-        if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
-            restored_enc, restored_head = restored_policy
+        if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 3:
+            restored_enc, restored_head, restored_vel = restored_policy
             student_enc_params = restored_enc
             action_head_params = restored_head
-            logging.info("Restored student encoder + action head (new format).")
+            vel_estimator_params = restored_vel
+            logging.info("Restored student enc + action head + vel estimator (vel-in-loop format).")
+        elif isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
+            restored_enc, restored_head = restored_policy
+            student_enc_params = restored_enc
+            # Old checkpoint had different action_head input size (no vel concat),
+            # so we only restore the encoder and start action_head + vel fresh.
+            logging.info("Restored student encoder only from old format (action head + vel fresh).")
         else:
             student_enc_params = restored_policy
-            logging.info("Restored student encoder only (old format, action head stays fresh).")
+            logging.info("Restored student encoder only (old format, action head + vel fresh).")
 
         # Only restore normalizer if it's a flat array state matching current
         # proprio shape.  Old checkpoints may have a dict-shaped normalizer or
@@ -317,12 +315,12 @@ def train(
                 "incompatible structure (dict vs array)."
             )
 
-    # Optimizer covers (student_enc_params, action_head_params, aux_vel_head_params) as a tuple tree
+    # Optimizer covers (student_enc, action_head, vel_estimator) as a tuple tree
     training_state = DAggerTrainingState(
-        align_opt_state=align_optimizer.init((student_enc_params, action_head_params, aux_vel_head_params)),
+        align_opt_state=align_optimizer.init((student_enc_params, action_head_params, vel_estimator_params)),
         student_enc_params=student_enc_params,
         action_head_params=action_head_params,
-        aux_vel_head_params=aux_vel_head_params,
+        vel_estimator_params=vel_estimator_params,
         normalizer_params=proprio_norm,
         env_steps=jnp.uint32(0),
     )
@@ -384,9 +382,9 @@ def train(
             env_state, key_rollout, mixture_policy, num_unrolls_per_epoch,
         )
 
-        # 4. Joint alignment: train (student_enc, student_action_head, aux_vel_head) together
-        trainable_in = (training_state.student_enc_params, training_state.action_head_params, training_state.aux_vel_head_params)
-        (new_student_enc, new_action_head, new_aux_vel), align_opt_state, align_loss, embed_loss, action_loss, aux_vel_loss = align_fn(
+        # 4. Joint alignment: train (student_enc, action_head, vel_estimator) together
+        trainable_in = (training_state.student_enc_params, training_state.action_head_params, training_state.vel_estimator_params)
+        (new_student_enc, new_action_head, new_vel_est), align_opt_state, align_loss, embed_loss, action_loss, aux_vel_loss = align_fn(
             trainable_in,
             training_state.align_opt_state,
             data.observation,
@@ -405,7 +403,7 @@ def train(
             align_opt_state=align_opt_state,
             student_enc_params=new_student_enc,
             action_head_params=new_action_head,
-            aux_vel_head_params=new_aux_vel,
+            vel_estimator_params=new_vel_est,
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + jnp.uint32(env_steps_per_epoch),
         )
@@ -538,8 +536,6 @@ def train(
     params = _unpmap(_pack_student_params(training_state))
     logging.info("DAgger training complete — total env steps: %d", current_step)
 
-    # Checkpoint: (proprio_norm, (student_enc_params, student_action_head_params))
-    # NOTE: student_action_head_params here is the TRAINED student head,
-    # not the teacher's. evaluate.py loads [1][1] as action_head_params.
-    checkpoint_params = (params[0], (params[1], params[2]))
+    # Checkpoint: (proprio_norm, (student_enc, action_head, vel_estimator))
+    checkpoint_params = (params[0], (params[1], params[2], params[3]))
     return (make_student_policy, checkpoint_params, metrics)

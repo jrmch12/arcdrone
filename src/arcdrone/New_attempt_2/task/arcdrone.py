@@ -184,16 +184,18 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             info["linacc_buffer"].flatten(),
             info["angvel_buffer"].flatten(),
             info["quat_buffer"].flatten(),
+            info["tilt_buffer"].flatten(),    # camera tilt angle + velocity history
             #altitude, 
             # info["linvel_buffer"].flatten(),
         ])
         linvel_init = data.sensordata[10:13]
         obs = {
             "pixels/view_0": pixel_obs_0,     # (H, W, history + diffs) — mounted camera
-            "proprio_obs": proprio,  # (history * (nu+3+3+4),)
+            "proprio_obs": proprio,
             "value_obs": priviledged_state,           # critic obs
             "teacher_obs": priviledged_state,
             "aux_linvel": linvel_init,                # ground-truth velocity for aux loss
+            "aux_tilt": info["tilt_buffer"].flatten(), # raw tilt history → direct input to aux vel head
         }
 
         state = mjx_env.State(
@@ -477,6 +479,11 @@ def _initialize_state_vars_impl(self, data, rng):
         'quat_buffer_noisy': jp.tile(quat_init, (self.cfg.buffer_size, 1)),
         'angvel_buffer_noisy': jp.tile(angvel_init, (self.cfg.buffer_size, 1)),
         'linvel_buffer_noisy': jp.tile(linvel_init, (self.cfg.buffer_size, 1)),
+        # Camera tilt state: [actual_angle, angular_velocity] from qpos[7] / qvel[6]
+        'tilt_buffer': jp.tile(
+            jp.array([data.qpos[7], data.qvel[6]]),
+            (self.cfg.buffer_size, 1),
+        ),
         # initialize ground_violation to match keys expected by reward/termination
         'ground_violation': jp.array(0.0),
     }

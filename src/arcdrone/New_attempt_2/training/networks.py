@@ -3,8 +3,20 @@
 All shared code (CNN, MLP, IL networks) is inlined here so that
 New_attempt_2 does NOT depend on the arcdrone package at all.
 
-DAgger-specific: make_student_inference_fn — the action head is fully
-trainable, passed as part of params (not frozen from teacher).
+Architecture (vel-in-the-loop):
+
+    pixels → CNN → cnn_flat
+    proprio → MLP → proprio_feats
+    [cnn_flat, proprio_feats] → fusion MLP → encoder_feats
+
+    vel_estimator: [encoder_feats, aux_tilt] → MLP → pred_linvel(3)
+                   (supervised by ground-truth linvel during training)
+
+    action_head:   [encoder_feats, pred_linvel] → MLP → actions
+                   (pred_linvel flows into the action pipeline at inference!)
+
+Checkpoint layout:
+    (proprio_norm, (student_enc, action_head, vel_estimator))
 """
 
 from typing import Any, Callable, Mapping, Sequence, Tuple
@@ -24,7 +36,7 @@ Initializer = Callable[..., Any]
 
 
 # ===================================================================
-# Common network building blocks (from arcdrone.common.networks)
+# Common network building blocks
 # ===================================================================
 
 class MLP(nn.Module):
@@ -68,7 +80,7 @@ def _get_obs_size(obs_size: types.ObservationSize, obs_key: str) -> int:
 
 
 # ===================================================================
-# IL Networks (from arcdrone.vision_landing_il.training.networks)
+# IL Networks
 # ===================================================================
 
 @flax.struct.dataclass
@@ -113,29 +125,6 @@ class PolicyVisionProprioEncoder(nn.Module):
         )(fused)
 
 
-class PolicyProprioEncoder(nn.Module):
-    proprio_proj_hidden_layers: Sequence[int]
-    fusion_hidden_layers: Sequence[int]
-    activation: ActivationFn = nn.relu
-    kernel_init: Initializer = jax.nn.initializers.lecun_uniform()
-
-    @nn.compact
-    def __call__(self, pixels: jnp.ndarray, proprio: jnp.ndarray) -> jnp.ndarray:
-        _ = pixels
-        proprio_feats = MLP(
-            layer_sizes=list(self.proprio_proj_hidden_layers),
-            activation=self.activation,
-            kernel_init=self.kernel_init,
-            activate_final=True,
-        )(proprio)
-        return MLP(
-            layer_sizes=list(self.fusion_hidden_layers),
-            activation=self.activation,
-            kernel_init=self.kernel_init,
-            activate_final=False,
-        )(proprio_feats)
-
-
 def _split_path(path: str) -> Sequence[str]:
     return tuple(k for k in path.split("/") if k)
 
@@ -168,7 +157,8 @@ class ILNetworks:
     teacher_decoder: FeedForwardNetwork
     student_encoder: FeedForwardNetwork
     action_head: FeedForwardNetwork
-    aux_vel_head: FeedForwardNetwork
+    teacher_action_head: FeedForwardNetwork
+    vel_estimator: FeedForwardNetwork
     parametric_action_distribution: distribution.ParametricDistribution
 
 
@@ -212,19 +202,21 @@ def make_il_networks(
         activation=activation,
         kernel_init=kernel_init,
     )
-    action_head_mlp = MLP(
-        layer_sizes=list(action_hidden_layer_sizes)
-            + [parametric_action_distribution.param_size],
-        activation=activation,
-        kernel_init=kernel_init,
-    )
     value_mlp = MLP(
         layer_sizes=list(value_hidden_layer_sizes) + [1],
         activation=activation,
         kernel_init=kernel_init,
     )
 
-    # Dummy inputs for init
+    # ── Vel estimator: [encoder_feats, aux_tilt] → pred_linvel(3) ──
+    tilt_size = _shape_last_dim(observation_size.get("aux_tilt", (10,)))
+    vel_estimator_mlp = MLP(
+        layer_sizes=[64, 32, 3],
+        activation=nn.relu,
+        kernel_init=kernel_init,
+    )
+
+    # ── Dummy inputs ──
     teacher_obs_raw = (
         _get_by_path(observation_size, teacher_obs_key)
         if isinstance(observation_size, Mapping)
@@ -241,14 +233,38 @@ def make_il_networks(
     value_obs_size = _shape_last_dim(value_obs_raw)
     dummy_value_obs = jnp.zeros((1, value_obs_size))
 
-    pixel_shape_0 = tuple(observation_size[policy_pixels_key])
-    pixel_shape = pixel_shape_0
+    pixel_shape = tuple(observation_size[policy_pixels_key])
     proprio_size = _shape_last_dim(observation_size[policy_proprio_key])
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
     dummy_proprio = jnp.zeros((1, proprio_size))
 
+    _tmp_enc_params = student_encoder_module.init(jax.random.PRNGKey(0), dummy_pixels, dummy_proprio)
+    _dummy_enc_feats = student_encoder_module.apply(_tmp_enc_params, dummy_pixels, dummy_proprio)
+    encoder_feat_dim = _dummy_enc_feats.shape[-1]
+
+    # Teacher features have the same role as encoder features for action head sizing
     _tmp_params = teacher_decoder_mlp.init(jax.random.PRNGKey(0), dummy_teacher_obs)
-    _dummy_feats = teacher_decoder_mlp.apply(_tmp_params, dummy_teacher_obs)
+    _dummy_teacher_feats = teacher_decoder_mlp.apply(_tmp_params, dummy_teacher_obs)
+
+    # Vel estimator input: encoder_feats + tilt history
+    _dummy_vel_input = jnp.zeros((1, encoder_feat_dim + tilt_size))
+    # Action head input: encoder_feats + predicted linvel(3)
+    action_head_mlp = MLP(
+        layer_sizes=list(action_hidden_layer_sizes)
+            + [parametric_action_distribution.param_size],
+        activation=activation,
+        kernel_init=kernel_init,
+    )
+    _dummy_action_input = jnp.zeros((1, encoder_feat_dim + 3))
+    # Teacher action head: same architecture but takes teacher_feats (no vel concat)
+    teacher_action_head_mlp = MLP(
+        layer_sizes=list(action_hidden_layer_sizes)
+            + [parametric_action_distribution.param_size],
+        activation=activation,
+        kernel_init=kernel_init,
+    )
+
+    # ── Preprocessing helpers ──
 
     def _preprocess_teacher(obs, pparams):
         teacher_obs = obs[teacher_obs_key] if isinstance(obs, Mapping) else obs
@@ -270,6 +286,11 @@ def make_il_networks(
         proprio = obs[policy_proprio_key] if isinstance(obs, Mapping) else obs
         return preprocess_observations_fn(proprio, pparams)
 
+    def _get_aux_tilt(obs):
+        return obs.get("aux_tilt", jnp.zeros(tilt_size))
+
+    # ── FeedForwardNetwork wrappers ──
+
     teacher_decoder_net = FeedForwardNetwork(
         init=lambda key: teacher_decoder_mlp.init(key, dummy_teacher_obs),
         apply=lambda pparams, params, obs: teacher_decoder_mlp.apply(
@@ -286,47 +307,67 @@ def make_il_networks(
         ),
     )
 
-    action_head_net = FeedForwardNetwork(
-        init=lambda key: action_head_mlp.init(key, _dummy_feats),
-        apply=lambda pparams, params, feats: action_head_mlp.apply(params, feats),
+    vel_estimator_net = FeedForwardNetwork(
+        init=lambda key: vel_estimator_mlp.init(key, _dummy_vel_input),
+        apply=lambda pparams, params, feats_and_tilt: vel_estimator_mlp.apply(
+            params, feats_and_tilt
+        ),
     )
 
-    # Auxiliary velocity prediction head (training-only, predicts linvel from encoder features)
-    aux_vel_mlp = MLP(
-        layer_sizes=[64, 32, 3],
-        activation=activation,
-        kernel_init=kernel_init,
+    action_head_net = FeedForwardNetwork(
+        init=lambda key: action_head_mlp.init(key, _dummy_action_input),
+        apply=lambda pparams, params, feats_and_vel: action_head_mlp.apply(
+            params, feats_and_vel
+        ),
     )
-    aux_vel_head_net = FeedForwardNetwork(
-        init=lambda key: aux_vel_mlp.init(key, _dummy_feats),
-        apply=lambda pparams, params, feats: aux_vel_mlp.apply(params, feats),
+
+    # Teacher action head: takes teacher_feat_dim (no vel concat)
+    teacher_action_head_net = FeedForwardNetwork(
+        init=lambda key: teacher_action_head_mlp.init(key, _dummy_teacher_feats),
+        apply=lambda pparams, params, feats: teacher_action_head_mlp.apply(
+            params, feats
+        ),
     )
+
+    # ── Teacher network (unchanged: decoder → teacher action head) ──
 
     def _teacher_net_init(key):
         k1, k2 = jax.random.split(key)
         dec_params = teacher_decoder_mlp.init(k1, dummy_teacher_obs)
         feats = teacher_decoder_mlp.apply(dec_params, dummy_teacher_obs)
-        head_params = action_head_mlp.init(k2, feats)
+        head_params = teacher_action_head_mlp.init(k2, feats)
         return dec_params, head_params
 
     def _teacher_net_apply(pparams, params, obs):
         feats = teacher_decoder_mlp.apply(params[0], _preprocess_teacher(obs, pparams))
-        return action_head_mlp.apply(params[1], feats)
+        return teacher_action_head_mlp.apply(params[1], feats)
 
     teacher_network = FeedForwardNetwork(init=_teacher_net_init, apply=_teacher_net_apply)
 
+    # ── Student network (vel-in-the-loop) ──
+    # params = (enc_params, action_head_params, vel_estimator_params)
+
     def _student_net_init(key):
-        k1, k2 = jax.random.split(key)
+        k1, k2, k3 = jax.random.split(key, 3)
         enc_params = student_encoder_module.init(k1, dummy_pixels, dummy_proprio)
-        feats = student_encoder_module.apply(enc_params, dummy_pixels, dummy_proprio)
-        head_params = action_head_mlp.init(k2, feats)
-        return enc_params, head_params
+        head_params = action_head_mlp.init(k2, _dummy_action_input)
+        vel_params = vel_estimator_mlp.init(k3, _dummy_vel_input)
+        return enc_params, head_params, vel_params
 
     def _student_net_apply(pparams, params, obs):
+        enc_params, head_params, vel_params = params
         pixels, _ = _extract_student_obs(obs)
         proprio = _preprocess_student_proprio(obs, pparams)
-        feats = student_encoder_module.apply(params[0], pixels, proprio)
-        return action_head_mlp.apply(params[1], feats)
+        encoder_feats = student_encoder_module.apply(enc_params, pixels, proprio)
+
+        # Stage 1: estimate velocity from encoder features + tilt history
+        tilt = _get_aux_tilt(obs)
+        vel_input = jnp.concatenate([encoder_feats, tilt], axis=-1)
+        pred_linvel = vel_estimator_mlp.apply(vel_params, vel_input)
+
+        # Stage 2: action from encoder features + predicted velocity
+        action_input = jnp.concatenate([encoder_feats, pred_linvel], axis=-1)
+        return action_head_mlp.apply(head_params, action_input)
 
     student_network = FeedForwardNetwork(init=_student_net_init, apply=_student_net_apply)
 
@@ -344,7 +385,8 @@ def make_il_networks(
         teacher_decoder=teacher_decoder_net,
         student_encoder=student_encoder_net,
         action_head=action_head_net,
-        aux_vel_head=aux_vel_head_net,
+        teacher_action_head=teacher_action_head_net,
+        vel_estimator=vel_estimator_net,
         parametric_action_distribution=parametric_action_distribution,
     )
 
@@ -378,30 +420,32 @@ def make_frozen_teacher_policy(
 
 
 # ---------------------------------------------------------------------------
-# DAgger-specific inference helper
+# DAgger-specific inference helper — vel-in-the-loop
 # ---------------------------------------------------------------------------
 
 def make_student_inference_fn(il_networks: ILNetworks):
-    """Student (vision) policy factory for DAgger — trainable action head.
+    """Student (vision) policy factory — vel-in-the-loop.
 
-    Unlike the IL version, the action head is NOT closed over as a constant.
-    It is part of the params tuple so the training loop can update it.
+    The student_network.apply runs encoder → vel_estimator → action_head
+    as a single forward pass.  The predicted linvel flows into the action
+    pipeline at both training AND inference time.
 
     Expected params at call time (from _pack_student_params):
-        params[0] = proprio_norm              (RunningStatisticsState)
-        params[1] = student_enc_params        (trainable)
-        params[2] = student_action_head_params (trainable)
+        params[0] = proprio_norm
+        params[1] = student_enc_params
+        params[2] = student_action_head_params
+        params[3] = vel_estimator_params
 
     Checkpoint layout (saved by train.py):
-        (proprio_norm, (student_enc_params, student_action_head_params))
+        (proprio_norm, (student_enc, action_head, vel_estimator))
     """
 
     def make_policy(params: types.Params, deterministic: bool = False) -> types.Policy:
-        proprio_norm, student_enc, student_action_head = params
+        proprio_norm, student_enc, action_head, vel_estimator = params
 
         def policy(observations: types.Observation, key_sample: PRNGKey):
             logits = il_networks.student_network.apply(
-                proprio_norm, (student_enc, student_action_head), observations
+                proprio_norm, (student_enc, action_head, vel_estimator), observations
             )
             if deterministic:
                 return il_networks.parametric_action_distribution.mode(logits), {}
