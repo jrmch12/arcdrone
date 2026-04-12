@@ -58,11 +58,13 @@ class DAggerTrainingState:
     """Mutable state for the DAgger learner.
 
     Both student_enc_params and action_head_params are trainable.
+    aux_vel_head_params is training-only (not saved to checkpoint).
     Teacher params are Python-level constants, never in JAX state.
     """
-    align_opt_state: optax.OptState   # covers (student_enc, action_head) jointly
+    align_opt_state: optax.OptState
     student_enc_params: Any
-    action_head_params: Any           # student's own head, trained from scratch
+    action_head_params: Any
+    aux_vel_head_params: Any
     normalizer_params: Any
     env_steps: Any
 
@@ -99,6 +101,7 @@ def train(
     align_updates_per_trigger: int = 4,
     align_embed_coef: float = 1.0,
     align_action_coef: float = 1.0,
+    aux_vel_coef: float = 0.0,
     # --- architecture ---
     network_factory: types.NetworkFactory[
         dagger_networks.ILNetworks
@@ -257,6 +260,7 @@ def train(
         num_minibatches=num_minibatches,
         embed_coef=align_embed_coef,
         action_coef=align_action_coef,
+        aux_vel_coef=aux_vel_coef,
         teacher_dec_params=teacher_dec_params,
         teacher_action_head_params=teacher_action_head_params,  # frozen
         teacher_norm=teacher_obs_norm,
@@ -268,6 +272,9 @@ def train(
     student_enc_params  = il_network.student_encoder.init(key_enc)
     # Fresh student action head (trained from scratch, NOT copied from teacher)
     action_head_params  = il_network.action_head.init(key_head)
+    # Fresh auxiliary velocity head (training-only)
+    key_aux = jax.random.PRNGKey(seed + 99)
+    aux_vel_head_params = il_network.aux_vel_head.init(key_aux)
 
     # Normalizer: proprio running stats only
     proprio_spec = specs.Array(
@@ -310,11 +317,12 @@ def train(
                 "incompatible structure (dict vs array)."
             )
 
-    # Optimizer covers (student_enc_params, action_head_params) as a tuple tree
+    # Optimizer covers (student_enc_params, action_head_params, aux_vel_head_params) as a tuple tree
     training_state = DAggerTrainingState(
-        align_opt_state=align_optimizer.init((student_enc_params, action_head_params)),
+        align_opt_state=align_optimizer.init((student_enc_params, action_head_params, aux_vel_head_params)),
         student_enc_params=student_enc_params,
         action_head_params=action_head_params,
+        aux_vel_head_params=aux_vel_head_params,
         normalizer_params=proprio_norm,
         env_steps=jnp.uint32(0),
     )
@@ -376,9 +384,9 @@ def train(
             env_state, key_rollout, mixture_policy, num_unrolls_per_epoch,
         )
 
-        # 4. Joint alignment: train (student_enc, student_action_head) together
-        trainable_in = (training_state.student_enc_params, training_state.action_head_params)
-        (new_student_enc, new_action_head), align_opt_state, align_loss, embed_loss, action_loss = align_fn(
+        # 4. Joint alignment: train (student_enc, student_action_head, aux_vel_head) together
+        trainable_in = (training_state.student_enc_params, training_state.action_head_params, training_state.aux_vel_head_params)
+        (new_student_enc, new_action_head, new_aux_vel), align_opt_state, align_loss, embed_loss, action_loss, aux_vel_loss = align_fn(
             trainable_in,
             training_state.align_opt_state,
             data.observation,
@@ -397,6 +405,7 @@ def train(
             align_opt_state=align_opt_state,
             student_enc_params=new_student_enc,
             action_head_params=new_action_head,
+            aux_vel_head_params=new_aux_vel,
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + jnp.uint32(env_steps_per_epoch),
         )
@@ -405,6 +414,7 @@ def train(
             "align_loss": align_loss,
             "embed_loss": embed_loss,
             "action_loss": action_loss,
+            "aux_vel_loss": aux_vel_loss,
             "beta": beta,
         }
         return new_state, env_state, metrics
@@ -496,6 +506,7 @@ def train(
                 "training/align_loss":  float(train_metrics["align_loss"]),
                 "training/embed_loss":  float(train_metrics["embed_loss"]),
                 "training/action_loss": float(train_metrics["action_loss"]),
+                "training/aux_vel_loss": float(train_metrics["aux_vel_loss"]),
                 "training/beta":        float(train_metrics["beta"]),
                 "training/sps":         sps,
                 "training/walltime":    training_walltime,
@@ -512,10 +523,11 @@ def train(
             eval_reward = float(metrics.get("eval/episode_reward", float("nan")))
             logging.info(
                 "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
-                "align_loss=%.4f  action_loss=%.4f  eval_reward=%.2f  sps=%.0f",
+                "align=%.4f  action=%.4f  aux_vel=%.4f  eval_reward=%.2f  sps=%.0f",
                 epoch + 1, num_dagger_epochs, float(beta), current_step,
                 float(train_metrics["align_loss"]),
                 float(train_metrics["action_loss"]),
+                float(train_metrics["aux_vel_loss"]),
                 eval_reward,
                 sps,
             )

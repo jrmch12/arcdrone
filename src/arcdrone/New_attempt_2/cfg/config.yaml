@@ -41,15 +41,15 @@ env:
   
   # ==== Task specific ====
   buffer_size: 3        # depth of the privileged-state buffers (teacher_obs, proprio_obs, etc.)
-  buffer_size_pixels: 7  # depth of the pixel frame stack (student CNN input) — independent of teacher
-  frame_skip: 3          # temporal spacing: frames in the stack are frame_skip steps apart
-  use_frame_diffs: true   # append frame-difference channels (optical flow proxy) to pixel obs
+  buffer_size_pixels: 5 # depth of the pixel frame stack (student CNN input) — independent of teacher
+  frame_skip: 1         # temporal spacing: frames in the stack are frame_skip steps apart
+  use_frame_diffs: true # append frame-difference channels (optical flow proxy) to pixel obs
   landing_radius: 0.4
 
   # Reset randomization — wider spread for impressive demo
-  init_xy_range: 1.5
-  init_z_min: 2.0
-  init_z_max: 4.0
+  init_xy_range: 3.0
+  init_z_min: 0.3
+  init_z_max: 5.0
   init_tilt_range: 0.15
   init_linvel_std: 0.3
   init_angvel_std: 0.3
@@ -79,7 +79,7 @@ train:
   num_timesteps: 100
   num_evals: 32
   num_eval_envs: 32
-  episode_length: 600
+  episode_length: 2000
   normalize_observations: true
   action_repeat: 1
   unroll_length: 4
@@ -92,8 +92,8 @@ train:
   num_dagger_epochs: 10000         # number of collect-then-align cycles
 
   # DAgger mixing schedule: high beta_end keeps teacher guidance active
-  beta_start: 0.6
-  beta_end: 0.3
+  beta_start: 1.0
+  beta_end: 0.5
   beta_schedule: "cosine"
 
   # Minibatch layout (mirrors PPO / IL):
@@ -102,6 +102,7 @@ train:
   align_updates_per_trigger: 4
   align_embed_coef: 0.3
   align_action_coef: 2.0
+  aux_vel_coef: 1.0
 
   # Network Architecture
   policy_dec_hidden_layers: [256, 128]

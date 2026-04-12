@@ -156,6 +156,7 @@ def main(cfg: DictConfig):
         align_updates_per_trigger=cfg.align_updates_per_trigger,
         align_embed_coef=cfg.align_embed_coef,
         align_action_coef=cfg.align_action_coef,
+        aux_vel_coef=cfg.get('aux_vel_coef', 0.0),
         network_factory=network_factory,
         num_envs=cfg.num_envs,
         episode_length=cfg.episode_length,

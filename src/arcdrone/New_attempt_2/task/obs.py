@@ -88,6 +88,7 @@ def _get_obs_impl(self, state, action):
         "proprio_obs": proprio,
         "value_obs": priviledged_state,           # critic obs
         "teacher_obs": priviledged_state,
+        "aux_linvel": linvel,                     # ground-truth velocity for aux loss
     }
 
     info = {

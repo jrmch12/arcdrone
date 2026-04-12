@@ -187,11 +187,13 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             #altitude, 
             # info["linvel_buffer"].flatten(),
         ])
+        linvel_init = data.sensordata[10:13]
         obs = {
             "pixels/view_0": pixel_obs_0,     # (H, W, history + diffs) — mounted camera
             "proprio_obs": proprio,  # (history * (nu+3+3+4),)
             "value_obs": priviledged_state,           # critic obs
             "teacher_obs": priviledged_state,
+            "aux_linvel": linvel_init,                # ground-truth velocity for aux loss
         }
 
         state = mjx_env.State(
