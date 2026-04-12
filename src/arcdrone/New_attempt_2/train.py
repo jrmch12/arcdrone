@@ -261,7 +261,7 @@ def main(cfg: DictConfig):
     if best_student_params is not None:
         best_ckpt = (
             best_student_params[0],
-            (best_student_params[1], best_student_params[2]),
+            (best_student_params[1], best_student_params[2], best_student_params[3]),
         )
         best_model_path = os.path.join(hydra_run_dir, "best_model.pkl")
         model.save_params(best_model_path, best_ckpt)

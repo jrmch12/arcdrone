@@ -142,7 +142,7 @@ else:
         print(f"Auto-detected student: {ckpt_path}")
     ckpt = model.load_params(ckpt_path)
     proprio_norm = ckpt[0]
-    student_enc, action_head = ckpt[1]
+    student_enc, action_head, vel_estimator = ckpt[1]
     proprio_size = int(obs_shape["proprio_obs"][-1])
     try:
         if tuple(proprio_norm.mean.shape) != (proprio_size,):
@@ -152,7 +152,7 @@ else:
             specs.Array((proprio_size,), jnp.dtype("float32"))
         )
     make_policy = dagger_networks.make_student_inference_fn(il_net)
-    inference_fn = make_policy((proprio_norm, student_enc, action_head), deterministic=True)
+    inference_fn = make_policy((proprio_norm, student_enc, action_head, vel_estimator), deterministic=True)
     print(f"Loaded STUDENT policy from: {ckpt_path}")
 
 jit_inference = jax.jit(inference_fn)

@@ -1,0 +1,32 @@
+Teacher (privileged path):
+  teacher_obs/value_obs
+        |
+  [Teacher Decoder MLP] -> teacher_feat
+        |                        \
+        |                         \---> [Teacher Action Head] -> teacher_logits
+        V
+
+Student (vision + proprio):
+  pixels/view_0  --+                    
+                   |--> [CNN] -> cnn_feats --+
+  proprio_obs ---+                         |
+                                             +-> [Fusion MLP] -> student_feat
+
+Heads (from student_feat):
+  student_feat -> [Student Action Head (trainable)] -> student_logits
+  student_feat -> [Aux Vel Head (aux_vel_mlp) -> 3D vel_pred]
+
+Ground truth and losses:
+  aux_linvel (env)  -----+                        
+                          +--> Aux vel loss = MSE(vel_pred, stop_grad(aux_linvel))
+  stop_grad(teacher_feat) -+--> Embed loss = mean|student_feat - stop_grad(teacher_feat)|
+  stop_grad(teacher_logits) -+--> Action loss = mean|student_logits - stop_grad(teacher_logits)|
+
+Total loss used during alignment:
+  total = embed_coef*embed_loss + action_coef*action_loss + aux_vel_coef*aux_vel_loss
+
+Notes:
+ - `aux_vel_mlp` is defined in src/arcdrone/New_attempt_2/training/networks.py (layers [64,32,3]).
+ - Aux head is training-only; its params are included in the optimizer but not saved to final checkpoints.
+ - Aux ground-truth `aux_linvel` is produced in src/arcdrone/New_attempt_2/task/obs.py.
+ - Loss computed in src/arcdrone/New_attempt_2/training/align.py.

@@ -126,19 +126,19 @@ def _make_student_policy(
     proprio_norm = _coerce_proprio_norm(ckpt[0], obs_shape)
     restored_policy = ckpt[1]
 
-    if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
-        student_enc, action_head = restored_policy
+    if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 3:
+        student_enc, action_head, vel_estimator = restored_policy
+    elif isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
+        raise ValueError(
+            "Old 2-element checkpoint — incompatible with vel-in-loop architecture."
+        )
     else:
-        if teacher_ckpt is None:
-            raise ValueError(
-                "Student checkpoint appears to be old format (missing action head). "
-                "Provide a teacher checkpoint for fallback via --teacher_checkpoint_path."
-            )
-        student_enc = restored_policy
-        action_head = teacher_ckpt[1][1]
+        raise ValueError(
+            "Old checkpoint format — incompatible with vel-in-loop architecture."
+        )
 
     make_student = dagger_networks.make_student_inference_fn(il_network)
-    return make_student((proprio_norm, student_enc, action_head), deterministic=deterministic)
+    return make_student((proprio_norm, student_enc, action_head, vel_estimator), deterministic=deterministic)
 
 
 def _make_teacher_policy(il_network, cfg_train, teacher_ckpt_path: str, deterministic: bool):

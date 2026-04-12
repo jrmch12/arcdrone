@@ -190,8 +190,10 @@ def main():
         ckpt = model.load_params(ckpt_path)
         proprio_norm = ckpt[0]
         restored = ckpt[1]
-        if isinstance(restored, (tuple, list)) and len(restored) == 2:
-            student_enc, action_head = restored
+        if isinstance(restored, (tuple, list)) and len(restored) == 3:
+            student_enc, action_head, vel_estimator = restored
+        elif isinstance(restored, (tuple, list)) and len(restored) == 2:
+            raise ValueError("Old 2-element checkpoint — incompatible with vel-in-loop architecture")
         else:
             raise ValueError("Old checkpoint format — needs teacher for action head fallback")
 
@@ -206,7 +208,7 @@ def main():
             )
 
         make_policy = dagger_networks.make_student_inference_fn(il_net)
-        inference_fn = make_policy((proprio_norm, student_enc, action_head), deterministic=True)
+        inference_fn = make_policy((proprio_norm, student_enc, action_head, vel_estimator), deterministic=True)
     else:
         if not args.teacher_checkpoint:
             raise ValueError("--teacher_checkpoint required for teacher policy")

@@ -1,12 +1,17 @@
-"""Alignment step for DAgger training — trainable action head + aux velocity.
+"""Alignment step for DAgger training — vel-in-the-loop architecture.
 
-    ``trainable_params = (student_enc_params, student_action_head_params, aux_vel_head_params)``
+    ``trainable_params = (student_enc, action_head, vel_estimator)``
+
+Architecture in the loss:
+    encoder_feats = student_enc(pixels, proprio)
+    pred_linvel   = vel_estimator([encoder_feats, tilt_history])
+    student_logits = action_head([encoder_feats, pred_linvel])
 
 Loss structure:
     embed_loss    = mean |student_feat - stop_grad(teacher_feat)|
-    action_loss   = mean |student_head(student_feat) -
-                         stop_grad(teacher_head(stop_grad(teacher_feat)))|
-    aux_vel_loss  = mean (aux_vel_head(student_feat) - linvel_gt)^2
+    action_loss   = mean |student_logits - stop_grad(teacher_logits)|
+                    (gradients flow through action_head AND vel_estimator!)
+    aux_vel_loss  = mean (pred_linvel - linvel_gt)^2
     total_loss    = embed_coef * embed_loss + action_coef * action_loss
                   + aux_vel_coef * aux_vel_loss
 """
@@ -32,7 +37,7 @@ import optax
     ),
 )
 def align(
-    trainable_params,           # (student_enc, student_action_head, aux_vel_head)
+    trainable_params,           # (student_enc, action_head, vel_estimator)
     opt_state: optax.OptState,
     teacher_obs,
     student_obs,
@@ -49,7 +54,10 @@ def align(
     action_coef: float = 1.0,
     aux_vel_coef: float = 0.0,
 ):
-    """Run minibatched alignment with optional auxiliary velocity loss.
+    """Run minibatched alignment with vel-in-the-loop.
+
+    The predicted linvel flows INTO the action head, so action_loss gradients
+    propagate through both the action head AND the vel estimator.
 
     Returns:
         ``(new_trainable_params, new_opt_state, mean_total, mean_embed, mean_action, mean_aux_vel)``
@@ -66,7 +74,7 @@ def align(
         t_obs, s_obs = data
 
         def loss_fn(trainable):
-            student_enc, student_head, aux_vel_params = trainable
+            student_enc, student_head, vel_est_params = trainable
 
             # ── Teacher features (frozen target) ──
             teacher_feat = il_network.teacher_decoder.apply(
@@ -83,26 +91,36 @@ def align(
                 jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat))
             )
 
-            # Teacher action labels (frozen)
-            teacher_logits = il_network.action_head.apply(
+            # Teacher action labels (frozen) — uses teacher_action_head
+            # which has teacher_feat_dim input (no vel concat)
+            teacher_logits = il_network.teacher_action_head.apply(
                 None,
                 teacher_action_head_params,
                 jax.lax.stop_gradient(teacher_feat),
             )
 
-            # Student actions through the trainable student head
+            # ── Vel-in-the-loop: estimate velocity, then feed to action head ──
+            tilt_info = s_obs["aux_tilt"]
+            vel_input = jnp.concatenate([student_feat, tilt_info], axis=-1)
+            pred_linvel = il_network.vel_estimator.apply(
+                None, vel_est_params, vel_input
+            )
+
+            # Action head receives [encoder_feats, predicted_linvel]
+            action_input = jnp.concatenate([student_feat, pred_linvel], axis=-1)
             student_logits = il_network.action_head.apply(
-                None, student_head, student_feat
+                None, student_head, action_input
             )
 
             action_loss = jnp.mean(
                 jnp.abs(student_logits - jax.lax.stop_gradient(teacher_logits))
             )
 
-            # Auxiliary velocity prediction loss
+            # Vel supervision: MSE against ground-truth linvel
             linvel_gt = s_obs["aux_linvel"]
-            vel_pred = il_network.aux_vel_head.apply(None, aux_vel_params, student_feat)
-            aux_vel_loss = jnp.mean((vel_pred - jax.lax.stop_gradient(linvel_gt)) ** 2)
+            aux_vel_loss = jnp.mean(
+                (pred_linvel - jax.lax.stop_gradient(linvel_gt)) ** 2
+            )
 
             total_loss = (embed_coef * embed_loss
                          + action_coef * action_loss
