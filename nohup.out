@@ -1,0 +1,37 @@
+[2026-04-11 19:49:05,653][OpenGL.acceleratesupport][INFO] - No OpenGL_accelerate module loaded: No module named 'OpenGL_accelerate'
+INFO:2026-04-11 19:49:10,188:jax._src.xla_bridge:752: Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+Instantiating ARCDroneVisionLandingIL...
+[2026-04-11 19:49:10,188][jax._src.xla_bridge][INFO] - Unable to initialize backend 'tpu': INTERNAL: Failed to open libtpu.so: libtpu.so: cannot open shared object file: No such file or directory
+wandb: Currently logged in as: jraimundo-mares-12 (jraimundo-mares-12-private) to https://api.wandb.ai. Use `wandb login --relogin` to force relogin
+wandb: setting up run b349qt31
+wandb: Tracking run with wandb version 0.23.1
+wandb: Run data is saved locally in /home/jrmch12f/Documents/code/arcdrone_folder/borrador_braxenvs/wandb/run-20260411_194913-b349qt31
+wandb: Run `wandb offline` to turn off syncing.
+wandb: Syncing run aux_vel_iter1_coef1
+wandb: ⭐️ View project at https://wandb.ai/jraimundo-mares-12-private/brax-training
+wandb: 🚀 View run at https://wandb.ai/jraimundo-mares-12-private/brax-training/runs/b349qt31
+Warp 1.12.0 initialized:
+   CUDA Toolkit 12.9, Driver 13.1
+   Devices:
+     "cpu"      : "x86_64"
+     "cuda:0"   : "NVIDIA GeForce RTX 3060" (12 GiB, sm_86, mempool enabled)
+   Kernel cache:
+     /home/jrmch12f/.cache/warp/1.12.0
+Warp DeprecationWarning: The symbol `warp.types.warp_type_to_np_dtype` will soon be removed from the public API. It can still be accessed from `warp._src.types.warp_type_to_np_dtype` but might be changed or removed without notice.
+Module mujoco.mjx.third_party.mujoco_warp._src.render_util 9cda0d9 load on device 'cuda:0' took 2.54 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.io 4ae9eac load on device 'cuda:0' took 1.65 ms  (cached)
+Module mujoco.mjx.third_party.mujoco_warp._src.bvh 4527052 load on device 'cuda:0' took 0.66 ms  (cached)
+Environment instantiated successfully
+Environment wrapped successfully
+Loading teacher checkpoint from: outputs/2026-04-11/17-49-41/trained_model.pkl
+Teacher parameters loaded successfully!
+[2026-04-11 19:49:15,217][absl][INFO] - DAgger — Device count: 1, process count: 1 (id 0), local device count: 1, devices to be used count: 1
+2026-04-11 19:49:28.086741: W external/xla/xla/service/gpu/autotuning/dot_search_space.cc:200] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs?Working around this by using the full hints set instead.
+2026-04-11 19:49:28.086783: W external/xla/xla/service/gpu/autotuning/dot_search_space.cc:200] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs?Working around this by using the full hints set instead.
+2026-04-11 19:49:28.086804: W external/xla/xla/service/gpu/autotuning/dot_search_space.cc:200] All configs were filtered out because none of them sufficiently match the hints. Maybe the hints set does not contain a good representative set of valid configs?Working around this by using the full hints set instead.
+Exception ignored on calling ctypes callback function: <function FfiCallable.__init__.<locals>.<lambda> at 0x7b57a1d9eac0>
+Traceback (most recent call last):
+  File "/home/jrmch12f/Documents/code/mujoco_playground/.venv/lib/python3.12/site-packages/mujoco/mjx/third_party/warp/_src/jax_experimental/ffi.py", line 551, in <lambda>
+    self.callback_func = FFI_CCALLFUNC(lambda call_frame: self.ffi_callback(call_frame))
+
+KeyboardInterrupt: 

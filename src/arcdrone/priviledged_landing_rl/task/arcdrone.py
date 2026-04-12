@@ -226,9 +226,9 @@ class ARCDroneRL_Landing(mjx_env.MjxEnv):
 
         # Position (start somewhere above pad)
         position = jp.array([
-            jax.random.uniform(rng_pos, (), minval=-2.0, maxval=2.0),
-            jax.random.uniform(rng_pos, (), minval= -2.0, maxval=2.0),
-            jax.random.uniform(rng_pos, (), minval= 4.0, maxval=6.0),
+            jax.random.uniform(rng_pos, (), minval=-5.0, maxval=5.0),
+            jax.random.uniform(rng_pos, (), minval= -5.0, maxval=5.0),
+            jax.random.uniform(rng_pos, (), minval= 0.3, maxval=6.0),
         ])
 
         # Random orientation (small tilt)

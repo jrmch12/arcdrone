@@ -168,6 +168,7 @@ class ILNetworks:
     teacher_decoder: FeedForwardNetwork
     student_encoder: FeedForwardNetwork
     action_head: FeedForwardNetwork
+    aux_vel_head: FeedForwardNetwork
     parametric_action_distribution: distribution.ParametricDistribution
 
 
@@ -290,6 +291,17 @@ def make_il_networks(
         apply=lambda pparams, params, feats: action_head_mlp.apply(params, feats),
     )
 
+    # Auxiliary velocity prediction head (training-only, predicts linvel from encoder features)
+    aux_vel_mlp = MLP(
+        layer_sizes=[64, 32, 3],
+        activation=activation,
+        kernel_init=kernel_init,
+    )
+    aux_vel_head_net = FeedForwardNetwork(
+        init=lambda key: aux_vel_mlp.init(key, _dummy_feats),
+        apply=lambda pparams, params, feats: aux_vel_mlp.apply(params, feats),
+    )
+
     def _teacher_net_init(key):
         k1, k2 = jax.random.split(key)
         dec_params = teacher_decoder_mlp.init(k1, dummy_teacher_obs)
@@ -332,6 +344,7 @@ def make_il_networks(
         teacher_decoder=teacher_decoder_net,
         student_encoder=student_encoder_net,
         action_head=action_head_net,
+        aux_vel_head=aux_vel_head_net,
         parametric_action_distribution=parametric_action_distribution,
     )
 
