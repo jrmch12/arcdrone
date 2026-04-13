@@ -21,21 +21,11 @@ Minibatching mirrors PPO's SGD step:
   - inner scan:     num_minibatches gradient steps per pass
 """
 
-from functools import partial
-
 import jax
 import jax.numpy as jnp
 import optax
 
 
-@partial(
-    jax.jit,
-    static_argnames=(
-        "sitt_network", "optimizer",
-        "align_updates_per_trigger", "num_minibatches",
-        "embed_coef", "action_coef",
-    ),
-)
 def align(
     student_enc_params,
     proxy_dec_params,

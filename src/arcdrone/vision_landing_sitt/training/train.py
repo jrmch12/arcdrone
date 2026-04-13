@@ -652,7 +652,7 @@ def train(
         training_epoch, axis_name=_PMAP_AXIS_NAME, donate_argnums=(0, 1),
     )
 
-    # ======================== align epoch ==============================
+    # ======================== align: split into rollout + gradient ======
 
     def _generate_student_rollout(state, key, policy, num_unrolls):
         def _scan(carry, _):
@@ -673,12 +673,12 @@ def train(
         )
         return next_state, data
 
-    def align_epoch(ts: TrainingState, student_state, key):
+    def collect_student_data(ts: TrainingState, student_state, key):
+        """Collect ONE vision rollout on the student env (expensive).
+        Returns fixed observation data for gradient passes."""
         key_rollout, key_next = jax.random.split(key)
 
-        # Build teacher policy from current PPO params (align-side teacher_network)
         teacher_norm = normalizer_select(ts.normalizer_params, policy_obs_key)
-        student_proprio_norm = ts.student_proprio_norm
 
         def _teacher_policy(observations, key_sample):
             logits = sitt_network.teacher_network.apply(
@@ -695,81 +695,72 @@ def train(
                 "distribution_params": logits,
             }
 
-        # Collect rollouts on student env with teacher policy
         student_state, data = _generate_student_rollout(
             student_state, key_rollout, _teacher_policy, align_unrolls_per_epoch,
         )
 
-        # Extract student env episode metrics from rollout.
-        # episode_done lives in state_extras; reward_total is the key used by
-        # the student env's _initialize_metrics (NOT 'episode_reward').
+        # Episode metrics
         ep_done = data.extras["state_extras"]["episode_done"]
         ep_reward = data.extras["state_extras"]["episode_metrics"]["reward_total"]
         completed_mask = ep_done.astype(jnp.float32)
         n_completed = jnp.maximum(jnp.sum(completed_mask), 1.0)
         student_ep_reward = jnp.sum(ep_reward * completed_mask) / n_completed
 
-        # Update student proprio normalizer with latest rollout data.
+        # Update student proprio normalizer
         student_proprio_norm = running_statistics.update(
-            student_proprio_norm,
+            ts.student_proprio_norm,
             data.observation[policy_proprio_key],
             pmap_axis_name=_PMAP_AXIS_NAME,
         )
 
-        # Run alignment: train student_enc and proxy_dec
-        (
-            student_enc, proxy_dec, align_opt_state,
-            align_loss, embed_loss, action_loss,
-        ) = align_fn(
-            ts.student_enc_params,
-            ts.params.proxy_dec_params,
-            ts.align_opt_state,
-            data.observation,            # teacher_obs (teacher_obs_key extracted inside)
-            data.observation,            # student_obs (proprio + pixels extracted inside)
-            student_proprio_norm,        # proprio_norm (student-specific stats)
-            teacher_dec_params=ts.params.policy[0],   # frozen during align
-            action_head_params=ts.params.policy[1],   # frozen during align
-            teacher_norm=teacher_norm,
+        return student_state, data.observation, student_ep_reward, student_proprio_norm, teacher_norm
+
+    collect_student_data_pmap = jax.pmap(
+        collect_student_data, axis_name=_PMAP_AXIS_NAME, donate_argnums=(1,),
+    )
+
+    def gradient_step(
+        student_enc_params, proxy_dec_params, align_opt_state,
+        obs_data, student_proprio_norm, teacher_norm,
+        teacher_dec_params, action_head_params,
+    ):
+        """Run align_updates_per_trigger × num_minibatches gradient steps
+        on FIXED obs data (no vision rendering). Uses a small scan to
+        batch multiple gradient epochs into one pmap call."""
+        def _single_grad(carry, _):
+            student_enc, proxy_dec, opt_st = carry
+            (
+                student_enc, proxy_dec, opt_st,
+                loss, e_loss, a_loss,
+            ) = align_fn(
+                student_enc, proxy_dec, opt_st,
+                obs_data, obs_data,
+                student_proprio_norm,
+                teacher_dec_params=teacher_dec_params,
+                action_head_params=action_head_params,
+                teacher_norm=teacher_norm,
+            )
+            return (student_enc, proxy_dec, opt_st), jnp.stack([loss, e_loss, a_loss])
+
+        (student_enc, proxy_dec, opt_state), losses = jax.lax.scan(
+            _single_grad,
+            (student_enc_params, proxy_dec_params, align_opt_state),
+            (),
+            length=_ALIGN_BATCH_SIZE,
         )
+        mean_losses = jnp.mean(losses, axis=0)
+        return student_enc, proxy_dec, opt_state, mean_losses[0], mean_losses[1], mean_losses[2]
 
-        new_ts = ts.replace(
-            student_enc_params=student_enc,
-            params=ts.params.replace(proxy_dec_params=proxy_dec),
-            align_opt_state=align_opt_state,
-            student_proprio_norm=student_proprio_norm,
-            align_env_steps=ts.align_env_steps + jnp.int32(align_env_steps_per_epoch),
-        )
-
-        metrics = {
-            "align_loss": align_loss,
-            "embed_loss": embed_loss,
-            "action_loss": action_loss,
-            "student_episode_reward": student_ep_reward,
-        }
-        return new_ts, student_state, metrics
-
-    # Batch all alignment epochs into a single jax.lax.scan inside pmap
-    # to avoid the massive overhead of a Python for-loop calling pmap
-    # repeatedly (e.g. 158 pmap dispatch+sync round-trips per iteration).
+    # Compute max alignment gradient epochs per SITT iteration
     max_align_epochs = max(align_epochs_by_iter.values()) if align_epochs_by_iter else 0
 
-    def align_n_epochs(ts, student_state, key):
-        def _body(carry, _):
-            ts, ss, k = carry
-            k, nk = jax.random.split(k)
-            ts, ss, m = align_epoch(ts, ss, k)
-            return (ts, ss, nk), m
-
-        (ts, ss, _), all_metrics = jax.lax.scan(
-            _body, (ts, student_state, key), (), length=max_align_epochs,
-        )
-        mean_metrics = jax.tree_util.tree_map(jnp.mean, all_metrics)
-        return ts, ss, mean_metrics
+    # Batch alignment epochs into groups to minimize Python⇄GPU round-trips.
+    # Each pmap call runs _ALIGN_BATCH_SIZE epochs via scan (small enough for
+    # fast JIT, large enough to slash dispatch overhead).
+    _ALIGN_BATCH_SIZE = min(max_align_epochs, 16) if max_align_epochs > 0 else 1
 
     if max_align_epochs > 0:
-        align_n_epochs_pmap = jax.pmap(
-            align_n_epochs, axis_name=_PMAP_AXIS_NAME, donate_argnums=(0, 1),
-        )
+        gradient_batch_pmap = jax.pmap(gradient_step, axis_name=_PMAP_AXIS_NAME)
 
     # ======================== evaluators ==============================
 
@@ -847,9 +838,10 @@ def train(
             ppo_sps = 0.0
             current_step = int(_unpmap(training_state.env_steps))
 
-        # ── Align epochs (batched into single XLA scan) ───────────────
+        # ── Align phase: 1 rollout + N gradient passes (Python loop) ──
         align_metrics_agg = {}
         align_epochs_now = align_epochs_by_iter.get(it, 0)
+        align_time = 0.0
         if align_epochs_now > 0:
             t0 = time.time()
             align_key, local_key = jax.random.split(local_key)
@@ -858,18 +850,63 @@ def train(
             training_state, student_env_state = _strip_weak_type(
                 (training_state, student_env_state)
             )
-            training_state, student_env_state, a_metrics = align_n_epochs_pmap(
+
+            # Step 1: ONE vision rollout (compiled once, reused)
+            (
+                student_env_state, obs_data, student_ep_reward,
+                student_proprio_norm, teacher_norm,
+            ) = collect_student_data_pmap(
                 training_state, student_env_state, align_keys,
             )
-            a_metrics = jax.tree_util.tree_map(jnp.mean, a_metrics)
-            jax.tree_util.tree_map(lambda x: x.block_until_ready(), a_metrics)
-            training_walltime += time.time() - t0
-            align_metrics_agg = {k: float(v) for k, v in a_metrics.items()}
+
+            # Step 2: N gradient passes on fixed data (batched pmap calls)
+            student_enc = training_state.student_enc_params
+            proxy_dec = training_state.params.proxy_dec_params
+            align_opt_st = training_state.align_opt_state
+            teacher_dec_p = training_state.params.policy[0]
+            action_head_p = training_state.params.policy[1]
+
+            last_losses = None
+            n_batches = (align_epochs_now + _ALIGN_BATCH_SIZE - 1) // _ALIGN_BATCH_SIZE
+            for _ in range(n_batches):
+                (
+                    student_enc, proxy_dec, align_opt_st,
+                    a_loss, e_loss, act_loss,
+                ) = gradient_batch_pmap(
+                    student_enc, proxy_dec, align_opt_st,
+                    obs_data, student_proprio_norm, teacher_norm,
+                    teacher_dec_p, action_head_p,
+                )
+                last_losses = (a_loss, e_loss, act_loss)
+
+            # Wait for final result
+            jax.tree_util.tree_map(lambda x: x.block_until_ready(), last_losses)
+
+            # Write updated params back to training state
+            training_state = training_state.replace(
+                student_enc_params=student_enc,
+                params=training_state.params.replace(proxy_dec_params=proxy_dec),
+                align_opt_state=align_opt_st,
+                student_proprio_norm=student_proprio_norm,
+                align_env_steps=training_state.align_env_steps + jnp.int32(
+                    align_env_steps_per_epoch
+                ),
+            )
+
+            align_time = time.time() - t0
+            training_walltime += align_time
+            align_metrics_agg = {
+                "align_loss": float(jnp.mean(last_losses[0])),
+                "embed_loss": float(jnp.mean(last_losses[1])),
+                "action_loss": float(jnp.mean(last_losses[2])),
+                "student_episode_reward": float(jnp.mean(student_ep_reward)),
+            }
 
         current_align_step = int(_unpmap(training_state.align_env_steps))
 
         # ── Eval & progress ───────────────────────────────────────────
         if process_id == 0:
+            t_eval = time.time()
             ppo_params = _unpmap(_pack_ppo_inference_params(training_state))
             policy_params_fn(current_step, make_ppo_policy, ppo_params)
 
@@ -894,18 +931,23 @@ def train(
             else:
                 metrics = training_metrics_out
 
+            eval_time = time.time() - t_eval
+
             # Add align metrics with separate step counter
             metrics["rl_env_steps"] = current_step
             metrics["align_env_steps"] = current_align_step
             for k, v in align_metrics_agg.items():
                 metrics[f"align/{k}"] = v
-                # metrics[f"training/{k}"] = v
-                # metrics[f"training_align/{k}"] = v
 
             logging.info(
-                "SITT iter %d  ppo_steps=%d  align_steps=%d  "
-                "ppo_loss=%.4f  align_loss=%.4f  sps=%.0f",
-                it + 1, current_step, current_align_step,
+                "SITT iter %d  ppo=%.1fs  align=%.1fs (%d ep)  eval=%.1fs  "
+                "ppo_steps=%d  align_steps=%d  ppo_loss=%.4f  align_loss=%.4f  sps=%.0f",
+                it + 1,
+                ppo_epoch_time,
+                align_time,
+                align_epochs_now,
+                eval_time,
+                current_step, current_align_step,
                 float(ppo_metrics.get("total_loss", 0.0)),
                 align_metrics_agg.get("align_loss", 0.0),
                 ppo_sps,

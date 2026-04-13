@@ -6,8 +6,7 @@ on a separate student env.
 
 Example::
 
-python src/arcdrone/vision_landing_sitt/train.py   train.num_timesteps=100000000 train.num_envs=1024 train.unroll_length=32   train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4  train.align_num_epochs=300 train.align_num_splits=30 train.align_num_envs=256 train.align_unroll_length=8 train.align_batch_size=128 train.align_num_minibatches=4   train.align_updates_per_trigger=4 train.num_evals=20 train.num_eval_envs=128   train.use_wandb=true env.buffer_size=3
-
+python /home/jrmch12f/Documents/code/arcdrone_folder/borrador_braxenvs/src/arcdrone/vision_landing_sitt/train.py train.num_envs=1024 train.num_timesteps=20000000 train.num_evals=20 train.num_eval_envs=128 train.unroll_length=32 train.batch_size=512 train.num_minibatches=16 train.num_updates_per_batch=4 train.align_num_epochs=3000 train.align_num_splits=19 train.align_updates_per_trigger=4 train.use_wandb=true train.wandb_run_name=sitt_v3_dagger_aligned train.seed=42 train.frompreviouscheckpoint=0
 """
 
 from datetime import datetime
