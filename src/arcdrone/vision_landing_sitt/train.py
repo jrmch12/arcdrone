@@ -38,8 +38,7 @@ def main(cfg: DictConfig):
     # Import JAX-related modules AFTER setting env vars
     from arcdrone.vision_landing_sitt.training.train import train as sitt_train
     from arcdrone.vision_landing_sitt.training import networks as sitt_networks
-    from arcdrone.priviledged_landing_rl.task.arcdrone import ARCDroneRL_Landing
-    from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
+    from arcdrone.New_attempt_2.task.arcdrone import ARCDroneVisionLandingIL
     from brax.io import model
     from arcdrone.utils.wandb_logger import WandbLogger
     from mujoco_playground import wrapper
@@ -48,8 +47,11 @@ def main(cfg: DictConfig):
     # =========== Teacher Environment (PPO) ===========
 
     env_cfg = cfg.env
-    print("Instantiating teacher env (ARCDroneRL_Landing)...")
-    teacher_env = ARCDroneRL_Landing(cfg=env_cfg)
+    teacher_cfg = OmegaConf.to_container(env_cfg, resolve=True)
+    teacher_cfg["enable_vision_obs"] = False
+    teacher_cfg["vision"] = False
+    print("Instantiating teacher env (ARCDroneVisionLandingIL, no vision)...")
+    teacher_env = ARCDroneVisionLandingIL(cfg=teacher_cfg)
     teacher_env = wrapper.wrap_for_brax_training(
         teacher_env,
         action_repeat=cfg.train.action_repeat,
@@ -59,12 +61,13 @@ def main(cfg: DictConfig):
 
     # =========== Student Environment (Alignment) ===========
 
-    print("Instantiating student env (ARCDroneRL_VisionLanding_StudentTeacher)...")
     student_env_cfg = OmegaConf.to_container(env_cfg, resolve=True)
-    student_env_cfg["num_envs"] = cfg.train.align_num_envs      # TODO: propose a better fix than this!
+    student_env_cfg["num_envs"] = cfg.train.align_num_envs
     student_env_cfg["vision_config"]["nworld"] = cfg.train.align_num_envs
     student_env_cfg["naconmax"] = student_env_cfg["njmax"] * cfg.train.align_num_envs
-    student_env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=student_env_cfg)
+    student_env_cfg["naccdmax"] = student_env_cfg["naccdmax"] 
+    print("Instantiating student env (ARCDroneVisionLandingIL, with vision)...")
+    student_env = ARCDroneVisionLandingIL(cfg=student_env_cfg)
     student_env = wrapper.wrap_for_brax_training(
         student_env,
         action_repeat=cfg.train.action_repeat,
@@ -181,7 +184,6 @@ def main(cfg: DictConfig):
         value_obs_key=cfg.value_obs_key,
         teacher_obs_key=cfg.teacher_obs_key,
         policy_pixels_key=cfg.policy_pixels_key,
-        policy_pixels_key_1=cfg.policy_pixels_key_1,
         policy_proprio_key=cfg.policy_proprio_key,
     )
 
@@ -220,6 +222,8 @@ def main(cfg: DictConfig):
         align_learning_rate=cfg.align_learning_rate,
         proxy_kl_coef=cfg.proxy_kl_coef,
         sitt_align_coef=cfg.sitt_align_coef,
+        align_embed_coef=cfg.align_embed_coef,
+        align_action_coef=cfg.align_action_coef,
         # Networks & env
         network_factory=network_factory,
         num_envs=cfg.num_envs,
@@ -230,7 +234,6 @@ def main(cfg: DictConfig):
         seed=cfg.seed,
         deterministic_eval=True,
         wrap_env=False,
-        ppo_off=cfg.ppo_off,
         restore_params=restore_params,
         restore_value_fn=cfg.restore_value_fn,
     )

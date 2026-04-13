@@ -198,8 +198,6 @@ def make_sitt_networks(
     # Align obs keys (student env: {pixels/view_*, proprio, teacher_obs, value_obs})
     teacher_obs_key: str = "teacher_obs",
     policy_pixels_key: str = "pixels/view_0",
-    policy_pixels_key_1: str = "pixels/view_1",
-    policy_pixels_key_2: str = "pixels/view_2",
     policy_proprio_key: str = "proprio_obs",
 ) -> SITTNetworks:
     """Build all networks for SITT training.
@@ -284,16 +282,11 @@ def make_sitt_networks(
 
     # Student encoder obs (from student env or inferred)
     if student_observation_size is not None:
-        pixel_shape_0 = tuple(student_observation_size[policy_pixels_key])
-        pixel_shape_1 = tuple(student_observation_size[policy_pixels_key_1])
-        pixel_shape_2 = tuple(student_observation_size[policy_pixels_key_2])
-        pixel_shape = pixel_shape_0[:-1] + (
-            pixel_shape_0[-1] + pixel_shape_1[-1] + pixel_shape_2[-1],
-        )
+        pixel_shape = tuple(student_observation_size[policy_pixels_key])
         proprio_size = _shape_last_dim(student_observation_size[policy_proprio_key])
     else:
         # Fallback: infer from teacher obs size (proprio == policy_obs dimension)
-        pixel_shape = (64, 64, 9)  # placeholder
+        pixel_shape = (64, 64, 3)  # placeholder
         proprio_size = teacher_obs_size
 
     dummy_pixels = jnp.zeros((1,) + pixel_shape)
@@ -332,12 +325,7 @@ def make_sitt_networks(
         return preprocess_observations_fn(obs, pparams)
 
     def _extract_student_obs(obs):
-        pixels = jnp.concatenate([
-            obs[policy_pixels_key],
-            obs[policy_pixels_key_1],
-            obs[policy_pixels_key_2],
-        ], axis=-1)
-        return pixels, obs[policy_proprio_key]
+        return obs[policy_pixels_key], obs[policy_proprio_key]
 
     def _preprocess_student_proprio(obs, pparams):
         """pparams is the proprio RunningStatisticsState directly."""

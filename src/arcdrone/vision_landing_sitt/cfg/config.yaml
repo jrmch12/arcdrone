@@ -13,67 +13,77 @@ hydra:
 
 env:
 
-  # DEBUG Debugging flags
-  enable_vision_obs: true  # set to true to turn off this debugger. To debug with no rendering do this together with manually changing the student network to the one with no CNN in networks.py.
+  # ---- Flags ----
+  enable_vision_obs: true
   
-  # ==== MJXEnvs / mujoco_playground flags ====
-  xml_path_rel: "assets/skydio_x2/scene.xml"  # "assets/arcdrone/scene.xml"
+  # ---- MJXEnvs / mujoco_playground flags ----
+  xml_path_rel: "assets/skydio_x2/scene_mounted_cam.xml"
   impl: "warp"
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
   naconmax: ${mul:${env.njmax},${train.num_envs}}
+  naccdmax: 300 # ${mul:${env.njmax},${train.num_envs}}
   njmax: 380
   vision: true
-  vision_config: # must contain only warp api parameters
+  vision_config:
     nworld: ${train.num_envs}
-    cam_res: [128, 128]
+    cam_res: [64, 64]
     use_textures: true
     use_shadows: false
-    enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, true, true]
-    render_rgb: [true, true, true]
-    render_depth: [false, false, false]
+    enabled_geom_groups: [0, 1]
+    cam_active: [true]
+    render_rgb: [true]
+    render_depth: [false]
 
-  
-  # ==== Task specific ====
+  # ---- Grayscale + frame diffs (match DAgger) ----
+  grayscale_obs: true
+  use_frame_diffs: true
+  frame_skip: 2
 
+  # ---- Task specific ----
   buffer_size: 3
+  buffer_size_pixels: 5
 
   # Episode control
   max_episode_steps: ${train.episode_length}
-  success_threshold: 0.08
+  success_threshold: 0.03
   success_steps_required: 10
   
   # Reward function
   distance_weight: 1 
-  distance_scale: 0.3  # exponential          
+  distance_scale: 0.3
   overshoot_penalty: 5
   oscillation_penalty: 2
   action_chattering_weight: 0.001
   action_penalty_weight: 0.0001
   time_penalty: 0.01 
-  success_bonus: 0.5
+  success_bonus: 10.0
   ground_penalty_weight: 10.0  
   ground_threshold_event: 0.2  
   ground_threshold_penalty: 0.5 
 
+  # Reset ranges (scalars expected by the env)
+  init_xy_range: 3.0
+  init_z_min: 0.3
+  init_z_max: 5.0
+  init_linvel_std: 0.3
+  init_angvel_std: 0.3
+  init_tilt_range: 0.15
+
 
 train:
 
-  # DEBUG Debugging flags 
-  ppo_off: false # set to false to turn off this debugger.
-
   # ---- PPO Hyperparameters ----
-  num_timesteps: 100 # 20_000_000
-  num_evals: 8
-  num_eval_envs: 2
+  num_timesteps: 50_000_000
+  num_evals: 20
+  num_eval_envs: 128
   reward_scaling: 0.1          
-  episode_length: 200
+  episode_length: 500
   normalize_observations: true
   action_repeat: 1
   unroll_length: 10
-  num_minibatches: 24           
+  num_minibatches: 16           
   num_updates_per_batch: 8      
   log_training_metrics: false   
   discounting: 0.97            
@@ -82,30 +92,28 @@ train:
   learning_rate_schedule: 'ADAPTIVE_KL'
   desired_kl: 0.07
   max_grad_norm: 0.5        
-  num_envs: 256
+  num_envs: 512
   batch_size: 512               
   seed: 0
 
   # ---- SITT Hyperparameters ----
-  align_num_epochs: 200              # number of collect-then-align cycles
-  # Alignment env controls (student env)
-  align_num_envs: ${train.num_envs}
+  align_num_epochs: 200
+  align_num_envs: 256
   align_unroll_length: ${train.unroll_length}
-  # Spread align epochs across PPO training (number of align moments)
   align_num_splits: 10
-  # Minibatch layout (mirrors PPO):
-  #   num_unrolls = batch_size * num_minibatches // num_envs  (inferred)
-  #   CNN sees batch_size * unroll_length images per gradient step
-  #   total grad steps per epoch = align_updates_per_trigger * num_minibatches
-  align_batch_size: 256                 # env trajectories per minibatch
-  align_num_minibatches: 4              # minibatches per epoch
-  align_updates_per_trigger: 4    # full passes over all minibatches per epoch
+  align_batch_size: 256
+  align_num_minibatches: 4
+  align_updates_per_trigger: 4
   use_sitt: true
-  proxy_kl_coef: 1.9
-  sitt_align_coef: 0.000001
-  align_learning_rate: 1e-3
+  proxy_kl_coef: 5.0
+  sitt_align_coef: 0.1
+  align_learning_rate: 1e-4
+  align_embed_coef: 0.3
+  align_action_coef: 2.0
 
-  # Network Architecture
+  # ---- Network Architecture ----
+  teacher_dec_hidden_layers: [512, 512, 256, 128]
+  proxy_hidden_layers: [512, 512, 256, 128]
   policy_dec_hidden_layers: [256, 128]
   policy_proprio_proj_hidden_layers: [64]
   action_hidden_layers: [512, 512, 256, 128]
@@ -114,34 +122,19 @@ train:
   cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
   cnn_strides: [[4, 4], [2, 2], [1, 1]]
   policy_pixels_key: "pixels/view_0"
-  policy_pixels_key_1: "pixels/view_1"
   policy_proprio_key: "proprio_obs"
   value_obs_key: "value_obs"
   teacher_obs_key: "teacher_obs"
-  # SITT extras
-  teacher_dec_hidden_layers: [512, 512, 256, 128]
-  proxy_hidden_layers: [512, 512, 256, 128]
-  policy_obs_key: "policy_obs"
+  policy_obs_key: "teacher_obs"
 
-  # Train from checkpoint (for continuing training)
-  # Full SITT restore format:
-  # (norm, policy, value, proxy_dec, student_enc, student_proprio_norm)
+  # ---- Wandb ----
+  use_wandb: false
+  wandb_project: "arcdrone-sitt-mounted"
+  wandb_run_name: null
+
+  # ---- Checkpoint ----
   restore_params_path: null
   restore_value_fn: true
   frompreviouscheckpoint: 0
   teacher_checkpoint_path: null
-
-  # WandB Configuration
-  wandb_project: "brax-training"
-  wandb_run_name: "arcdrone_vision_landing_sitt_run"
-  use_wandb: false
-
-
-  
-
-
-  
-
-
-
 

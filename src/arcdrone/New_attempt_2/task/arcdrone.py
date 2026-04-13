@@ -137,6 +137,7 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
             qvel=qvel,
             impl=self._mjx_model.impl.value,
             naconmax=self._config.naconmax,
+            naccdmax=getattr(self._config, 'naccdmax', self._config.naconmax),
             njmax=self._config.njmax,
         )
         data = mjx.forward(self._mjx_model, data)

@@ -24,6 +24,7 @@ env:
   ctrl_dt: 0.02
   action_repeat: 1
   naconmax: ${mul:${env.njmax},${train.num_envs}}
+  naccdmax: 300 # ${mul:${env.njmax},${train.num_envs}}
   njmax: 280
   vision: true
   vision_config:
@@ -40,9 +41,9 @@ env:
     render_depth: [false]
   
   # ==== Task specific ====
-  buffer_size: 3        # depth of the privileged-state buffers (teacher_obs, proprio_obs, etc.)
+  buffer_size: 3        # depth of the privileged-state buffers (teacher_obs, proprio_obs, etc.) — must match teacher checkpoint
   buffer_size_pixels: 5 # depth of the pixel frame stack (student CNN input) — independent of teacher
-  frame_skip: 1         # temporal spacing: frames in the stack are frame_skip steps apart
+  frame_skip: 2        # temporal spacing: frames in the stack are frame_skip steps apart
   use_frame_diffs: true # append frame-difference channels (optical flow proxy) to pixel obs
   landing_radius: 0.4
 

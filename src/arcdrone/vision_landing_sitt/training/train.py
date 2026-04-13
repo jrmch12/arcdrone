@@ -144,6 +144,8 @@ def train(
     proxy_kl_coef: float = 1.9,
     sitt_align_coef: float = 0.01,
     align_unroll_length: int = 10,
+    align_embed_coef: float = 1.0,
+    align_action_coef: float = 1.0,
     policy_proprio_key: str = "proprio_obs",
     policy_obs_key: str = "policy_obs",
     # Networks
@@ -363,6 +365,8 @@ def train(
         optimizer=align_optimizer,
         align_updates_per_trigger=align_updates_per_trigger,
         num_minibatches=align_num_minibatches,
+        embed_coef=align_embed_coef,
+        action_coef=align_action_coef,
     )
 
     # ======================== init params =============================
@@ -744,9 +748,28 @@ def train(
         }
         return new_ts, student_state, metrics
 
-    align_epoch_pmap = jax.pmap(
-        align_epoch, axis_name=_PMAP_AXIS_NAME, donate_argnums=(0, 1),
-    )
+    # Batch all alignment epochs into a single jax.lax.scan inside pmap
+    # to avoid the massive overhead of a Python for-loop calling pmap
+    # repeatedly (e.g. 158 pmap dispatch+sync round-trips per iteration).
+    max_align_epochs = max(align_epochs_by_iter.values()) if align_epochs_by_iter else 0
+
+    def align_n_epochs(ts, student_state, key):
+        def _body(carry, _):
+            ts, ss, k = carry
+            k, nk = jax.random.split(k)
+            ts, ss, m = align_epoch(ts, ss, k)
+            return (ts, ss, nk), m
+
+        (ts, ss, _), all_metrics = jax.lax.scan(
+            _body, (ts, student_state, key), (), length=max_align_epochs,
+        )
+        mean_metrics = jax.tree_util.tree_map(jnp.mean, all_metrics)
+        return ts, ss, mean_metrics
+
+    if max_align_epochs > 0:
+        align_n_epochs_pmap = jax.pmap(
+            align_n_epochs, axis_name=_PMAP_AXIS_NAME, donate_argnums=(0, 1),
+        )
 
     # ======================== evaluators ==============================
 
@@ -824,10 +847,10 @@ def train(
             ppo_sps = 0.0
             current_step = int(_unpmap(training_state.env_steps))
 
-        # ── Align epochs ──────────────────────────────────────────────
+        # ── Align epochs (batched into single XLA scan) ───────────────
         align_metrics_agg = {}
         align_epochs_now = align_epochs_by_iter.get(it, 0)
-        for align_ep in range(align_epochs_now):
+        if align_epochs_now > 0:
             t0 = time.time()
             align_key, local_key = jax.random.split(local_key)
             align_keys = jax.random.split(align_key, local_devices_to_use)
@@ -835,14 +858,12 @@ def train(
             training_state, student_env_state = _strip_weak_type(
                 (training_state, student_env_state)
             )
-            training_state, student_env_state, a_metrics = align_epoch_pmap(
+            training_state, student_env_state, a_metrics = align_n_epochs_pmap(
                 training_state, student_env_state, align_keys,
             )
             a_metrics = jax.tree_util.tree_map(jnp.mean, a_metrics)
             jax.tree_util.tree_map(lambda x: x.block_until_ready(), a_metrics)
             training_walltime += time.time() - t0
-
-            # Accumulate for reporting (last or average)
             align_metrics_agg = {k: float(v) for k, v in a_metrics.items()}
 
         current_align_step = int(_unpmap(training_state.align_env_steps))

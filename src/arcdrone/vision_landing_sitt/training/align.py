@@ -33,6 +33,7 @@ import optax
     static_argnames=(
         "sitt_network", "optimizer",
         "align_updates_per_trigger", "num_minibatches",
+        "embed_coef", "action_coef",
     ),
 )
 def align(
@@ -50,6 +51,8 @@ def align(
     optimizer,
     align_updates_per_trigger: int,
     num_minibatches: int,
+    embed_coef: float = 1.0,
+    action_coef: float = 1.0,
 ):
     """Run minibatched SITT alignment.
 
@@ -130,7 +133,7 @@ def align(
                 ))
             )
 
-            total = embed_loss + action_loss
+            total = embed_coef * embed_loss + action_coef * action_loss
             return total, (embed_loss, action_loss)
 
         (loss, (embed_loss, action_loss)), grads = jax.value_and_grad(

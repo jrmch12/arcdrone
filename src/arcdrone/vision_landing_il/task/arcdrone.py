@@ -326,8 +326,8 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
         ])
 
         # Random orientation (small tilt)
-        roll  = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
-        pitch = jax.random.uniform(rng_ang, (), minval=-1.1, maxval=1.1)
+        roll  = jax.random.uniform(rng_ang, (), minval=-0.15, maxval=0.15)
+        pitch = jax.random.uniform(rng_ang, (), minval=-0.15, maxval=0.15)
         yaw   = jax.random.uniform(rng_ang, (), minval=-jp.pi, maxval=jp.pi)
 
         quaternion = euler_to_quaternion(roll, pitch, yaw)
@@ -344,12 +344,12 @@ class ARCDroneRL_VisionLanding_StudentTeacher(mjx_env.MjxEnv):
 
         # linear velocity
         qvel = qvel.at[0:3].set(
-            jax.random.normal(rng_vel, (3,)) * 1.5
+            jax.random.normal(rng_vel, (3,)) * 0.15
         )
 
         # angular velocity
         qvel = qvel.at[3:6].set(
-            jax.random.normal(rng_vel, (3,)) * 3
+            jax.random.normal(rng_vel, (3,)) * 0.3
         )
 
         return qpos, qvel
