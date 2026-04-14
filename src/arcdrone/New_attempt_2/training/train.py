@@ -220,11 +220,13 @@ def train(
     try:
         teacher_obs_norm = _nsel(teacher_norm_params, teacher_normalizer_key)
     except KeyError:
+        # Compatibility: SITT checkpoints use "teacher_obs", privileged-RL uses "policy_obs"
+        _fallback_key = "teacher_obs" if "teacher_obs" in teacher_norm_params.mean else "policy_obs"
         logging.warning(
-            "Teacher normalizer key '%s' was not found. Falling back to 'policy_obs'.",
-            teacher_normalizer_key,
+            "Teacher normalizer key '%s' not found; falling back to '%s'.",
+            teacher_normalizer_key, _fallback_key,
         )
-        teacher_obs_norm = _nsel(teacher_norm_params, "policy_obs")
+        teacher_obs_norm = _nsel(teacher_norm_params, _fallback_key)
 
     # ── Frozen teacher policy for the mixture rollout ──
     frozen_teacher_policy = dagger_networks.make_frozen_teacher_policy(
