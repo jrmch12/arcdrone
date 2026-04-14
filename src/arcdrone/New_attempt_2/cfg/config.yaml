@@ -46,7 +46,15 @@ env:
   use_frame_diffs: true # append frame-difference channels (optical flow proxy) to pixel obs
   landing_radius: 0.4
 
-  # Reset randomization — wider spread for impressive demo
+  # # Reset randomization — wider spread for impressive demo
+  # init_xy_range: 3.0
+  # init_z_min: 0.3
+  # init_z_max: 5.0
+  # init_tilt_range: 0.5
+  # init_linvel_std: 0.9
+  # init_angvel_std: 0.9
+
+    # Reset randomization — wider spread for impressive demo. Evaluation:
   init_xy_range: 3.0
   init_z_min: 0.3
   init_z_max: 5.0
