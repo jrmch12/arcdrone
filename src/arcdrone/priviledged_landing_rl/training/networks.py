@@ -125,14 +125,18 @@ def make_ppo_networks(
     def _preprocess_policy(obs, pparams):
         if isinstance(obs, Mapping):
             policy_obs = obs[policy_obs_key]
-            norm = normalizer_select(pparams, policy_obs_key)
+            # Compatibility: SITT teacher checkpoints store stats under "teacher_obs"
+            _key = policy_obs_key if policy_obs_key in pparams.mean else "teacher_obs"
+            norm = normalizer_select(pparams, _key)
             return preprocess_observations_fn(policy_obs, norm)
         return preprocess_observations_fn(obs, pparams)
 
     def _preprocess_value(obs, pparams):
         if isinstance(obs, Mapping):
             value_obs = obs[value_obs_key]
-            norm = normalizer_select(pparams, value_obs_key)
+            # Compatibility: SITT teacher checkpoints store stats under "teacher_obs"
+            _key = value_obs_key if value_obs_key in pparams.mean else "teacher_obs"
+            norm = normalizer_select(pparams, _key)
             return preprocess_observations_fn(value_obs, norm)
         return preprocess_observations_fn(obs, pparams)
 

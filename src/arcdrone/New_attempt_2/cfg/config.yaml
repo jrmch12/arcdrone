@@ -88,7 +88,7 @@ train:
   num_envs: 512
   seed: 0
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
-  teacher_normalizer_key: "policy_obs"
+  teacher_normalizer_key: "teacher_obs"  # SITT checkpoints use "teacher_obs"; privileged-RL use "policy_obs"
   num_dagger_epochs: 10000         # number of collect-then-align cycles
 
   # DAgger mixing schedule: high beta_end keeps teacher guidance active

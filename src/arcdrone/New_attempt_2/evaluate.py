@@ -167,9 +167,14 @@ def evaluate(
                 teacher_ckpt[0], cfg_train.teacher_normalizer_key
             )
         except KeyError:
-            policy_obs_key = getattr(cfg_train, "policy_obs_key", "policy_obs")
+            # Compatibility: SITT checkpoints store stats under "teacher_obs",
+            # privileged-RL checkpoints under "policy_obs"
+            _norm_params = teacher_ckpt[0]
+            _fallback = (
+                "teacher_obs" if "teacher_obs" in _norm_params.mean else "policy_obs"
+            )
             teacher_norm = dagger_networks._select_normalizer_by_path(
-                teacher_ckpt[0], policy_obs_key
+                _norm_params, _fallback
             )
         inference_fn = dagger_networks.make_frozen_teacher_policy(
             il_net,
