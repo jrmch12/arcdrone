@@ -82,10 +82,10 @@ train:
   episode_length: 2000
   normalize_observations: true
   action_repeat: 1
-  unroll_length: 4
+  unroll_length: 8
   learning_rate: 1e-4
   max_grad_norm: 0.5
-  num_envs: 256
+  num_envs: 512
   seed: 0
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
   teacher_normalizer_key: "policy_obs"
@@ -97,8 +97,8 @@ train:
   beta_schedule: "cosine"
 
   # Minibatch layout (mirrors PPO / IL):
-  batch_size: 128
-  num_minibatches: 2
+  batch_size: 256
+  num_minibatches: 4
   align_updates_per_trigger: 4
   align_embed_coef: 0.3
   align_action_coef: 2.0
