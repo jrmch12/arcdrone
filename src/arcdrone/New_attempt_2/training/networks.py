@@ -121,7 +121,7 @@ class PolicyVisionProprioEncoder(nn.Module):
             layer_sizes=list(self.fusion_hidden_layers),
             activation=self.activation,
             kernel_init=self.kernel_init,
-            activate_final=False,
+            activate_final=True,
         )(fused)
 
 
@@ -211,7 +211,7 @@ def make_il_networks(
     # ── Vel estimator: [encoder_feats, aux_tilt] → pred_linvel(3) ──
     tilt_size = _shape_last_dim(observation_size.get("aux_tilt", (10,)))
     vel_estimator_mlp = MLP(
-        layer_sizes=[64, 32, 3],
+        layer_sizes=[128, 64, 3],
         activation=nn.relu,
         kernel_init=kernel_init,
     )

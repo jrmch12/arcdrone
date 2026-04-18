@@ -92,6 +92,8 @@ def train(
     align_embed_coef: float = 1.0,
     align_action_coef: float = 1.0,
     aux_vel_coef: float = 0.0,
+    augment_strength: float = 0.0,
+    teacher_noise_std: float = 0.0,
     # --- architecture ---
     network_factory: types.NetworkFactory[
         dagger_networks.ILNetworks
@@ -330,14 +332,19 @@ def train(
     # ========================= DAgger mixture policy =========================
 
     def _make_dagger_policy(student_policy_fn, beta):
-        """β-mixture: Bernoulli(β)=1 → teacher action, 0 → student action."""
+        """Action-interpolation DAgger: action = β·teacher + (1-β)·student.
+
+        Instead of per-env Bernoulli sampling (which causes catastrophic divergence
+        when β < 1), we continuously blend teacher and student actions. This keeps
+        trajectories close to the teacher's while letting the student contribute
+        proportionally. The alignment loss still trains against teacher labels.
+        """
 
         def policy(observations, key_sample):
-            key_teacher, key_student, key_coin = jax.random.split(key_sample, 3)
+            key_teacher, key_student = jax.random.split(key_sample, 2)
             teacher_action, _ = frozen_teacher_policy(observations, key_teacher)
             student_action, student_extras = student_policy_fn(observations, key_student)
-            use_teacher = jax.random.bernoulli(key_coin, beta)
-            action = jnp.where(use_teacher, teacher_action, student_action)
+            action = beta * teacher_action + (1.0 - beta) * student_action
             extras = {
                 "log_prob": student_extras.get("log_prob", jnp.zeros(())),
                 "raw_action": student_extras.get("raw_action", action),
@@ -370,7 +377,7 @@ def train(
     # ========================= one DAgger epoch =========================
 
     def dagger_epoch(training_state, env_state, key, beta):
-        key_rollout, _ = jax.random.split(key)
+        key_rollout, key_augment = jax.random.split(key)
 
         # 1. Build current student policy (live params)
         student_params = _pack_student_params(training_state)
@@ -384,17 +391,53 @@ def train(
             env_state, key_rollout, mixture_policy, num_unrolls_per_epoch,
         )
 
-        # 4. Joint alignment: train (student_enc, action_head, vel_estimator) together
+        # 4. Pixel augmentation: apply before alignment (outside scan for JIT efficiency)
+        #    Layout: channels [0:n_raw] = raw grayscale frames,
+        #            channels [n_raw:] = frame diffs (motion proxy).
+        #    Only augment raw frames, then recompute diffs so motion signal stays clean.
+        student_obs = data.observation
+        if augment_strength > 0.0:
+            pixel_key = "pixels/view_0"
+            pixels = student_obs[pixel_key]
+            total_ch = pixels.shape[-1]
+            n_raw = (total_ch + 1) // 2  # raw=5, diff=4 for total=9
+
+            raw = pixels[..., :n_raw]
+            k_b, k_c, k_n = jax.random.split(key_augment, 3)
+            lead = pixels.shape[:-3]
+            bcast = lead + (1, 1, 1)
+
+            # Brightness shift (same across all raw channels → cancels in diffs)
+            bright = augment_strength * jax.random.uniform(
+                k_b, bcast, minval=-0.15, maxval=0.15)
+            raw = raw + bright
+
+            # Contrast (same factor → scales diffs proportionally)
+            mean = jnp.mean(raw, axis=(-3, -2), keepdims=True)
+            contrast = 1.0 + augment_strength * jax.random.uniform(
+                k_c, bcast, minval=-0.3, maxval=0.3)
+            raw = mean + contrast * (raw - mean)
+
+            # Per-pixel noise on raw frames only
+            noise = augment_strength * 0.03 * jax.random.normal(k_n, raw.shape)
+            raw = jnp.clip(raw + noise, -0.5, 0.5)
+
+            # Recompute diffs from augmented raw frames
+            diffs = raw[..., :-1] - raw[..., 1:]
+            pixels = jnp.concatenate([raw, diffs], axis=-1)
+            student_obs = {**student_obs, pixel_key: pixels}
+
+        # 5. Joint alignment: train (student_enc, action_head, vel_estimator) together
         trainable_in = (training_state.student_enc_params, training_state.action_head_params, training_state.vel_estimator_params)
         (new_student_enc, new_action_head, new_vel_est), align_opt_state, align_loss, embed_loss, action_loss, aux_vel_loss = align_fn(
             trainable_in,
             training_state.align_opt_state,
             data.observation,
-            data.observation,
+            student_obs,
             training_state.normalizer_params,
         )
 
-        # 5. Update proprio running stats
+        # 6. Update proprio running stats
         normalizer_params = training_state.normalizer_params
         if normalize_observations:
             normalizer_params = running_statistics.update(
@@ -520,17 +563,37 @@ def train(
             else:
                 metrics = training_metrics_out
 
-            eval_reward = float(metrics.get("eval/episode_reward", float("nan")))
-            logging.info(
-                "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
-                "align=%.4f  action=%.4f  aux_vel=%.4f  eval_reward=%.2f  sps=%.0f",
-                epoch + 1, num_dagger_epochs, float(beta), current_step,
-                float(train_metrics["align_loss"]),
-                float(train_metrics["action_loss"]),
-                float(train_metrics["aux_vel_loss"]),
-                eval_reward,
-                sps,
-            )
+            if should_eval:
+                eval_reward = metrics.get("eval/episode_reward", float("nan"))
+                # Build per-component breakdown string from eval metrics
+                component_parts = []
+                for k, v in sorted(metrics.items()):
+                    if k.startswith("eval/episode_reward_") and not k.endswith("_std"):
+                        short = k[len("eval/episode_reward_"):]
+                        component_parts.append(f"{short}={float(v):.3f}")
+                breakdown_str = "  ".join(component_parts) if component_parts else "(none)"
+                logging.info(
+                    "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
+                    "align=%.4f  action=%.4f  aux_vel=%.4f  eval_reward=%.2f  sps=%.0f\n"
+                    "  rewards_student: %s",
+                    epoch + 1, num_dagger_epochs, float(beta), current_step,
+                    float(train_metrics["align_loss"]),
+                    float(train_metrics["action_loss"]),
+                    float(train_metrics["aux_vel_loss"]),
+                    eval_reward,
+                    sps,
+                    breakdown_str,
+                )
+            else:
+                logging.info(
+                    "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
+                    "align=%.4f  action=%.4f  aux_vel=%.4f  sps=%.0f",
+                    epoch + 1, num_dagger_epochs, float(beta), current_step,
+                    float(train_metrics["align_loss"]),
+                    float(train_metrics["action_loss"]),
+                    float(train_metrics["aux_vel_loss"]),
+                    sps,
+                )
             progress_fn(current_step, metrics)
 
     # ========================= done =========================

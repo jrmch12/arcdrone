@@ -1,0 +1,106 @@
+# Fine-Tuning Memo — Drone Vision Landing DAgger
+
+## Reference Points
+- **Teacher**: outputs/2026-04-13/17-10-10/teacher_model.pkl (SITT v3, privileged state)
+- **Best student (baseline)**: outputs/2026-04-14/00-59-34/trained_model.pkl
+  - Config: beta 1→0.5, lr=1e-4, aux_vel_coef=20, action_coef=2.0, embed_coef=0.3, seed=5
+
+## Batch Evaluation (50 episodes, seed=42, max_steps=200)
+
+| Model | Mean XY | Median | P90 | Close(<1m) | Landed |
+|-------|---------|--------|------|------------|--------|
+| Teacher | 0.473m | 0.427m | 0.827m | 94% | 36% |
+| **Cont β→0.1 (NEW BEST)** | **1.097m** | **0.608m** | **2.846m** | **66%** | **26%** |
+| 6000ep β→0.5 | 2.181m | 1.182m | 4.465m | 42% | 12% |
+| Iter4 combined (OLD arch) | 2.035m | 1.713m | 3.946m | 26% | 16% |
+| Iter2 aug | 2.728m | 2.161m | 4.768m | 28% | 10% |
+| Iter3 interp | 3.195m | 2.369m | 6.448m | 28% | 8% |
+| Baseline | 3.505m | 2.828m | 8.637m | 22% | 6% |
+
+## Iteration Log
+
+### aug_iter1b (outputs/2026-04-17/13-53-19/) — FAILED
+- Changes: augment_strength=0.3, teacher_noise_std=0.03, beta 0.7→0.3
+- BUG: Augmentation corrupted diff channels (motion proxy) — brightness+noise applied to ALL 9 channels including diffs
+- Result: Eval swung -33 to -697, killed before completion
+
+### Iter2 aug_fixdiff (outputs/2026-04-17/14-23-49/) — BEST STUDENT
+- Changes: Fixed augmentation (raw frames only, recompute diffs), no teacher noise, beta 1→0.5
+- augment_strength=0.2, seed=11
+- Best training eval: -10.08 (epoch 837), but high variance
+- Batch eval: mean 2.728m, 28% close, 10% landed
+- Key improvement: Much better descent (median z=0.148m vs baseline 0.630m), lower max distance
+
+### Iter3 action_interp (outputs/2026-04-17/14-56-29/) — SLIGHTLY BETTER THAN BASELINE
+- Changes: Action interpolation instead of Bernoulli DAgger (action = β·teacher + (1-β)·student), no augmentation
+- Beta 1→0.3, seed=12
+- Final training eval: -291.28 (but training eval is unreliable)
+- Batch eval: mean 3.195m, 28% close, 8% landed
+- Interesting: Good descent (median z=0.144m), but worse horizontal approach
+
+## Key Insights
+1. **Training eval_reward is NOT a good metric** — high variance due to spawn position differences
+2. **Augmentation on raw frames (preserving diff channels) helps** — iter2 is best student
+3. **Action interpolation helps slightly** but less than augmentation
+4. **The vision gap is fundamental**: teacher median 0.43m vs best student 2.16m (5x worse)
+5. **Diff channels matter**: corrupting them (aug_iter1b) was catastrophic
+6. **Low beta (0.3) is OK** with action interpolation but not with Bernoulli sampling
+
+## TODO / Next Ideas
+- **FRESH TRAINING FROM SCRATCH** (user requested) — current checkpoints have 6+ pre-trainings stacked 
+- Try combining: augmentation + action interpolation together
+- Higher align_action_coef (10.0) to force action matching
+- Longer training with lower lr
+- Curriculum: start near target, increase distance
+- Target bearing auxiliary loss
+- Deeper/wider CNN for better spatial encoding
+
+### Iter4 combined (outputs/2026-04-17/17-00-01/) — NEW BEST
+- Changes: Combined approach — from iter2's model, 2000 epochs, lr=5e-5, action_coef=5.0, augment 0.15, action interpolation, beta 0.9→0.3, seed=13
+- Final training eval: -121.92
+- Batch eval: **mean 2.035m, 26% close, 16% landed** — best student yet!
+- Improved landing rate from 10% to 16%, reduced mean XY from 2.73m to 2.04m
+- Still 4x worse than teacher median (1.71m vs 0.43m)
+
+### Iter5 fresh_1000ep (outputs/2026-04-17/18-11-35/) — FRESH START WITH ARCH FIXES
+- **Critical architecture fixes applied to networks.py**:
+  1. Student fusion MLP: activate_final=False → True (tanh, matching teacher's bounded [-1,1] features)
+  2. Vel estimator: [64,32,3] → [128,64,3] (doubled capacity)
+- Config: 1000 epochs from scratch, beta 1→0.5, lr=1e-4, seed=42, no restore
+- First-ever positive eval rewards (+27.66, +1.32) and align loss bottomed at 0.11 (prev best 0.14)
+- Batch eval: mean 4.036m — expected given only 1000ep from scratch
+
+### User's 6000ep (outputs/2026-04-17/18-54-38/) — TANH FIX VALIDATED
+- Restored from 18-11-35, ran 6000 epochs, beta 1→0.5
+- Batch eval: **mean 2.181m**, median 1.182m, 42% close, 12% landed
+- Confirmed tanh fix works: 42% close vs iter4's 26% (old arch)
+- BUT: performance peaks around β≈0.85 then degrades at low β — classic covariate shift
+- Analysis: catastrophic episodes show high angular velocity (spin) when student flies alone
+
+### Continuation β→0.1 (outputs/2026-04-17/20-34-29/) — BREAKTHROUGH
+- Restored from 18-54-38, 4000 more epochs with beta 0.5→0.1
+- augment_strength=0.3, teacher_noise_std=0.03, lr=1e-4, seed=42
+- Batch eval: **mean 1.097m, median 0.608m, 66% close, 26% landed**
+- Massive improvement from exposing student to more independent flying
+- Losses rise from 0.092→0.122 as expected with lower beta, but student adapts
+- Gap to teacher closing: student median 0.608m vs teacher 0.427m (1.4x, was 4x!)
+
+## Architecture (Current — with fixes)
+- CNN(32,64,64)→GAP→64 + proprio(51→norm→64) → fusion MLP(256,128, tanh, activate_final=True)
+- vel_estimator(134→128→64→3, relu)
+- action_head(131→512→512→256→128→20, tanh)
+- Teacher: 72-dim privileged → MLP(512,512,256,128, tanh, activate_final=True) → 128-dim features
+
+## Key Insights (Updated)
+1. **Tanh activation match is critical**: student fusion now bounded [-1,1] like teacher → embed loss drops significantly
+2. **Lower beta_end is essential**: β=0.5 causes covariate shift, β=0.1 lets student learn independence
+3. **Action interpolation DAgger works well**: smooth blending prevents catastrophic divergence
+4. **Pixel augmentation (raw frames only) helps**: brightness, contrast, noise applied to raw; diffs recomputed
+5. **Training eval_reward is unreliable**: high variance, use batch eval with distance metric instead
+6. **Two-phase training is effective**: first learn features at high β, then learn independence at low β
+
+## Checkpoint Lineage
+- Teacher: outputs/2026-04-13/17-10-10/teacher_model.pkl
+- Fresh 1000ep (NEW arch): outputs/2026-04-17/18-11-35/trained_model.pkl
+- 6000ep continuation: outputs/2026-04-17/18-54-38/trained_model.pkl
+- **BEST: Cont β→0.1**: outputs/2026-04-17/20-34-29/trained_model.pkl

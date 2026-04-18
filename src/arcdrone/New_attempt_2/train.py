@@ -157,6 +157,8 @@ def main(cfg: DictConfig):
         align_embed_coef=cfg.align_embed_coef,
         align_action_coef=cfg.align_action_coef,
         aux_vel_coef=cfg.get('aux_vel_coef', 0.0),
+        augment_strength=cfg.get('augment_strength', 0.0),
+        teacher_noise_std=cfg.get('teacher_noise_std', 0.0),
         network_factory=network_factory,
         num_envs=cfg.num_envs,
         episode_length=cfg.episode_length,
@@ -200,21 +202,28 @@ def main(cfg: DictConfig):
             "training/align_loss": metrics.get("training/align_loss", 0.0),
             "training/embed_loss": metrics.get("training/embed_loss", 0.0),
             "training/action_loss": metrics.get("training/action_loss", 0.0),
+            "training/aux_vel_loss": metrics.get("training/aux_vel_loss", 0.0),
             "training/beta": metrics.get("training/beta", 0.0),
             "training/sps": metrics.get("training/sps", 0.0),
             "training/walltime": metrics.get("training/walltime", 0.0),
-            "eval/episode_reward": metrics.get("eval/episode_reward", 0.0),
-            "eval/avg_episode_length": metrics.get("eval/avg_episode_length", 0.0),
         }
+        # Only include eval metrics when an evaluation actually ran
+        if "eval/episode_reward" in metrics:
+            log_dict["eval/episode_reward"] = metrics["eval/episode_reward"]
+        if "eval/avg_episode_length" in metrics:
+            log_dict["eval/avg_episode_length"] = metrics["eval/avg_episode_length"]
 
+        # Per-component student rewards (only present on eval steps)
+        reward_breakdown = {}
         for key, value in metrics.items():
             if key.startswith("eval/episode_reward_") and not key.endswith("_std"):
                 reward_name = key[len("eval/episode_reward_"):]
                 std_key = f"eval/episode_reward_{reward_name}_std"
                 std_val = metrics.get(std_key, 0.0)
-                log_dict[f"rewards/{reward_name}"] = value
-                log_dict[f"std/{reward_name}_upper"] = value + std_val
-                log_dict[f"std/{reward_name}_lower"] = value - std_val
+                log_dict[f"rewards_student/{reward_name}"] = value
+                log_dict[f"rewards_student/{reward_name}_upper"] = value + std_val
+                log_dict[f"rewards_student/{reward_name}_lower"] = value - std_val
+                reward_breakdown[reward_name] = float(value)
 
         if "eval/episode_reward" in metrics and latest_student_params is not None:
             eval_reward = float(metrics["eval/episode_reward"])
@@ -231,11 +240,19 @@ def main(cfg: DictConfig):
         if use_wandb:
             logger.log_metrics(num_steps, log_dict)
 
-        if len(times) <= 2 or len(times) % 20 == 0:
-            print(
-                f"step={num_steps:8d}  eval_reward={log_dict['eval/episode_reward']:.2f}  "
-                f"align={log_dict['training/align_loss']:.4f}  beta={log_dict['training/beta']:.3f}"
-            )
+        # Always print training losses; print eval breakdown when available
+        eval_reward_str = f"{log_dict['eval/episode_reward']:.2f}" if "eval/episode_reward" in log_dict else "--"
+        print(
+            f"step={num_steps:8d}  eval_reward={eval_reward_str}  "
+            f"align={log_dict['training/align_loss']:.4f}  "
+            f"embed={log_dict['training/embed_loss']:.4f}  "
+            f"action={log_dict['training/action_loss']:.4f}  "
+            f"aux_vel_loss={log_dict['training/aux_vel_loss']:.4f}  "
+            f"beta={log_dict['training/beta']:.3f}"
+        )
+        if reward_breakdown:
+            breakdown_str = "  ".join(f"{k}={v:.3f}" for k, v in sorted(reward_breakdown.items()))
+            print(f"  rewards_student: {breakdown_str}")
 
     # =========== Train ===========
 
