@@ -266,6 +266,7 @@ def main():
         ep_in_fov = []
         ep_tilt = []
         ep_pad_px = []
+        ep_reward_accum: dict[str, float] = {}  # per-component reward accumulator
 
         for step in range(args.max_steps):
             rng, action_key = jax.random.split(rng)
@@ -282,6 +283,12 @@ def main():
             d = float(state.done[0])
             act = np.array(act_0)
             total_reward += r
+
+            # Accumulate per-component rewards from state.metrics (env 0)
+            for mk, mv in state.metrics.items():
+                leaf = jax.tree_util.tree_leaves(mv)[0]
+                v_scalar = float(leaf[0]) if leaf.ndim > 0 else float(leaf)
+                ep_reward_accum[mk] = ep_reward_accum.get(mk, 0.0) + v_scalar
 
             target = np.array(state.info["target_buffer"][0, 0, :])
             dist = np.linalg.norm(pos[:2] - target[:2])
@@ -320,6 +327,12 @@ def main():
               f"mean_pad_px={np.mean(ep_pad_px):.1f}  "
               f"min_angle={np.min(ep_angles):.1f}°  "
               f"max_angle={np.max(ep_angles):.1f}°")
+        # Per-component reward breakdown
+        rw_keys = sorted(k for k in ep_reward_accum if k.startswith("reward_"))
+        if rw_keys:
+            print(f"    [REWARDS]")
+            for rk in rw_keys:
+                print(f"      {rk:<35s} {ep_reward_accum[rk]:+.3f}")
 
     # Global summary
     print("\n" + "=" * 80)

@@ -3,6 +3,7 @@
 from pathlib import Path
 from typing import Optional
 import functools
+import time
 
 import jax
 from brax.io import model
@@ -196,13 +197,22 @@ def evaluate(
     viewer = mujoco.viewer.launch_passive(physics_model, physics_data)
     print("✓ Viewer launched")
 
+    # Sim timestep per action (ctrl_dt * action_repeat)
+    sim_dt_per_step = float(cfg.env["ctrl_dt"]) * int(cfg.train["action_repeat"])
+
     for episode in range(num_episodes):
-        print(f"Episode {episode + 1}/{num_episodes}")
-        print("-" * 40)
+        print(f"\nEpisode {episode + 1}/{num_episodes}")
+        print("-" * 60)
         rng, reset_key = jax.random.split(rng)
         keys_1 = jax.random.split(reset_key, 1)
         state = jit_reset(keys_1)
         mjx.get_data_into([physics_data], physics_model, state.data)
+
+        ep_reward = 0.0
+        ep_steps = 0
+        ep_metric_accum: dict[str, float] = {}
+        ep_wall_start = time.perf_counter()
+
         for _ in range(max_steps):
             rng, action_key = jax.random.split(rng)
             action, _ = jit_inference_fn(_squeeze(state.obs), action_key)
@@ -210,8 +220,31 @@ def evaluate(
             state = jit_step(state, action_batch)
             mjx.get_data_into([physics_data], physics_model, state.data)
             viewer.sync()
+
+            ep_reward += float(_squeeze(state.reward))
+            ep_steps += 1
+
+            # Accumulate per-component metrics from state.metrics
+            for k, v in state.metrics.items():
+                leaf = jax.tree_util.tree_leaves(v)[0]
+                v_scalar = float(leaf[0]) if leaf.ndim > 0 else float(leaf)
+                ep_metric_accum[k] = ep_metric_accum.get(k, 0.0) + v_scalar
+
             if bool(_squeeze(state.done)):
                 break
+
+        # Realtime rate
+        ep_wall_elapsed = time.perf_counter() - ep_wall_start
+        sim_time = ep_steps * sim_dt_per_step
+        realtime_rate = sim_time / ep_wall_elapsed if ep_wall_elapsed > 0 else float('inf')
+
+        # Print episode summary
+        print(f"  steps={ep_steps}  total_reward={ep_reward:.3f}  "
+              f"sim_time={sim_time:.2f}s  wall_time={ep_wall_elapsed:.2f}s  "
+              f"realtime_rate={realtime_rate:.2f}x")
+        reward_keys = sorted(k for k in ep_metric_accum if k.startswith("reward_"))
+        for k in reward_keys:
+            print(f"    {k:<35s} {ep_metric_accum[k]:+.3f}")
     viewer.close()
 
 
