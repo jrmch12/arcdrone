@@ -87,7 +87,7 @@ CMD service ssh start && bash
 # uv pip install -e .
 # uv pip install mujoco-warp
 
-# Ror egl this were missing:
+# For egl this were missing:
 
 # apt-get update && apt-get install -y \
 #     libegl1 \
