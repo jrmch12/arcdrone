@@ -39,7 +39,7 @@ ENV/
 .ipynb_checkpoints/
 
 # Training artifacts
-checkpoints/
+# checkpoints/
 trained_model/
 outputs/
 multirun/
@@ -77,8 +77,9 @@ logs/
 outputs/
 wandb/
 madrona_cache/
-# tools/mjo
-# reference/
+tools/mjo
+reference/
 borrador_mjo/
 sandbox/
+private/
 EOF
