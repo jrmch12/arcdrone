@@ -1,4 +1,4 @@
-task_name: vision_landing_dagger
+task_name: new_attempt_2_dagger
 
 defaults:
   - override hydra/job_logging: default  
@@ -13,34 +13,58 @@ hydra:
 
 env:
 
-  # DEBUG Debugging flags
+  # DEBUG flags
   enable_vision_obs: true
+  grayscale_obs: true
   
   # ==== MJXEnvs / mujoco_playground flags ====
-  xml_path_rel: "assets/skydio_x2/scene.xml"
+  xml_path_rel: "assets/skydio_x2/scene_mounted_cam.xml"
   impl: "warp"
   sim_dt: 0.004
   ctrl_dt: 0.02
   action_repeat: 1
   naconmax: ${mul:${env.njmax},${train.num_envs}}
-  njmax: 250
+  njmax: 280
   vision: true
   vision_config:
     nworld: ${train.num_envs}
-    cam_res: [128, 128]
+    cam_res: [64, 64]
     use_textures: true
     use_shadows: false
-    enabled_geom_groups: [0, 1, 2]
-    cam_active: [true, true, true]
-    render_rgb: [true, true, true]
-    render_depth: [false, false, false]
+    enabled_geom_groups: [0, 1]
+    # NOTE: group 2 = drone visual mesh. Excluded because the onboard
+    # camera sits *inside* the mesh; warp back-face culling would black
+    # out every ray that hits the hull from the inside.
+    cam_active: [true]
+    render_rgb: [true]
+    render_depth: [false]
   
   # ==== Task specific ====
-  buffer_size: 3
+  buffer_size: 3        # depth of the privileged-state buffers (teacher_obs, proprio_obs, etc.) — must match teacher checkpoint
+  buffer_size_pixels: 5 # depth of the pixel frame stack (student CNN input) — independent of teacher
+  frame_skip: 2        # temporal spacing: frames in the stack are frame_skip steps apart
+  use_frame_diffs: true # append frame-difference channels (optical flow proxy) to pixel obs
+  landing_radius: 0.4
+
+  # # Reset randomization — wider spread for impressive demo
+  # init_xy_range: 3.0
+  # init_z_min: 0.3
+  # init_z_max: 5.0
+  # init_tilt_range: 0.5
+  # init_linvel_std: 0.9
+  # init_angvel_std: 0.9
+
+    # Reset randomization — wider spread for impressive demo. Evaluation:
+  init_xy_range: 3.0
+  init_z_min: 0.3
+  init_z_max: 5.0
+  init_tilt_range: 0.15
+  init_linvel_std: 0.3
+  init_angvel_std: 0.3
 
   # Episode control
   max_episode_steps: ${train.episode_length}
-  success_threshold: 0.08
+  success_threshold: 0.03
   success_steps_required: 10
   
   # Reward function
@@ -51,38 +75,42 @@ env:
   action_chattering_weight: 0.001
   action_penalty_weight: 0.0001
   time_penalty: 0.01 
-  success_bonus: 0.5
+  success_bonus: 60.0
   ground_penalty_weight: 10.0  
-  ground_threshold_event: 0.2  
-  ground_threshold_penalty: 0.5 
+  ground_threshold_event: 0.15
+  ground_threshold_penalty: 0.5
+  camera_alignment_weight: 0.3
 
 train:
 
   # ---- DAgger Hyperparameters ----
   num_timesteps: 100
-  num_evals: 8
-  num_eval_envs: 2
-  episode_length: 200
+  num_evals: 32
+  num_eval_envs: 32
+  episode_length: 2000
   normalize_observations: true
   action_repeat: 1
-  unroll_length: 10
-  learning_rate: 1e-3
-  num_envs: 256
+  unroll_length: 8
+  learning_rate: 1e-4
+  max_grad_norm: 0.5
+  num_envs: 512
   seed: 0
   teacher_checkpoint_path: null   # REQUIRED — path to the teacher .pkl
-  num_dagger_epochs: 200          # number of collect-then-align cycles
+  teacher_normalizer_key: "teacher_obs"  # SITT checkpoints use "teacher_obs"; privileged-RL use "policy_obs"
+  num_dagger_epochs: 10000         # number of collect-then-align cycles
 
-  # DAgger mixing schedule: β decays linearly from beta_start to beta_end
-  # β = probability of using teacher action during rollout
-  # β=1.0 → pure teacher rollout (like IL epoch 0)
-  # β=0.0 → pure student rollout
+  # DAgger mixing schedule: high beta_end keeps teacher guidance active
   beta_start: 1.0
-  beta_end: 0.0
+  beta_end: 0.5
+  beta_schedule: "cosine"
 
   # Minibatch layout (mirrors PPO / IL):
   batch_size: 256
   num_minibatches: 4
   align_updates_per_trigger: 4
+  align_embed_coef: 0.3
+  align_action_coef: 2.0
+  aux_vel_coef: 1.0
 
   # Network Architecture
   policy_dec_hidden_layers: [256, 128]
@@ -93,7 +121,6 @@ train:
   cnn_kernel_sizes: [[8, 8], [4, 4], [3, 3]]
   cnn_strides: [[4, 4], [2, 2], [1, 1]]
   policy_pixels_key: "pixels/view_0"
-  policy_pixels_key_1: "pixels/view_1"
   policy_proprio_key: "proprio_obs"
   value_obs_key: "value_obs"
   teacher_obs_key: "teacher_obs"

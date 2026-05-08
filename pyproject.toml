@@ -20,9 +20,12 @@ dependencies = [
 ml = [
     "mujoco>=3.0.0",
     "mujoco_mjx>=3.0.0",
+    "mujoco-warp>=3.0.0",
     "brax>=0.10.0",
     "jax[cuda12]>=0.4.0",
     "omegaconf>=2.3.0",
+    "ml-collections",
+    "mediapy",
 ]
 cad = [
     "onshape-to-robot>=0.4.0",
