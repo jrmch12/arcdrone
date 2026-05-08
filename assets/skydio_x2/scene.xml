@@ -1,0 +1,92 @@
+<mujoco model="Skydio X2 scene">
+
+<!-- TODO: in the future rely only on assets/skydio_x2/scene_mounted_cam.xml. For priviledged we are using this file because there are some naccmax issues -->
+
+  <!-- Same shared assets as cartpole -->
+  <include file="./common/skybox.xml"/>
+  <include file="./common/visual.xml"/>
+  <include file="./common/materials.xml"/>
+
+  <include file="x2.xml"/>
+
+  <statistic center="0 0 0.1" extent="0.6" meansize=".05"/>
+
+  <asset>
+      <material name="fake_sky"
+                  rgba="0.85 0.95 1.0 1"
+                  emission="1"/>
+      <material name="landing_ring_outer" rgba="1 0 0 1" emission="0.5"/>
+      <material name="landing_ring_inner" rgba="1 1 0 1" emission="0.5"/>
+      <material name="drone_marker" rgba="1 0 0 1" emission="1"/>
+      <mesh name="fiducial_mesh"
+            vertex="-0.3 -0.3 0   0.3 -0.3 0   0.3 0.3 0   -0.3 0.3 0
+                        -0.3 -0.3 0.004   0.3 -0.3 0.004   0.3 0.3 0.004   -0.3 0.3 0.004"
+            face="0 1 2  0 2 3   4 5 6  4 6 7
+                  0 1 5  0 5 4   1 2 6  1 6 5
+                  2 3 7  2 7 6   3 0 4  3 4 7"/>
+  </asset>
+
+  <worldbody>
+
+    <light name="ambient" pos="0 0 10" 
+      ambient="0.6 0.6 0.6" 
+      diffuse="0.6 0.6 0.6" 
+      specular="0.1 0.1 0.1" 
+      directional="true" 
+      castshadow="false"/>
+
+    <!-- key light -->
+    <light name="key" pos="2 -2 6" 
+          ambient="0.3 0.3 0.3"
+          diffuse="0.8 0.8 0.8" 
+          specular="0.2 0.2 0.2"/>
+
+    <!-- fill light from opposite side -->
+    <light name="fill" pos="-2 2 4" 
+          ambient="0.2 0.2 0.2"
+          diffuse="0.4 0.4 0.4"
+          castshadow="false"/>
+
+    <body name="origin_target" pos="0 0 0"/>
+
+    <!-- Cameras: side view (height visible) + top-down (xy visible) -->
+    <camera name="outer_camera"      pos="-7 0 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_side" pos="0 -7 1" mode="targetbody" target="origin_target"/>
+    <camera name="outer_camera_up"   pos="0 1 11" mode="targetbody" target="origin_target"/>
+
+
+    <geom name="floor"
+          type="plane"
+          size="0 0 0.05"
+          material="grid"/>
+
+    <!-- Landing pad: concentric rings for strong visual signal -->
+    <geom name="landing_ring_outer" type="cylinder" pos="0 0 0.001" size="1.0 0.001"
+          material="landing_ring_outer" contype="0" conaffinity="0"/>
+    <geom name="landing_ring_inner" type="cylinder" pos="0 0 0.002" size="0.5 0.001"
+          material="landing_ring_inner" contype="0" conaffinity="0"/>
+
+    <!-- Your fiducial marker -->
+     <geom name="fiducial_plate" type="plane" pos="0 0 0.003" size="0.3 0.3 0.002" material="fiducial"/>
+    <!-- <geom name="fiducial_plate"
+          type="mesh"
+          mesh="fiducial_mesh"
+          pos="0 0 0.002"
+          material="fiducial"
+          contype="0"
+          conaffinity="0"/> -->
+
+
+    <!-- giant background box acting like a sky -->
+    <!-- <geom name="fake_skybox"
+          type="sphere"
+          size="20"
+          pos="0 0 0"
+          material="fake_sky"
+          contype="0"
+          conaffinity="0"
+          group="0"/> -->
+
+  </worldbody>
+
+</mujoco>

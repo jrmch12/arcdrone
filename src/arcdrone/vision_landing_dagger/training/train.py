@@ -1,19 +1,10 @@
-"""DAgger (Dataset Aggregation) training loop — trainable action head.
+"""DAgger (Dataset Aggregation) training loop — vel-in-the-loop.
 
-Unlike vision_landing_il, DAgger:
-  1. Rolls out a β-mixture of teacher and student to collect states under the
-     student's own distribution (addressing distribution shift).
-  2. Trains BOTH the student encoder AND the student action head from scratch.
-     The teacher action head is only used to generate action labels.
+The velocity estimator predicts linvel from encoder features + tilt history,
+and that prediction flows INTO the action head at both training and inference.
 
-β decays linearly from ``beta_start`` to ``beta_end`` across epochs.
-
-Imports:
-  - Networks / align from arcdrone.vision_landing_dagger.training (own copies)
-  - Task/env  from arcdrone.vision_landing_il.task  (shared, unchanged)
-
-Checkpoint layout (compatible with evaluate.py):
-    (proprio_norm, (student_enc_params, student_action_head_params))
+Checkpoint layout:
+    (proprio_norm, (student_enc, action_head, vel_estimator))
 """
 
 import functools
@@ -28,13 +19,21 @@ from brax.training.acme import running_statistics
 from brax.training.acme import specs
 from brax.training.types import PRNGKey
 
-from arcdrone.vision_landing_dagger.training import networks as dagger_networks
-from arcdrone.vision_landing_dagger.training.align import align
+import sys as _sys
+from pathlib import Path as _Path
+_NA2_ROOT = str(_Path(__file__).resolve().parents[1])
+if _NA2_ROOT not in _sys.path:
+    _sys.path.insert(0, _NA2_ROOT)
+from training import networks as dagger_networks
+from training.align import align
 
 import flax
 import jax
 import jax.numpy as jnp
 import optax
+
+logging.set_verbosity(logging.INFO)
+logging.set_stderrthreshold("info")
 
 
 Metrics = types.Metrics
@@ -49,12 +48,13 @@ _PMAP_AXIS_NAME = "i"
 class DAggerTrainingState:
     """Mutable state for the DAgger learner.
 
-    Both student_enc_params and action_head_params are trainable.
-    Teacher params are Python-level constants, never in JAX state.
+    student_enc_params, action_head_params, vel_estimator_params are all
+    trainable AND used at inference (vel-in-the-loop architecture).
     """
-    align_opt_state: optax.OptState   # covers (student_enc, action_head) jointly
+    align_opt_state: optax.OptState
     student_enc_params: Any
-    action_head_params: Any           # student's own head, trained from scratch
+    action_head_params: Any
+    vel_estimator_params: Any
     normalizer_params: Any
     env_steps: Any
 
@@ -82,12 +82,18 @@ def train(
     num_dagger_epochs: int = 200,
     beta_start: float = 1.0,
     beta_end: float = 0.0,
+    beta_schedule: str = "linear",
     # --- data collection ---
     num_evals: int = 10,
     unroll_length: int = 10,
     batch_size: int = 32,
     num_minibatches: int = 16,
     align_updates_per_trigger: int = 4,
+    align_embed_coef: float = 1.0,
+    align_action_coef: float = 1.0,
+    aux_vel_coef: float = 0.0,
+    augment_strength: float = 0.0,
+    teacher_noise_std: float = 0.0,
     # --- architecture ---
     network_factory: types.NetworkFactory[
         dagger_networks.ILNetworks
@@ -102,6 +108,8 @@ def train(
     normalize_observations: bool = False,
     # --- optimizer ---
     learning_rate: float = 1e-4,
+    max_grad_norm: float = 1.0,
+    teacher_normalizer_key: str = "policy_obs",
     # --- misc ---
     seed: int = 0,
     max_devices_per_host: Optional[int] = None,
@@ -122,8 +130,6 @@ def train(
         ``checkpoint_params`` layout:
             ``(proprio_norm, (student_enc_params, student_action_head_params))``
     """
-
-    xt = time.time()
 
     # ========================= device setup =========================
 
@@ -159,7 +165,7 @@ def train(
     del key
     local_key = jax.random.fold_in(local_key, process_id)
     local_key, key_env, eval_key = jax.random.split(local_key, 3)
-    key_policy, key_init = jax.random.split(global_key, 2)
+    _, key_init = jax.random.split(global_key, 2)
     key_enc, key_head = jax.random.split(key_init)
     del global_key
 
@@ -200,7 +206,10 @@ def train(
 
     # ========================= optimizer =========================
 
-    align_optimizer = optax.adam(learning_rate)
+    align_optimizer = optax.chain(
+        optax.clip_by_global_norm(max_grad_norm),
+        optax.adam(learning_rate),
+    )
 
     # ========================= decompose teacher checkpoint =========================
 
@@ -210,8 +219,16 @@ def train(
     teacher_dec_params          = teacher_policy_params[0]
     teacher_action_head_params  = teacher_policy_params[1]   # frozen label source
 
-    # TODO: Update privileged RL keys — checkpoint uses "policy_obs" / "value_obs"
-    teacher_obs_norm = _nsel(teacher_norm_params, "policy_obs")
+    try:
+        teacher_obs_norm = _nsel(teacher_norm_params, teacher_normalizer_key)
+    except KeyError:
+        # Compatibility: SITT checkpoints use "teacher_obs", privileged-RL uses "policy_obs"
+        _fallback_key = "teacher_obs" if "teacher_obs" in teacher_norm_params.mean else "policy_obs"
+        logging.warning(
+            "Teacher normalizer key '%s' not found; falling back to '%s'.",
+            teacher_normalizer_key, _fallback_key,
+        )
+        teacher_obs_norm = _nsel(teacher_norm_params, _fallback_key)
 
     # ── Frozen teacher policy for the mixture rollout ──
     frozen_teacher_policy = dagger_networks.make_frozen_teacher_policy(
@@ -225,8 +242,8 @@ def train(
     make_student_policy = dagger_networks.make_student_inference_fn(il_network)
 
     def _pack_student_params(ts: DAggerTrainingState):
-        """Returns (proprio_norm, student_enc, student_action_head)."""
-        return (ts.normalizer_params, ts.student_enc_params, ts.action_head_params)
+        """Returns (proprio_norm, student_enc, action_head, vel_estimator)."""
+        return (ts.normalizer_params, ts.student_enc_params, ts.action_head_params, ts.vel_estimator_params)
 
     # ── Align function — teacher_action_head_params pre-bound as frozen labels ──
     align_fn = functools.partial(
@@ -235,6 +252,9 @@ def train(
         optimizer=align_optimizer,
         align_updates_per_trigger=align_updates_per_trigger,
         num_minibatches=num_minibatches,
+        embed_coef=align_embed_coef,
+        action_coef=align_action_coef,
+        aux_vel_coef=aux_vel_coef,
         teacher_dec_params=teacher_dec_params,
         teacher_action_head_params=teacher_action_head_params,  # frozen
         teacher_norm=teacher_obs_norm,
@@ -246,6 +266,9 @@ def train(
     student_enc_params  = il_network.student_encoder.init(key_enc)
     # Fresh student action head (trained from scratch, NOT copied from teacher)
     action_head_params  = il_network.action_head.init(key_head)
+    # Fresh velocity estimator (used at inference — vel-in-the-loop)
+    key_vel = jax.random.PRNGKey(seed + 99)
+    vel_estimator_params = il_network.vel_estimator.init(key_vel)
 
     # Normalizer: proprio running stats only
     proprio_spec = specs.Array(
@@ -254,19 +277,27 @@ def train(
     proprio_norm = running_statistics.init_state(proprio_spec)
 
     if restore_params is not None:
-        # Support two checkpoint layouts:
-        #   NEW: (proprio_norm, (student_enc, student_action_head))
-        #   OLD: (proprio_norm, student_enc)   — from IL or pre-trainable-head DAgger
+        # Support checkpoint layouts:
+        #   VEL-IN-LOOP: (proprio_norm, (student_enc, action_head, vel_estimator))
+        #   OLD-2:        (proprio_norm, (student_enc, action_head))
+        #   OLD-1:        (proprio_norm, student_enc)
         restored_norm = restore_params[0]
         restored_policy = restore_params[1]
-        if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
-            restored_enc, restored_head = restored_policy
+        if isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 3:
+            restored_enc, restored_head, restored_vel = restored_policy
             student_enc_params = restored_enc
             action_head_params = restored_head
-            logging.info("Restored student encoder + action head (new format).")
+            vel_estimator_params = restored_vel
+            logging.info("Restored student enc + action head + vel estimator (vel-in-loop format).")
+        elif isinstance(restored_policy, (tuple, list)) and len(restored_policy) == 2:
+            restored_enc, restored_head = restored_policy
+            student_enc_params = restored_enc
+            # Old checkpoint had different action_head input size (no vel concat),
+            # so we only restore the encoder and start action_head + vel fresh.
+            logging.info("Restored student encoder only from old format (action head + vel fresh).")
         else:
             student_enc_params = restored_policy
-            logging.info("Restored student encoder only (old format, action head stays fresh).")
+            logging.info("Restored student encoder only (old format, action head + vel fresh).")
 
         # Only restore normalizer if it's a flat array state matching current
         # proprio shape.  Old checkpoints may have a dict-shaped normalizer or
@@ -288,11 +319,12 @@ def train(
                 "incompatible structure (dict vs array)."
             )
 
-    # Optimizer covers (student_enc_params, action_head_params) as a tuple tree
+    # Optimizer covers (student_enc, action_head, vel_estimator) as a tuple tree
     training_state = DAggerTrainingState(
-        align_opt_state=align_optimizer.init((student_enc_params, action_head_params)),
+        align_opt_state=align_optimizer.init((student_enc_params, action_head_params, vel_estimator_params)),
         student_enc_params=student_enc_params,
         action_head_params=action_head_params,
+        vel_estimator_params=vel_estimator_params,
         normalizer_params=proprio_norm,
         env_steps=jnp.uint32(0),
     )
@@ -300,14 +332,19 @@ def train(
     # ========================= DAgger mixture policy =========================
 
     def _make_dagger_policy(student_policy_fn, beta):
-        """β-mixture: Bernoulli(β)=1 → teacher action, 0 → student action."""
+        """Action-interpolation DAgger: action = β·teacher + (1-β)·student.
+
+        Instead of per-env Bernoulli sampling (which causes catastrophic divergence
+        when β < 1), we continuously blend teacher and student actions. This keeps
+        trajectories close to the teacher's while letting the student contribute
+        proportionally. The alignment loss still trains against teacher labels.
+        """
 
         def policy(observations, key_sample):
-            key_teacher, key_student, key_coin = jax.random.split(key_sample, 3)
+            key_teacher, key_student = jax.random.split(key_sample, 2)
             teacher_action, _ = frozen_teacher_policy(observations, key_teacher)
             student_action, student_extras = student_policy_fn(observations, key_student)
-            use_teacher = jax.random.bernoulli(key_coin, beta)
-            action = jnp.where(use_teacher, teacher_action, student_action)
+            action = beta * teacher_action + (1.0 - beta) * student_action
             extras = {
                 "log_prob": student_extras.get("log_prob", jnp.zeros(())),
                 "raw_action": student_extras.get("raw_action", action),
@@ -340,7 +377,7 @@ def train(
     # ========================= one DAgger epoch =========================
 
     def dagger_epoch(training_state, env_state, key, beta):
-        key_rollout, _ = jax.random.split(key)
+        key_rollout, key_augment = jax.random.split(key)
 
         # 1. Build current student policy (live params)
         student_params = _pack_student_params(training_state)
@@ -354,17 +391,53 @@ def train(
             env_state, key_rollout, mixture_policy, num_unrolls_per_epoch,
         )
 
-        # 4. Joint alignment: train (student_enc, student_action_head) together
-        trainable_in = (training_state.student_enc_params, training_state.action_head_params)
-        (new_student_enc, new_action_head), align_opt_state, align_loss, embed_loss, action_loss = align_fn(
+        # 4. Pixel augmentation: apply before alignment (outside scan for JIT efficiency)
+        #    Layout: channels [0:n_raw] = raw grayscale frames,
+        #            channels [n_raw:] = frame diffs (motion proxy).
+        #    Only augment raw frames, then recompute diffs so motion signal stays clean.
+        student_obs = data.observation
+        if augment_strength > 0.0:
+            pixel_key = "pixels/view_0"
+            pixels = student_obs[pixel_key]
+            total_ch = pixels.shape[-1]
+            n_raw = (total_ch + 1) // 2  # raw=5, diff=4 for total=9
+
+            raw = pixels[..., :n_raw]
+            k_b, k_c, k_n = jax.random.split(key_augment, 3)
+            lead = pixels.shape[:-3]
+            bcast = lead + (1, 1, 1)
+
+            # Brightness shift (same across all raw channels → cancels in diffs)
+            bright = augment_strength * jax.random.uniform(
+                k_b, bcast, minval=-0.15, maxval=0.15)
+            raw = raw + bright
+
+            # Contrast (same factor → scales diffs proportionally)
+            mean = jnp.mean(raw, axis=(-3, -2), keepdims=True)
+            contrast = 1.0 + augment_strength * jax.random.uniform(
+                k_c, bcast, minval=-0.3, maxval=0.3)
+            raw = mean + contrast * (raw - mean)
+
+            # Per-pixel noise on raw frames only
+            noise = augment_strength * 0.03 * jax.random.normal(k_n, raw.shape)
+            raw = jnp.clip(raw + noise, -0.5, 0.5)
+
+            # Recompute diffs from augmented raw frames
+            diffs = raw[..., :-1] - raw[..., 1:]
+            pixels = jnp.concatenate([raw, diffs], axis=-1)
+            student_obs = {**student_obs, pixel_key: pixels}
+
+        # 5. Joint alignment: train (student_enc, action_head, vel_estimator) together
+        trainable_in = (training_state.student_enc_params, training_state.action_head_params, training_state.vel_estimator_params)
+        (new_student_enc, new_action_head, new_vel_est), align_opt_state, align_loss, embed_loss, action_loss, aux_vel_loss = align_fn(
             trainable_in,
             training_state.align_opt_state,
             data.observation,
-            data.observation,
+            student_obs,
             training_state.normalizer_params,
         )
 
-        # 5. Update proprio running stats
+        # 6. Update proprio running stats
         normalizer_params = training_state.normalizer_params
         if normalize_observations:
             normalizer_params = running_statistics.update(
@@ -375,6 +448,7 @@ def train(
             align_opt_state=align_opt_state,
             student_enc_params=new_student_enc,
             action_head_params=new_action_head,
+            vel_estimator_params=new_vel_est,
             normalizer_params=normalizer_params,
             env_steps=training_state.env_steps + jnp.uint32(env_steps_per_epoch),
         )
@@ -383,6 +457,7 @@ def train(
             "align_loss": align_loss,
             "embed_loss": embed_loss,
             "action_loss": action_loss,
+            "aux_vel_loss": aux_vel_loss,
             "beta": beta,
         }
         return new_state, env_state, metrics
@@ -420,6 +495,9 @@ def train(
     eval_every = max(num_dagger_epochs // max(num_evals, 1), 1)
 
     metrics: Metrics = {}
+    params = _unpmap(_pack_student_params(training_state))
+    policy_params_fn(0, make_student_policy, params)
+
     if process_id == 0 and run_evals:
         metrics = evaluator.run_evaluation(
             _unpmap(_pack_student_params(training_state)),
@@ -428,16 +506,21 @@ def train(
         logging.info(metrics)
         progress_fn(0, metrics)
 
-    params = _unpmap(_pack_student_params(training_state))
-    policy_params_fn(0, make_student_policy, params)
+    def _beta_at(fraction: float) -> jnp.ndarray:
+        if beta_schedule == "cosine":
+            mix = 0.5 * (1.0 + jnp.cos(jnp.pi * fraction))
+        elif beta_schedule == "quadratic":
+            mix = (1.0 - fraction) ** 2
+        else:
+            mix = 1.0 - fraction
+        return jnp.float32(beta_end + (beta_start - beta_end) * mix)
 
     current_step = 0
     for epoch in range(num_dagger_epochs):
         t0 = time.time()
 
-        # Linear β decay
-        progress = epoch / (num_dagger_epochs - 1) if num_dagger_epochs > 1 else 1.0
-        beta = jnp.float32(beta_start + (beta_end - beta_start) * progress)
+        fraction = epoch / (num_dagger_epochs - 1) if num_dagger_epochs > 1 else 1.0
+        beta = _beta_at(fraction)
 
         epoch_key, local_key = jax.random.split(local_key)
         epoch_keys = jax.random.split(epoch_key, local_devices_to_use)
@@ -466,6 +549,7 @@ def train(
                 "training/align_loss":  float(train_metrics["align_loss"]),
                 "training/embed_loss":  float(train_metrics["embed_loss"]),
                 "training/action_loss": float(train_metrics["action_loss"]),
+                "training/aux_vel_loss": float(train_metrics["aux_vel_loss"]),
                 "training/beta":        float(train_metrics["beta"]),
                 "training/sps":         sps,
                 "training/walltime":    training_walltime,
@@ -479,13 +563,37 @@ def train(
             else:
                 metrics = training_metrics_out
 
-            logging.info(
-                "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
-                "align_loss=%.4f  action_loss=%.4f  sps=%.0f",
-                epoch + 1, num_dagger_epochs, float(beta), current_step,
-                float(train_metrics["align_loss"]),
-                float(train_metrics["action_loss"]), sps,
-            )
+            if should_eval:
+                eval_reward = metrics.get("eval/episode_reward", float("nan"))
+                # Build per-component breakdown string from eval metrics
+                component_parts = []
+                for k, v in sorted(metrics.items()):
+                    if k.startswith("eval/episode_reward_") and not k.endswith("_std"):
+                        short = k[len("eval/episode_reward_"):]
+                        component_parts.append(f"{short}={float(v):.3f}")
+                breakdown_str = "  ".join(component_parts) if component_parts else "(none)"
+                logging.info(
+                    "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
+                    "align=%.4f  action=%.4f  aux_vel=%.4f  eval_reward=%.2f  sps=%.0f\n"
+                    "  rewards_student: %s",
+                    epoch + 1, num_dagger_epochs, float(beta), current_step,
+                    float(train_metrics["align_loss"]),
+                    float(train_metrics["action_loss"]),
+                    float(train_metrics["aux_vel_loss"]),
+                    eval_reward,
+                    sps,
+                    breakdown_str,
+                )
+            else:
+                logging.info(
+                    "DAgger epoch %d/%d  β=%.3f  env_steps=%d  "
+                    "align=%.4f  action=%.4f  aux_vel=%.4f  sps=%.0f",
+                    epoch + 1, num_dagger_epochs, float(beta), current_step,
+                    float(train_metrics["align_loss"]),
+                    float(train_metrics["action_loss"]),
+                    float(train_metrics["aux_vel_loss"]),
+                    sps,
+                )
             progress_fn(current_step, metrics)
 
     # ========================= done =========================
@@ -493,8 +601,6 @@ def train(
     params = _unpmap(_pack_student_params(training_state))
     logging.info("DAgger training complete — total env steps: %d", current_step)
 
-    # Checkpoint: (proprio_norm, (student_enc_params, student_action_head_params))
-    # NOTE: student_action_head_params here is the TRAINED student head,
-    # not the teacher's. evaluate.py loads [1][1] as action_head_params.
-    checkpoint_params = (params[0], (params[1], params[2]))
+    # Checkpoint: (proprio_norm, (student_enc, action_head, vel_estimator))
+    checkpoint_params = (params[0], (params[1], params[2], params[3]))
     return (make_student_policy, checkpoint_params, metrics)

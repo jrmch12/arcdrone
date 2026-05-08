@@ -1,21 +1,19 @@
-"""Alignment step for DAgger training — trainable action head.
+"""Alignment step for DAgger training — vel-in-the-loop architecture.
 
-Key difference from vision_landing_il/training/align.py:
+    ``trainable_params = (student_enc, action_head, vel_estimator)``
 
-    The action head is TRAINABLE in DAgger.  Gradients flow through both
-    the student encoder *and* the student action head jointly.
+Architecture in the loss:
+    encoder_feats = student_enc(pixels, proprio)
+    pred_linvel   = vel_estimator([encoder_feats, tilt_history])
+    student_logits = action_head([encoder_feats, pred_linvel])
 
-    ``trainable_params = (student_enc_params, student_action_head_params)``
-
-    The frozen teacher action head (``teacher_action_head_params``) is still
-    used to generate action *labels* — but it no longer participates in the
-    gradient graph.
-
-Loss structure (unchanged):
-    embed_loss  = mean |student_feat - stop_grad(teacher_feat)|
-    action_loss = mean |student_head(student_feat) -
-                        stop_grad(teacher_head(stop_grad(teacher_feat)))|
-    total_loss  = embed_loss + action_loss
+Loss structure:
+    embed_loss    = mean |student_feat - stop_grad(teacher_feat)|
+    action_loss   = mean |student_logits - stop_grad(teacher_logits)|
+                    (gradients flow through action_head AND vel_estimator!)
+    aux_vel_loss  = mean (pred_linvel - linvel_gt)^2
+    total_loss    = embed_coef * embed_loss + action_coef * action_loss
+                  + aux_vel_coef * aux_vel_loss
 """
 
 from functools import partial
@@ -28,42 +26,41 @@ import optax
 
 @partial(
     jax.jit,
-    static_argnames=("il_network", "optimizer", "align_updates_per_trigger", "num_minibatches"),
+    static_argnames=(
+        "il_network",
+        "optimizer",
+        "align_updates_per_trigger",
+        "num_minibatches",
+        "embed_coef",
+        "action_coef",
+        "aux_vel_coef",
+    ),
 )
 def align(
-    trainable_params,           # (student_enc_params, student_action_head_params)
+    trainable_params,           # (student_enc, action_head, vel_estimator)
     opt_state: optax.OptState,
     teacher_obs,
     student_obs,
     proprio_norm,
     *,
     teacher_dec_params,
-    teacher_action_head_params,  # frozen — action label source only
+    teacher_action_head_params,
     teacher_norm,
     il_network,
     optimizer,
     align_updates_per_trigger: int,
     num_minibatches: int,
+    embed_coef: float = 1.0,
+    action_coef: float = 1.0,
+    aux_vel_coef: float = 0.0,
 ):
-    """Run minibatched alignment, training both encoder and action head.
+    """Run minibatched alignment with vel-in-the-loop.
 
-    Args:
-        trainable_params: tuple ``(student_enc_params, student_action_head_params)``.
-        opt_state: optax state covering ``trainable_params``.
-        teacher_obs: rollout observations, shape ``(B*M, T, ...)``.
-        student_obs: same (identical in practice — same rollout).
-        proprio_norm: live proprio ``RunningStatisticsState``.
-        teacher_dec_params: frozen teacher MLP decoder (pre-bound).
-        teacher_action_head_params: frozen teacher action head used only to
-            produce action *labels* — never differentiated (pre-bound).
-        teacher_norm: frozen teacher normaliser sub-state (pre-bound).
-        il_network: ``ILNetworks`` instance (static).
-        optimizer: optax optimiser covering the full ``trainable_params`` tree.
-        align_updates_per_trigger: outer loop repetitions.
-        num_minibatches: gradient steps per outer repetition.
+    The predicted linvel flows INTO the action head, so action_loss gradients
+    propagate through both the action head AND the vel estimator.
 
     Returns:
-        ``(new_trainable_params, new_opt_state, mean_total, mean_embed, mean_action)``
+        ``(new_trainable_params, new_opt_state, mean_total, mean_embed, mean_action, mean_aux_vel)``
     """
 
     def _to_minibatches(x):
@@ -77,7 +74,7 @@ def align(
         t_obs, s_obs = data
 
         def loss_fn(trainable):
-            student_enc, student_head = trainable
+            student_enc, student_head, vel_est_params = trainable
 
             # ── Teacher features (frozen target) ──
             teacher_feat = il_network.teacher_decoder.apply(
@@ -94,31 +91,48 @@ def align(
                 jnp.abs(student_feat - jax.lax.stop_gradient(teacher_feat))
             )
 
-            # Teacher action labels (frozen — stop_grad on both feat and head)
-            teacher_logits = il_network.action_head.apply(
+            # Teacher action labels (frozen) — uses teacher_action_head
+            # which has teacher_feat_dim input (no vel concat)
+            teacher_logits = il_network.teacher_action_head.apply(
                 None,
                 teacher_action_head_params,
                 jax.lax.stop_gradient(teacher_feat),
             )
 
-            # Student actions through the trainable student head
+            # ── Vel-in-the-loop: estimate velocity, then feed to action head ──
+            tilt_info = s_obs["aux_tilt"]
+            vel_input = jnp.concatenate([student_feat, tilt_info], axis=-1)
+            pred_linvel = il_network.vel_estimator.apply(
+                None, vel_est_params, vel_input
+            )
+
+            # Action head receives [encoder_feats, predicted_linvel]
+            action_input = jnp.concatenate([student_feat, pred_linvel], axis=-1)
             student_logits = il_network.action_head.apply(
-                None, student_head, student_feat
+                None, student_head, action_input
             )
 
             action_loss = jnp.mean(
                 jnp.abs(student_logits - jax.lax.stop_gradient(teacher_logits))
             )
 
-            total_loss = embed_loss + action_loss
-            return total_loss, (embed_loss, action_loss)
+            # Vel supervision: MSE against ground-truth linvel
+            linvel_gt = s_obs["aux_linvel"]
+            aux_vel_loss = jnp.mean(
+                (pred_linvel - jax.lax.stop_gradient(linvel_gt)) ** 2
+            )
 
-        (loss, (embed_loss, action_loss)), grads = jax.value_and_grad(
+            total_loss = (embed_coef * embed_loss
+                         + action_coef * action_loss
+                         + aux_vel_coef * aux_vel_loss)
+            return total_loss, (embed_loss, action_loss, aux_vel_loss)
+
+        (loss, (embed_loss, action_loss, aux_vel_loss)), grads = jax.value_and_grad(
             loss_fn, has_aux=True
         )(trainable)
         updates, opt_st = optimizer.update(grads, opt_st, trainable)
         trainable = optax.apply_updates(trainable, updates)
-        losses = jnp.stack([loss, embed_loss, action_loss])
+        losses = jnp.stack([loss, embed_loss, action_loss, aux_vel_loss])
         return (trainable, opt_st), losses
 
     def sgd_step(carry, _):
@@ -137,5 +151,5 @@ def align(
         None,
         length=align_updates_per_trigger,
     )
-    mean_total, mean_embed, mean_action = jnp.mean(epoch_losses, axis=0)
-    return trainable_params, opt_state, mean_total, mean_embed, mean_action
+    mean_total, mean_embed, mean_action, mean_aux_vel = jnp.mean(epoch_losses, axis=0)
+    return trainable_params, opt_state, mean_total, mean_embed, mean_action, mean_aux_vel

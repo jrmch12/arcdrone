@@ -38,9 +38,9 @@ OmegaConf.register_new_resolver("mul", lambda a, b: int(a) * int(b), replace=Tru
 
 _REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(_REPO_ROOT / "src"))
-sys.path.insert(0, str(_REPO_ROOT / "src" / "arcdrone" / "New_attempt_2"))
-from arcdrone.New_attempt_2.task.arcdrone import ARCDroneVisionLandingIL
-from arcdrone.New_attempt_2.training import networks as dagger_networks
+sys.path.insert(0, str(_REPO_ROOT / "src" / "arcdrone" / "vision_landing_dagger"))
+from arcdrone.vision_landing_dagger.task.arcdrone import ARCDroneVisionLandingIL
+from arcdrone.vision_landing_dagger.training import networks as dagger_networks
 
 # ===========================================================================
 # Args
@@ -55,7 +55,7 @@ args = parser.parse_args()
 # ===========================================================================
 # Config
 
-CFG_DIR = _REPO_ROOT / "src" / "arcdrone" / "New_attempt_2" / "cfg"
+CFG_DIR = _REPO_ROOT / "src" / "arcdrone" / "vision_landing_dagger" / "cfg"
 
 initialize_config_dir(config_dir=str(CFG_DIR), job_name="visualize", version_base=None)
 cfg = compose(config_name="config")
@@ -208,13 +208,15 @@ for cam_key in camera_keys:
     raw = np.clip(raw, 0.0, 1.0)
     
     is_grayscale = bool(cfg_env.get("grayscale_obs", True))
+    n_raw = int(cfg_env.get("buffer_size_pixels", 1))
     if is_grayscale:
-        # Stack is (H, W, buffer_size) with 1 grayscale channel per frame
-        # Take the last frame and broadcast to RGB for visualization
-        frames = np.repeat(raw[..., -1:], 3, axis=-1)  # (T, H, W, 3)
+        # Raw frames occupy channels [0 .. n_raw-1]; diff channels (if any)
+        # are appended after.  The newest frame is at index n_raw-1.
+        frames = np.repeat(raw[..., n_raw - 1:n_raw], 3, axis=-1)  # (T, H, W, 3)
     else:
-        # Stack is (H, W, buffer_size*3) — take last 3 channels (latest RGB frame)
-        frames = raw[..., -3:]
+        # RGB: raw frames occupy channels [0 .. n_raw*3-1]; newest 3 channels
+        # of the raw block are the latest RGB frame.
+        frames = raw[..., (n_raw - 1) * 3:n_raw * 3]
     
     # Per-channel diagnostics
     print(f"\n--- {cam_key} diagnostics ---")

@@ -7,7 +7,7 @@ the visited states.
 
 Example::
 
-    python src/arcdrone/vision_landing_dagger/train.py \
+    python src/arcdrone/New_attempt_2/train.py \
         train.teacher_checkpoint_path='checkpoints/teacher/trained_model.pkl' \
         train.num_envs=256 train.num_dagger_epochs=200 train.use_wandb=true
 """
@@ -16,6 +16,9 @@ from datetime import datetime
 from pathlib import Path
 import functools
 import os
+import math
+from typing import Any
+import numpy as np
 
 from omegaconf import DictConfig, OmegaConf
 import hydra
@@ -30,25 +33,30 @@ def main(cfg: DictConfig):
     # =========== Warp + JAX runtime setup ===========
 
     xla_flags = os.environ.get("XLA_FLAGS", "")
-    xla_flags += " --xla_gpu_triton_gemm_any=True"
+    if os.environ.get("ARC_XLA_ENABLE_TRITON", "0") == "1":
+        xla_flags += " --xla_gpu_triton_gemm_any=True"
     os.environ["XLA_FLAGS"] = xla_flags
     os.environ["XLA_PYTHON_CLIENT_PREALLOCATE"] = "false"
     os.environ["MUJOCO_GL"] = "egl"
 
     # Import JAX-related modules AFTER setting env vars
-    from arcdrone.vision_landing_dagger.training.train import train as dagger_train
-    from arcdrone.vision_landing_il.training import networks as il_networks
-    from arcdrone.vision_landing_il.task.arcdrone import ARCDroneRL_VisionLanding_StudentTeacher
+    import sys as _sys
+    from pathlib import Path as _Path
+    _NA2_ROOT = str(_Path(__file__).resolve().parent)
+    if _NA2_ROOT not in _sys.path:
+        _sys.path.insert(0, _NA2_ROOT)
+    from training.train import train as dagger_train
+    from training import networks as dagger_networks
+    from task.arcdrone import ARCDroneVisionLandingIL
     from brax.io import model
-    from arcdrone.utils.wandb_logger import WandbLogger
+    from utils.wandb_logger import WandbLogger
     from mujoco_playground import wrapper
-    import jax
 
     # =========== Environment ===========
 
     env_cfg = cfg.env
-    print("Instantiating ARCDroneRL_VisionLanding_StudentTeacher...")
-    env = ARCDroneRL_VisionLanding_StudentTeacher(cfg=env_cfg)
+    print("Instantiating ARCDroneVisionLandingIL...")
+    env = ARCDroneVisionLandingIL(cfg=env_cfg)
     print("Environment instantiated successfully")
 
     # =========== Wrap for Brax training ===========
@@ -114,7 +122,7 @@ def main(cfg: DictConfig):
     # =========== Network factory ===========
 
     network_factory = functools.partial(
-        il_networks.make_il_networks,
+        dagger_networks.make_il_networks,
         teacher_dec_hidden_layers=cfg.teacher_dec_hidden_layers,
         policy_dec_hidden_layers=cfg.policy_dec_hidden_layers,
         policy_proprio_proj_hidden_layers=cfg.policy_proprio_proj_hidden_layers,
@@ -124,7 +132,6 @@ def main(cfg: DictConfig):
         cnn_kernel_sizes=cfg.cnn_kernel_sizes,
         cnn_strides=cfg.cnn_strides,
         policy_pixels_key=cfg.policy_pixels_key,
-        policy_pixels_key_1=cfg.policy_pixels_key_1,
         policy_proprio_key=cfg.policy_proprio_key,
         teacher_obs_key=cfg.teacher_obs_key,
         value_obs_key=cfg.value_obs_key,
@@ -140,18 +147,26 @@ def main(cfg: DictConfig):
         num_dagger_epochs=cfg.num_dagger_epochs,
         beta_start=cfg.beta_start,
         beta_end=cfg.beta_end,
+        beta_schedule=cfg.beta_schedule,
         num_evals=cfg.num_evals,
         num_eval_envs=cfg.num_eval_envs,
         unroll_length=cfg.unroll_length,
         batch_size=cfg.batch_size,
         num_minibatches=cfg.num_minibatches,
         align_updates_per_trigger=cfg.align_updates_per_trigger,
+        align_embed_coef=cfg.align_embed_coef,
+        align_action_coef=cfg.align_action_coef,
+        aux_vel_coef=cfg.get('aux_vel_coef', 0.0),
+        augment_strength=cfg.get('augment_strength', 0.0),
+        teacher_noise_std=cfg.get('teacher_noise_std', 0.0),
         network_factory=network_factory,
         num_envs=cfg.num_envs,
         episode_length=cfg.episode_length,
         action_repeat=cfg.action_repeat,
         normalize_observations=cfg.normalize_observations,
         learning_rate=cfg.learning_rate,
+        max_grad_norm=cfg.max_grad_norm,
+        teacher_normalizer_key=cfg.teacher_normalizer_key,
         seed=cfg.seed,
         deterministic_eval=True,
         wrap_env=False,
@@ -159,40 +174,142 @@ def main(cfg: DictConfig):
 
     # =========== Progress callback ===========
 
+    metric_history: dict[str, list[float]] = {}
+    latest_student_params = None
+    best_student_params = None
+    best_eval_reward = -math.inf
+    best_eval_step = 0
+    best_eval_epoch_length = 0.0
+
+    def _record_metrics(metric_dict: dict[str, Any]) -> None:
+        for key, value in metric_dict.items():
+            try:
+                scalar = float(np.asarray(value))
+            except (TypeError, ValueError):
+                continue
+            metric_history.setdefault(key, []).append(scalar)
+
+    def policy_params_callback(num_steps, _make_policy_fn, student_params):
+        del num_steps, _make_policy_fn
+        nonlocal latest_student_params
+        latest_student_params = student_params
+
     def progress(num_steps, metrics):
+        nonlocal best_student_params, best_eval_reward, best_eval_step, best_eval_epoch_length
         times.append(datetime.now())
 
         log_dict = {
             "training/align_loss": metrics.get("training/align_loss", 0.0),
             "training/embed_loss": metrics.get("training/embed_loss", 0.0),
             "training/action_loss": metrics.get("training/action_loss", 0.0),
+            "training/aux_vel_loss": metrics.get("training/aux_vel_loss", 0.0),
             "training/beta": metrics.get("training/beta", 0.0),
             "training/sps": metrics.get("training/sps", 0.0),
             "training/walltime": metrics.get("training/walltime", 0.0),
-            "eval/episode_reward": metrics.get("eval/episode_reward", 0.0),
-            "eval/avg_episode_length": metrics.get("eval/avg_episode_length", 0.0),
         }
+        # Only include eval metrics when an evaluation actually ran
+        if "eval/episode_reward" in metrics:
+            log_dict["eval/episode_reward"] = metrics["eval/episode_reward"]
+        if "eval/avg_episode_length" in metrics:
+            log_dict["eval/avg_episode_length"] = metrics["eval/avg_episode_length"]
 
+        # Per-component student rewards (only present on eval steps)
+        reward_breakdown = {}
         for key, value in metrics.items():
             if key.startswith("eval/episode_reward_") and not key.endswith("_std"):
                 reward_name = key[len("eval/episode_reward_"):]
                 std_key = f"eval/episode_reward_{reward_name}_std"
                 std_val = metrics.get(std_key, 0.0)
-                log_dict[f"rewards/{reward_name}"] = value
-                log_dict[f"std/{reward_name}_upper"] = value + std_val
-                log_dict[f"std/{reward_name}_lower"] = value - std_val
+                log_dict[f"rewards_student/{reward_name}"] = value
+                log_dict[f"rewards_student/{reward_name}_upper"] = value + std_val
+                log_dict[f"rewards_student/{reward_name}_lower"] = value - std_val
+                reward_breakdown[reward_name] = float(value)
+
+        if "eval/episode_reward" in metrics and latest_student_params is not None:
+            eval_reward = float(metrics["eval/episode_reward"])
+            if eval_reward > best_eval_reward:
+                best_eval_reward = eval_reward
+                best_eval_step = int(num_steps)
+                best_eval_epoch_length = float(
+                    metrics.get("eval/avg_episode_length", 0.0)
+                )
+                best_student_params = latest_student_params
+
+        _record_metrics(log_dict)
 
         if use_wandb:
             logger.log_metrics(num_steps, log_dict)
 
+        # Always print training losses; print eval breakdown when available
+        eval_reward_str = f"{log_dict['eval/episode_reward']:.2f}" if "eval/episode_reward" in log_dict else "--"
+        print(
+            f"step={num_steps:8d}  eval_reward={eval_reward_str}  "
+            f"align={log_dict['training/align_loss']:.4f}  "
+            f"embed={log_dict['training/embed_loss']:.4f}  "
+            f"action={log_dict['training/action_loss']:.4f}  "
+            f"aux_vel_loss={log_dict['training/aux_vel_loss']:.4f}  "
+            f"beta={log_dict['training/beta']:.3f}"
+        )
+        if reward_breakdown:
+            breakdown_str = "  ".join(f"{k}={v:.3f}" for k, v in sorted(reward_breakdown.items()))
+            print(f"  rewards_student: {breakdown_str}")
+
     # =========== Train ===========
 
     times = [datetime.now()]
-    make_inference_fn, params, metrics = train_fn(progress_fn=progress)
+    make_inference_fn, params, metrics = train_fn(
+        progress_fn=progress,
+        policy_params_fn=policy_params_callback,
+    )
     times.append(datetime.now())
 
     print(f"time to jit: {times[1] - times[0]}")
     print(f"time to train: {times[-1] - times[1]}")
+
+    # =========== Save ===========
+
+    hydra_run_dir = HydraConfig.get().runtime.output_dir
+    print(f"Saving files to: {hydra_run_dir}")
+
+    model_path = os.path.join(hydra_run_dir, "trained_model.pkl")
+    model.save_params(model_path, params)
+    print(f"Model parameters saved to {model_path}")
+
+    if best_student_params is not None:
+        best_ckpt = (
+            best_student_params[0],
+            (best_student_params[1], best_student_params[2], best_student_params[3]),
+        )
+        best_model_path = os.path.join(hydra_run_dir, "best_model.pkl")
+        model.save_params(best_model_path, best_ckpt)
+        print(
+            "Best eval checkpoint saved to "
+            f"{best_model_path} (reward={best_eval_reward:.2f}, step={best_eval_step})"
+        )
+
+    if not metric_history:
+        _record_metrics({k: v for k, v in metrics.items()})
+
+    metrics_path = os.path.join(hydra_run_dir, "training_metrics.npz")
+    np.savez(metrics_path, **{k: np.asarray(v, dtype=np.float32) for k, v in metric_history.items()})
+    print(f"Training metrics saved to {metrics_path}")
+
+    run_summary_path = os.path.join(hydra_run_dir, "run_summary.npz")
+    np.savez(
+        run_summary_path,
+        best_eval_reward=np.asarray([best_eval_reward], dtype=np.float32),
+        best_eval_step=np.asarray([best_eval_step], dtype=np.int32),
+        best_eval_avg_episode_length=np.asarray(
+            [best_eval_epoch_length], dtype=np.float32
+        ),
+    )
+    print(f"Run summary saved to {run_summary_path}")
+
+    if use_wandb:
+        logger.save_training_data(hydra_run_dir)
+        logger.finish()
+
+    print("DAgger training completed successfully!")
 
 
 if __name__ == "__main__":
