@@ -115,19 +115,14 @@ git clone <this-repo-url> arcdrone && cd arcdrone
 uv pip install -e ".[ml]"
 ```
 
-3. **Install additional dependencies** not covered by `pyproject.toml`:
 
-```bash
-uv pip install mujoco-warp mediapy
-```
-
-4. **EGL rendering** (headless GPU environments -- RunPod, Docker, SSH):
+3. **EGL rendering** (headless GPU environments -- RunPod, Docker, SSH):
 
 ```bash
 sudo apt-get install -y libegl1 libgles2 libgl1 libglfw3 libosmesa6
 ```
 
-5. **Verify**:
+4. **Verify**:
 
 ```bash
 python -c "

@@ -14,6 +14,9 @@ from .reward import _get_reward_impl
 from .reward import _check_episode_events_impl  
 from .target import _get_target_impl
 
+# 3DGS rendering
+from jax_gsplat import load_ply, render as gs_render, compute_viewmat
+
 import sys as _sys
 from pathlib import Path as _Path
 _NA2_ROOT = str(_Path(__file__).resolve().parents[1])
@@ -65,36 +68,31 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         self.ctrl_min = jp.array(self._mj_model.actuator_ctrlrange[:, 0])
         self.ctrl_max = jp.array(self._mj_model.actuator_ctrlrange[:, 1])
 
-        # Vision setup (warp-based rendering pipeline).
-        # This flag is static for a given run, so python-side branching is safe.
+        # Vision setup (3DGS rendering pipeline).
         self._vision_enabled = bool(getattr(self.cfg, "enable_vision_obs", self.cfg.vision))
         self._grayscale_obs = bool(getattr(self.cfg, "grayscale_obs", True))
-        
-        if self._vision_enabled:
-            vision_kwargs = self.cfg.vision_config.to_dict()
-            # OmegaConf/YAML always deserializes as lists; warp API needs tuples
-            for k in ('cam_res', 'render_rgb', 'render_depth', 'cam_active'):
-                if k in vision_kwargs and isinstance(vision_kwargs[k], list):
-                    vision_kwargs[k] = tuple(vision_kwargs[k])
-            self._rc = mjx.create_render_context(
-                mjm=self._mj_model,
-                **vision_kwargs,
-            )
-            # Warp doesn't support MuJoCo skybox textures — rays that miss geometry
-            # are filled with background_color. Override to match the skybox gradient.
-            from mujoco_warp._src.render_util import pack_rgba_to_uint32
-            _sky_bg = pack_rgba_to_uint32(0.5 * 255.0, 0.7 * 255.0, 0.95 * 255.0, 1.0 * 255.0)
-            for _warp_ctx in self._rc._contexts.values():
-                _warp_ctx.background_color = _sky_bg
-            self._rc_pytree = self._rc.pytree()
-        else:
-            self._rc = None
-            self._rc_pytree = None
 
-        cam_res = self.cfg.vision_config.cam_res
-        if not self._vision_enabled:
+        if self._vision_enabled:
+            gs_cfg = self.cfg.gs
+            self._gs_scene = load_ply(gs_cfg.scene_path)
+            self._cam_id = self._mj_model.camera('x2_camera').id
+
+            cam_res = tuple(gs_cfg.get("cam_res", (120, 160)))
+            cam_h, cam_w = int(cam_res[0]), int(cam_res[1])
+            self._gs_img_shape = (cam_h, cam_w)
+
+            fy = (cam_h / 2.0) / jp.tan(
+                self._mj_model.cam_fovy[self._cam_id] * jp.pi / 360.0
+            )
+            self._gs_f = (float(fy), float(fy))
+            self._gs_c = (cam_w / 2.0, cam_h / 2.0)
+            self._gs_background = jp.array(
+                gs_cfg.get("background", [0.5, 0.7, 0.95]), dtype=jp.float32
+            )
+        else:
+            self._gs_scene = None
             cam_res = (8, 8)
-        cam_h, cam_w = int(cam_res[0]), int(cam_res[1])
+            cam_h, cam_w = int(cam_res[0]), int(cam_res[1])
         self._pixel_channels_per_frame = 1 if self._grayscale_obs else 3
 
         # Raw frame stack channels
@@ -144,11 +142,18 @@ class ARCDroneVisionLandingIL(mjx_env.MjxEnv):
         info = self._initialize_state_vars(data, rng)
 
         if self._vision_enabled:
-            # Vision: render initial frame from the mounted camera
-            render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
-            out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
-
-            frame0 = self._format_frame(mjx.get_rgb(self._rc_pytree, 0, out[0]))
+            # Vision: render initial frame from the mounted GS camera
+            viewmat = compute_viewmat(
+                data.cam_xpos[self._cam_id],
+                data.cam_xmat[self._cam_id],
+            )
+            rgb = gs_render(
+                self._gs_scene, viewmat[None, :, :],
+                background=self._gs_background,
+                img_shape=self._gs_img_shape,
+                f=self._gs_f, c=self._gs_c,
+            )[0]
+            frame0 = self._format_frame(rgb)
             frame_stack_0 = jp.tile(frame0, (1, 1, self.cfg.buffer_size_pixels))
         else:
             frame_stack_0 = self._dummy_frame_stack

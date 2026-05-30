@@ -11,6 +11,7 @@
     <material name="landing_ring_outer" rgba="1 1 1 1" emission="0.6"/>
     <material name="landing_ring_inner" rgba="0.15 0.15 0.15 1" emission="0.2"/>
     <material name="landing_ring_center" rgba="1 0 0 1" emission="0.8"/>
+    <mesh name="scene_collision" file="../../gs/mesh_collision_final.obj" scale="1 1 1"/>
   </asset>
 
   <worldbody>
@@ -34,14 +35,13 @@
 
     <body name="origin_target" pos="0 0 0"/>
 
-    <!-- Fixed overhead camera for external rendering / video -->
-    <!-- <body name="outer_cam_body" pos="4 -4 6">
-      <camera name="outer_camera" pos="0 0 0" xyaxes="1 1 0 -0.3 0.3 1" fovy="60"/>
-    </body> -->
+    <!-- Scene collision mesh (from 3DGS scene — physics only, not rendered by GS) -->
+    <geom name="scene_collision" type="mesh" mesh="scene_collision"
+          group="3" contype="1" conaffinity="1" mass="0"
+          rgba="0.5 0.5 0.5 0.3"/>
 
-    <!-- Floor: use a large finite box so warp raytracer can intersect it.
-         Infinite planes (size="0 0 ...") are NOT rendered by the warp backend. -->
-    <geom name="floor" type="box" size="25 25 0.05" pos="0 0 -0.05" material="grid"/>
+    <!-- Floor: fallback collision plane beneath the scene mesh -->
+    <geom name="floor" type="plane" size="0 0 0.05" pos="0 0 -1" contype="1" conaffinity="1"/>
 
     <geom
       name="landing_ring_outer"

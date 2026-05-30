@@ -14,6 +14,12 @@ dependencies = [
     "hydra-core>=1.3.0",
     "pyzmq>=25.0.0",
     "pyserial>=3.5",
+    "mediapy",
+    "playground",
+    "brax",
+    "jax[cuda12]",
+    "plyfile",
+    "jax-gsplat @ file:jax_gsplat",
 ]
 
 [project.optional-dependencies]
@@ -25,12 +31,13 @@ ml = [
     "jax[cuda12]>=0.4.0",
     "omegaconf>=2.3.0",
     "ml-collections",
-    "mediapy",
+    "mujoco-warp",
 ]
-cad = [
-    "onshape-to-robot>=0.4.0",
-    "pymeshlab>=2025.7,<2026.0",
-]
+# cad = [
+#     "onshape-to-robot>=0.4.0",
+#     "pymeshlab>=2025.7,<2026.0",
+# ]
+
 
 [project.scripts]
 

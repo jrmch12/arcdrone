@@ -82,4 +82,8 @@ reference/
 borrador_mjo/
 sandbox/
 private/
+mujoco_playground/
+prompt_engineering/
+assets/gs/
+colab/
 EOF

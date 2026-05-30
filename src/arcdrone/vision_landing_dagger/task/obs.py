@@ -1,5 +1,5 @@
 import jax.numpy as jp
-from mujoco import mjx
+from jax_gsplat import render as gs_render, compute_viewmat
 
 
 def _get_obs_impl(self, state, action):
@@ -16,12 +16,18 @@ def _get_obs_impl(self, state, action):
     cpf = self._pixel_channels_per_frame
 
     if self._vision_enabled:
-        # ── Pixels: single mounted camera ──
-        render_data = mjx.refit_bvh(self.mjx_model, data, self._rc_pytree)
-        out = mjx.render(self.mjx_model, render_data, self._rc_pytree)
-
-        # Camera 0: x2_camera (mounted on drone)
-        frame0 = self._format_frame(mjx.get_rgb(self._rc_pytree, 0, out[0]))
+        # ── Pixels: render GS scene from mounted camera ──
+        viewmat = compute_viewmat(
+            data.cam_xpos[self._cam_id],
+            data.cam_xmat[self._cam_id],
+        )
+        rgb = gs_render(
+            self._gs_scene, viewmat[None, :, :],
+            background=self._gs_background,
+            img_shape=self._gs_img_shape,
+            f=self._gs_f, c=self._gs_c,
+        )[0]
+        frame0 = self._format_frame(rgb)
         shifted_0 = jp.concatenate([prev_stack_0[..., cpf:], frame0], axis=-1)
         frame_stack_0 = jp.where(do_shift, shifted_0, prev_stack_0.at[..., -cpf:].set(frame0))
 

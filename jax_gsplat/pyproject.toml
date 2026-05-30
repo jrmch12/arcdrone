@@ -1,0 +1,13 @@
+[build-system]
+requires = ["scikit-build-core", "pybind11"]
+build-backend = "scikit_build_core.build"
+
+[project]
+name = "jax-gsplat"
+version = "0.1.0"
+description = "Batched 3D Gaussian Splatting renderer for JAX with CUDA"
+requires-python = ">=3.10"
+dependencies = ["plyfile"]
+
+[tool.scikit-build]
+cmake.version = ">=3.24"

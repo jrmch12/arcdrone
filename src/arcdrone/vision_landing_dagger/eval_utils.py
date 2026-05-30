@@ -55,9 +55,8 @@ def load_config():
 
 
 def build_env(cfg, batch_envs: int):
-    """Create the ARCDrone environment with the correct nworld setting."""
+    """Create the ARCDrone environment."""
     cfg_env = OmegaConf.to_container(cfg.env, resolve=True)
-    cfg_env["vision_config"]["nworld"] = int(batch_envs)
     cfg_env["naconmax"] = int(cfg_env["njmax"]) * int(batch_envs)
     return ARCDroneVisionLandingIL(cfg=cfg_env), cfg_env
 
