@@ -1,4 +1,39 @@
-# ARCdrone
+> [!IMPORTANT]
+> **🚧 Active Branch**
+## 🚧 Gaussian Splatting Rendering for Sim-to-Real Transfer
+Enhancing MuJoCo Playground with GPU-accelerated 3DGS for zero-shot sim-to-real transfer.
+
+<p align="center">
+  <img src="docs/media/fly_gs.gif" width="35%" alt="GS fly demo" />
+</p>
+
+### 🗺️ Roadmap
+
+| | Task | Notes |
+|:--:|------|-------|
+| ✅ | **GS rendering with CUDA kernels** | batch vmap axis for parallelized environment rendering: Gym-like step API preserved · [`./jax_gsplat`](jax_gsplat/) |
+| (~) | **Scene generation pipeline** | Compositing done · surface mesh generation in progress · [`./scene_pipeline`](scene_pipeline/) |
+| (  ) | **Data augmentation** | Heavy augmentation + domain randomization pipeline |
+| (  ) | **DAgger IL (full GS pipeline)** | Student distillation end-to-end with GS rendering for sim-to-real |
+
+### 📚 GS References
+
+| | Reference |
+|--|-----------|
+| **3DGS** | B. Kerbl, G. Kopanas, T. Leimkühler, G. Drettakis. "3D Gaussian Splatting for Real-Time Radiance Field Rendering." *ACM Transactions on Graphics*, 42(4), SIGGRAPH 2023. [[paper]](https://repo-sam.inria.fr/fungraph/3d-gaussian-splatting/) [[code]](https://github.com/graphdeco-inria/gaussian-splatting) |
+| **gsplat** | V. Ye, R. Li, J. Kerr, M. Turkulainen, B. Kim, Z. Chen, N. Holden, O. Johannsen, A. Bhatt, B. Kerbl, M. Tancik, A. Kanazawa. "gsplat: An Open-Source Library for Gaussian Splatting." *arXiv preprint*, 2024. [[code]](https://github.com/nerfstudio-project/gsplat) |
+| **jaxsplat** | Y. Kim. "jaxsplat: JAX bindings for differentiable 3DGS rendering." [[code]](https://github.com/yklcs/jaxsplat) |
+| **mesh2splat** | GaussianAnything. "mesh2splat: Training-free mesh-to-Gaussian conversion." [[code]](https://github.com/GaussianAnything/mesh2splat) |
+| **GaussGym** | GaussGym. "RL environment with Gaussian Splatting rendering" — re-implemented here in JAX with `vmap`. |
+
+---
+
+
+
+
+# ARCDRONE
+
+
 
 **Pixel-to-action autonomous landing policy** for the Aerospace Research Lab (ARC) at the Universidad de Piura (UDEP).
 

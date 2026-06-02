@@ -1,0 +1,9 @@
+numpy>=1.24
+open3d>=0.18
+plyfile>=1.0
+tqdm>=4.66
+torch
+huggingface_hub>=0.23
+nksr
+viser
+trimesh
