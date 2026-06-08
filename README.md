@@ -4,7 +4,7 @@
 Enhancing MuJoCo Playground with GPU-accelerated 3DGS for zero-shot sim-to-real transfer.
 
 <p align="center">
-  <img src="docs/media/fly_gs.gif" width="35%" alt="GS fly demo" />
+  <video autoplay muted loop playsinline src="docs/media/fly_gs.mp4" width="35%"></video>
 </p>
 
 ### 🗺️ Roadmap
@@ -40,9 +40,9 @@ Enhancing MuJoCo Playground with GPU-accelerated 3DGS for zero-shot sim-to-real 
 Training, physics simulation, and rendering are GPU-accelerated end-to-end via [MuJoCo Playground](https://github.com/google-deepmind/mujoco_playground) with the Warp ray-tracing backend.
 
 <p align="center">
-  <img src="docs/media/clip1_16-41.gif" width="45%" alt="Landing demo 1" />
+  <video autoplay muted loop playsinline src="docs/media/clip1_16-41.mp4" width="45%"></video>
   &nbsp;&nbsp;
-  <img src="docs/media/clip2_43-79.gif" width="45%" alt="Landing demo 2" />
+  <video autoplay muted loop playsinline src="docs/media/clip2_43-79.mp4" width="45%"></video>
 </p>
 
 ## Methodology
@@ -62,9 +62,9 @@ The student policy receives two observation channels:
 - **`proprio_obs`** -- Proprioceptive vector (flattened): action history, linear acceleration, angular velocity, orientation quaternion, and camera tilt angle/velocity -- all buffered over 3 time steps.
 
 <p align="center">
-  <img src="docs/media/obs_pixels.gif" width="45%" alt="Pixel observations" />
+  <video autoplay muted loop playsinline src="docs/media/obs_pixels.mp4" width="45%"></video>
   &nbsp;&nbsp;
-  <img src="docs/media/obs_pixels_opticalflow.gif" width="45%" alt="Optical flow proxy" />
+  <video autoplay muted loop playsinline src="docs/media/obs_pixels_opticalflow.mp4" width="45%"></video>
 </p>
 
 ### Action Space
