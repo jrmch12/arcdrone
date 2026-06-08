@@ -1,10 +1,11 @@
+
 > [!IMPORTANT]
 > **🚧 Active Branch**
 ## 🚧 Gaussian Splatting Rendering for Sim-to-Real Transfer
 Enhancing MuJoCo Playground with GPU-accelerated 3DGS for zero-shot sim-to-real transfer.
 
 <p align="center">
-  <video autoplay muted loop playsinline src="docs/media/fly_gs.mp4" width="35%"></video>
+  ![fly_gs](https://github.com/user-attachments/assets/5720f489-5cae-41c3-b9ee-8e3a548f88c4)
 </p>
 
 ### 🗺️ Roadmap
@@ -40,9 +41,9 @@ Enhancing MuJoCo Playground with GPU-accelerated 3DGS for zero-shot sim-to-real 
 Training, physics simulation, and rendering are GPU-accelerated end-to-end via [MuJoCo Playground](https://github.com/google-deepmind/mujoco_playground) with the Warp ray-tracing backend.
 
 <p align="center">
-  <video autoplay muted loop playsinline src="docs/media/clip1_16-41.mp4" width="45%"></video>
+  ![clip1](https://github.com/user-attachments/assets/b25834fd-18da-4950-a971-7c8642700adf)
   &nbsp;&nbsp;
-  <video autoplay muted loop playsinline src="docs/media/clip2_43-79.mp4" width="45%"></video>
+  ![clip2](https://github.com/user-attachments/assets/e10e547e-f0be-4f70-b167-bf78b1bf7f69)
 </p>
 
 ## Methodology
@@ -62,9 +63,9 @@ The student policy receives two observation channels:
 - **`proprio_obs`** -- Proprioceptive vector (flattened): action history, linear acceleration, angular velocity, orientation quaternion, and camera tilt angle/velocity -- all buffered over 3 time steps.
 
 <p align="center">
-  <video autoplay muted loop playsinline src="docs/media/obs_pixels.mp4" width="45%"></video>
+  ![obs_pixels](https://github.com/user-attachments/assets/c7d0eaab-b49c-45bd-8abd-fa1881ddbb89)
   &nbsp;&nbsp;
-  <video autoplay muted loop playsinline src="docs/media/obs_pixels_opticalflow.mp4" width="45%"></video>
+  ![obs_pixels_opticalflow](https://github.com/user-attachments/assets/6cfb3b0a-2dcd-4282-ab53-49af8b62c960)
 </p>
 
 ### Action Space
