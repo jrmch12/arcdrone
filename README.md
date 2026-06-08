@@ -4,11 +4,11 @@
 
 Training, physics simulation, and rendering are GPU-accelerated end-to-end via [MuJoCo Playground](https://github.com/google-deepmind/mujoco_playground) with the Warp ray-tracing backend.
 
-<p align="center">
-  <img src="docs/media/clip1_16-41.gif" width="45%" alt="Landing demo 1" />
-  &nbsp;&nbsp;
-  <img src="docs/media/clip2_43-79.gif" width="45%" alt="Landing demo 2" />
-</p>
+
+https://github.com/user-attachments/assets/b25834fd-18da-4950-a971-7c8642700adf
+
+https://github.com/user-attachments/assets/e10e547e-f0be-4f70-b167-bf78b1bf7f69
+
 
 ## Methodology
 
@@ -26,11 +26,9 @@ The student policy receives two observation channels:
 - **`pixels/view_0`** -- Grayscale 64x64 frames from a downward-tilting onboard camera, stacked over 5 time steps (with frame-skip of 2) plus 4 frame-difference channels as an optical-flow proxy. Total: 9 channels.
 - **`proprio_obs`** -- Proprioceptive vector (flattened): action history, linear acceleration, angular velocity, orientation quaternion, and camera tilt angle/velocity -- all buffered over 3 time steps.
 
-<p align="center">
-  <img src="docs/media/obs_pixels.gif" width="45%" alt="Pixel observations" />
-  &nbsp;&nbsp;
-  <img src="docs/media/obs_pixels_opticalflow.gif" width="45%" alt="Optical flow proxy" />
-</p>
+https://github.com/user-attachments/assets/c7d0eaab-b49c-45bd-8abd-fa1881ddbb89
+
+https://github.com/user-attachments/assets/6cfb3b0a-2dcd-4282-ab53-49af8b62c960
 
 ### Action Space
 
